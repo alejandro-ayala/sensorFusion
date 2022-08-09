@@ -1,7 +1,7 @@
 /*
  * CryptoMng.h
  *
- *  Created on: 23 jul. 2022
+ *  Created on: 25 jul. 2022
  *      Author: Alejandro
  */
 
@@ -9,37 +9,47 @@
 #define _CRYPTOMNG_H_
 #include <string>
 #include <vector>
-
+#ifndef TEST_BUILD
 #include "mbedtls/ssl.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
+#else
+#include "HTTPConnectionTypes.h"
+#endif
+
+namespace Tools
+{
+	class SPDSocket;
+}
 
 class CryptoMng
 {
 public:
-	CryptoMng(bool crtVerification, int socket, std::string serverIP);
+	CryptoMng();
 	~CryptoMng();
 
-	void configureSSL(int socket);
+	void configureSSL();
 	void sendData(const std::string& getReq);
-	void readResponse();
+	void readResponse(std::string& response);
 	void tlsHandshake();
 	void certificateVerification();
+	void closeSSLContext();
+	Tools::SPDSocket* getSocket();
 
 private:
-	std::string serverIP;
-	int configureTCPSocket();
-	bool crtVerification;
+	std::string serverIP = "Hostname";
+	Tools::SPDSocket* socket;
+
+	bool crtVerification = true;
 	bool rootCA = true;
 	bool checkHostName = false;
 	void configureEntropy();
     void importRootCA();
-	static int readDataCallback(void *ctx, unsigned char *buf, size_t len);
-	static int sendDataCallback(void *ctx, const unsigned char *buf, size_t len);
 	static int crtfVerify(void *ctx, mbedtls_x509_crt *crt, int depth,uint32_t *flags);
-	std::string& readRootCA();
+	void reconnect(void);
+	bool readRootCA(std::string& rootCA);
 	const mbedtls_ssl_context& getSslContext();
-	int socketNumber;
+	bool checkCertificateValidityPeriod(mbedtls_x509_crt *crt, uint32_t *flags);
 	static const char *ROOT_CA;
 
 	mbedtls_entropy_context entropy;

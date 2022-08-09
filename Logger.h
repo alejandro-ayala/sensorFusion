@@ -11,5 +11,5 @@
 #define PRINT_DEBUG2 xil_printf
 #define PRINT_ERROR1 xil_printf
 #define PRINT_FATAL1 xil_printf
-
+#define PRINT_WARNE xil_printf
 typedef const char* cstring;

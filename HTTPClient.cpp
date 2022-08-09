@@ -1,4 +1,9 @@
-
+/*
+ * HTTPClient.cpp
+ *
+ *  Created on: 25 jul. 2022
+ *      Author: Alejandro
+ */
 #include <iostream>
 using std::cerr;
 using std::cout;
@@ -15,20 +20,7 @@ using std::ifstream;
 
 HTTPClient::HTTPClient()
 {
-	ip_addr_t* SERVER_IP;
-	uint16_t SERVER_PORT;
-	IP4_ADDR(SERVER_IP, 192, 168, 1, 100);
-	useSSL = false;
-	if(useSSL)
-	{
-		SERVER_PORT = 7233;
-	}
-	else
-	{
-		SERVER_PORT = 5233;
-	}
-	conn = new Conectivity::HTTPConnection(SERVER_IP,SERVER_PORT, useSSL);
-
+	conn = createNewConnection(true);
 }
 
 HTTPClient::~HTTPClient()
@@ -39,20 +31,13 @@ HTTPClient::~HTTPClient()
 
 void HTTPClient::openConnection()
 {
-	if(useSSL)
-	{
-		conn->openConnection();
-	}
+	conn->openConnection();
 }
 
 void HTTPClient::closeConnection()
 {
-	if(useSSL)
-	{
-		conn->closeConnection();
-	}
+	conn->closeConnection();
 }
-
 
 void HTTPClient::getRequest(const char* url)
 {
@@ -77,6 +62,25 @@ void HTTPClient::postRequest(const char* url,std::vector<std::pair<std::string,s
 
 	}
 	conn->request(postHttpReq);
+
 }
 
+Conectivity::HTTPConnection* HTTPClient::createNewConnection(bool secureConn)
+{
+	ip_addr_t* serverIP = new ip_addr_t();
+	uint16_t serverPort;
 
+	IP4_ADDR(serverIP, 192, 168, 56, 1);
+
+	if(secureConn)
+	{
+		serverPort = 7233;
+		CryptoMng* cryptoMng = new CryptoMng();
+		return new Conectivity::HTTPConnection(serverIP,serverPort, cryptoMng);
+	}
+	else
+	{
+		serverPort = 5233;
+		return new Conectivity::HTTPConnection(serverIP,serverPort);
+	}
+}

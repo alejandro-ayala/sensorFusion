@@ -1,140 +1,163 @@
-
+/*
+ * CryptoMng.cpp
+ *
+ *  Created on: 25 jul. 2022
+ *      Author: Alejandro
+ */
 #include <stdint.h>
 #include <string.h>
-
+#ifndef TEST_BUILD
+#include "lwip/err.h"
 #include "mbedtls/x509.h"
+#endif
 #include "CryptoMng.h"
 #include "Logger.h"
-#include <lwip/sockets.h>
+#include "ProjectExceptions.h"
+#include "Tools/SPDSocket.h"
 
-
-//const char *CryptoMng::ROOT_CA = "-----BEGIN CERTIFICATE-----\nMIIDEzCCAfsCFCoP4eoHE17jVrmoc+NxSybT9FL+MA0GCSqGSIb3DQEBCwUAMEYxCzAJBgNVBAYTAlNQMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDEVMBMGA1UECgwMQW1wYWNpbW9uIENBMB4XDTIyMDgwMjExMDYyMVoXDTMyMDczMDExMDYyMVowRjELMAkGA1UEBhMCU1AxDzANBgNVBAgMBk1hZHJpZDEPMA0GA1UEBwwGTWFkcmlkMRUwEwYDVQQKDAxBbXBhY2ltb24gQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCVN9RU5AWqfHeiCef+1ZbFbKGchHzHSEW57ctTP2lxqHjjHVqEjY57DZO3JoHe8ex8Jd3yC7zlBAUa/ezIkivitAoSXHWWVsrMavMMd9VJzjQ6sVym5PwrnTRt4AyN1y97pctNXKPXRD01CaTAmloniEGs4grft96Q/qbyY9FdOszc3odlHhw00cv0Li/e/wBa137NN8lqSQeK13yyZs2eO/lKJUQ1JAgVdU/aGtQfCX82I6iHB07rts8J7vpd2lm/O4jaWtbBhDPefSdGSJoaZFQkENP6r3D5kmu/S4KWmDe1YYTN/9lJMlnBygwejjKgONurPmgewd9OW+q84qa1AgMBAAEwDQYJKoZIhvcNAQELBQADggEBAEfMX28wkyM+wgWDsjR7YftXt27xVcAkBtGpphPkMhBIE81TYWLtnO7Xj8VNj6jcbb1K/ABcdL5AtO48bhO4/Eh4ACf9oC1WBDI3yYIkVmY8RCNrEsTacmKBUlHq88Q3V50mXOsr9hnJUEzogBoBUZSlrNcUPnuRp05gcFobY0BoGNhDkEobglfC47rMjM3pgF8PWHTMgAQBip2okzD2bW3Ay1Oc2pUFZQpfQD0MEaFExk6a0lyPAaL7GX0CvUyh96e0e7DMn1W/VWPv0vErAJQE7d6vT64xSZNCWnyUxLd/bE+ulJkDTIX6BLp58a8tuaeWT8Nk3Wy2BH4iQqoXnSo=-----END CERTIFICATE-----\n";
-const char *CryptoMng::ROOT_CA = "-----BEGIN CERTIFICATE-----\nMIIDFTCCAf0CFCTY8cEiA2q06Kl2y+cYQ75FbEBRMA0GCSqGSIb3DQEBCwUAMEcxCzAJBgNVBAYTAlNQMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDEWMBQGA1UECgwNTWFzdGVyIFVQTSBDQTAeFw0yMjA4MDMxNjU0MjRaFw0zMjA3MzExNjU0MjRaMEcxCzAJBgNVBAYTAlNQMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDEWMBQGA1UECgwNTWFzdGVyIFVQTSBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAPADdomVQGF/koYds0srgKUVwoG+EWxybxQ0JTuyR1pPGigFJaG9irPGdVAE+5uBcp3q2SQnPjHC2ihlhbBmGW+BUnbOf+zSsqDMnLMKVFtJBvibqQWbz66eHJPkRn8daVZbeOIZekbf5FvREOH76n/cwxoUcY7RL61kUBYYOALfJh9D62cGWw1VjR8ArYCpjJ6pwE1296sWEiPfuWjrUq3cczLgWfjnEuCUUhz07dv9U47JfIYI8h+wP2h3HVv1IculPx1RTizdDnXeKB8oK+k44H0+xco19yCEvT2PPjn0zaIzNDfN2SdljHvL4JcbA9oNZvG4j7a3cTbBBHmpChECAwEAATANBgkqhkiG9w0BAQsFAAOCAQEADEpfw/Y710XTPlEK2aB24APEwxVhaKwkLZQTOfKrx9xKCCT6wVXMgyZAm44Ywi68jo0WPhvMeTkRh8CpjNFYWdrxjfpi2pdpV1MSWUpqa7g/dDoJVRmrqY810J4LbE5JNkXbbB5lGkEY3L2BGSO7SamQ2BMm3blJZ1qSj0fpPstfvhqCeeb0En9vk++vJxwJvuK7l7ESFuDg8FP3hjBblwESBh3cTi9RVax5FEuHBcSbkfisjLcNhW7hEcs+zrr11uBUAyZkvCHFO3H5dKPv1dz3KMpg0LuBvMIhufeAh2i4pBK2wIOUsglyBeHkhwBqt9n8eVigWgazjJCYn9gI5w==-----END CERTIFICATE-----\n";
-
+const char *CryptoMng::ROOT_CA = "-----BEGIN CERTIFICATE-----\nMIIDEzCCAfsCFCoP4eoHE17jVrmoc+NxSybT9FL+MA0GCSqGSIb3DQEBCwUAMEYxCzAJBgNVBAYTAlNQMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDEVMBMGA1UECgwMQW1wYWNpbW9uIENBMB4XDTIyMDgwMjExMDYyMVoXDTMyMDczMDExMDYyMVowRjELMAkGA1UEBhMCU1AxDzANBgNVBAgMBk1hZHJpZDEPMA0GA1UEBwwGTWFkcmlkMRUwEwYDVQQKDAxBbXBhY2ltb24gQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCVN9RU5AWqfHeiCef+1ZbFbKGchHzHSEW57ctTP2lxqHjjHVqEjY57DZO3JoHe8ex8Jd3yC7zlBAUa/ezIkivitAoSXHWWVsrMavMMd9VJzjQ6sVym5PwrnTRt4AyN1y97pctNXKPXRD01CaTAmloniEGs4grft96Q/qbyY9FdOszc3odlHhw00cv0Li/e/wBa137NN8lqSQeK13yyZs2eO/lKJUQ1JAgVdU/aGtQfCX82I6iHB07rts8J7vpd2lm/O4jaWtbBhDPefSdGSJoaZFQkENP6r3D5kmu/S4KWmDe1YYTN/9lJMlnBygwejjKgONurPmgewd9OW+q84qa1AgMBAAEwDQYJKoZIhvcNAQELBQADggEBAEfMX28wkyM+wgWDsjR7YftXt27xVcAkBtGpphPkMhBIE81TYWLtnO7Xj8VNj6jcbb1K/ABcdL5AtO48bhO4/Eh4ACf9oC1WBDI3yYIkVmY8RCNrEsTacmKBUlHq88Q3V50mXOsr9hnJUEzogBoBUZSlrNcUPnuRp05gcFobY0BoGNhDkEobglfC47rMjM3pgF8PWHTMgAQBip2okzD2bW3Ay1Oc2pUFZQpfQD0MEaFExk6a0lyPAaL7GX0CvUyh96e0e7DMn1W/VWPv0vErAJQE7d6vT64xSZNCWnyUxLd/bE+ulJkDTIX6BLp58a8tuaeWT8Nk3Wy2BH4iQqoXnSo=-----END CERTIFICATE-----\n";
+/*fail CA*/
+//const char *CryptoMng::ROOT_CA = "-----BEGIN CERTIFICATE-----\nMIIDSzCCAjOgAwIBAgIUOJXtmYcCBW/o8V+HXI8AccG8qwgwDQYJKoZIhvcNAQELBQAwFjEUMBIGA1UEAwwLRWFzeS1SU0EgQ0EwHhcNMjIwODAyMDczNzQ5WhcNMzIwNzMwMDczNzQ5WjAWMRQwEgYDVQQDDAtFYXN5LVJTQSBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAPP/2ysUZIf6HpHH3F41SkqvsAQHVR+5f4nyXHYzYr25rlx79zBKNz4aTuxCX6YxdYULse0aYPAg49wBcFZ2QHoOEhRjmAk8OT8/xNNpGABrfreyi4f0OrsmaMGOeiWUYtEjb6VArlTl4Y+FiFiyS0l1UzO2f+1f/Wd8MH/iRUUJ0TehbP2f3Pw6URSlgWbc/jEqiW77Oud1uyaBdNduc3OsV78QbyuHa39HP2pB06mY7IUN930AHgIIeKm5TVujIDx/8eija/p0aeBhx5k+qfAmPcD/mY9rF+jiCUsjnuyOSeMKGpe8/Xt6lD0Ta6lrHhtikZTLrBi0tEs0CQuZO9cCAwEAAaOBkDCBjTAdBgNVHQ4EFgQUIwnFlbnnDHvcy5GKeyA/QPQxgxMwUQYDVR0jBEowSIAUIwnFlbnnDHvcy5GKeyA/QPQxgxOhGqQYMBYxFDASBgNVBAMMC0Vhc3ktUlNBIENBghQ4le2ZhwIFb+jxX4dcjwBxwbyrCDAMBgNVHRMEBTADAQH/MAsGA1UdDwQEAwIBBjANBgkqhkiG9w0BAQsFAAOCAQEAeTLom9CPOPa2dgWDoFgK+/NYNqDHEnqH82d7F6N6xAIq3ufq8obAkz3o70sNNpydk3fj5L/ze+Y0pnfPWaHW0uXoe/g8K6AP0kgpplJMOLIaUq3Ia8k5nHSN1lFgo4ls87wfMe5dC1TIO2x5bizrOsAuxAbC0YDZ5GfA57N6zcjg9qsXHZch1E7sQyqBeZe2qn+aeYrfuz3Z/hGilKFNHn/1MxRD5Yzv+PuzcRmxRcF7N8vgVu5fuBd0oGva2nQVJCG2mSx3ekSv/s22wui7N+pLHl9/EezJQ5lQyVKD9aeDPXVWmQc2k0JgryK5OXU45mS90CUqtOMk4mqOgrznYA==-----END CERTIFICATE-----\n";
 const size_t SERVER_BUFFER_LENGTH = 1024;
 
-CryptoMng::CryptoMng(bool crtVerification, int socket, std::string serverIP) : crtVerification(crtVerification),  socketNumber(socketNumber), serverIP(serverIP)
+#ifndef TEST_BUILD
+namespace
 {
+size_t readDataCallback(void *ctx, unsigned char *buf, size_t len)
+{
+	CryptoMng *cryptoMng = static_cast<CryptoMng *>(ctx);
+	Tools::SPDSocket* socket = cryptoMng->getSocket();
+	size_t ret = socket->readSocket(buf, len);
+	return ret;
+}
+
+size_t sendDataCallback(void *ctx, const unsigned char *buf, size_t len)
+{
+	CryptoMng *cryptoMng = static_cast<CryptoMng *>(ctx);
+	Tools::SPDSocket* socket = cryptoMng->getSocket();
+	size_t ret = socket->writeSocket(buf, len);
+	return ret;
+}
+}
+#endif
+CryptoMng::CryptoMng()
+{
+#ifndef TEST_BUILD
 	mbedtls_entropy_init(&entropy);
 	mbedtls_ctr_drbg_init(&ctrfDrbg);
 	mbedtls_x509_crt_init(&caCrtf);
 	mbedtls_ssl_init(&ssl);
 	mbedtls_ssl_config_init(&sslConfig);
+#endif
 }
 
 CryptoMng::~CryptoMng()
 {
-	mbedtls_entropy_free(&entropy);
-	mbedtls_ctr_drbg_free(&ctrfDrbg);
-	mbedtls_x509_crt_free(&caCrtf);
-	mbedtls_ssl_free(&ssl);
-	mbedtls_ssl_config_free(&sslConfig);
+	closeSSLContext();
 }
 
 void CryptoMng::tlsHandshake()
 {
+#ifndef TEST_BUILD
 	int status = MBEDTLS_ERR_SSL_WANT_READ;
 	bool handShakeTimeout = false;
 	PRINT_NOTIF("Getting certificate from server");
 	//TODO ADD active waiting
-	while(!handShakeTimeout && (status == MBEDTLS_ERR_SSL_WANT_READ || status == MBEDTLS_ERR_SSL_WANT_WRITE))
+	//while(!handShakeTimeout && (status == MBEDTLS_ERR_SSL_WANT_READ || status == MBEDTLS_ERR_SSL_WANT_WRITE))
+	while((status != ERR_OK))
 	{
 		status = mbedtls_ssl_handshake(&ssl);
-		handShakeTimeout = false;
+		if((status == MBEDTLS_ERR_SSL_WANT_READ || status == MBEDTLS_ERR_SSL_WANT_WRITE))
+		{
+			THROW_FUNC_EXCEPT(ERROR_CODE::TLS_SERVER_CONNECTION, "TLS connection is down");
+		}
 	}
-
 	if (status < 0)
 	{
-		//PRINT_WARN1("Error happen during handshake: ", -ret);
-		//Throw
+		//TODO: check if needed idenfity the root cause
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_SERVER_HANDSHAKE, "Error happen during handshake with server");
 	}
 	else
 	{
-		PRINT_NOTIF("Certificate received from server\n");
+		PRINT_DEBUG("Certificate verification passed");
 	}
+#endif
 }
 
 void CryptoMng::certificateVerification()
 {
+#ifndef TEST_BUILD
 	char serverCert[SERVER_BUFFER_LENGTH] = " ";
 	int ret = mbedtls_x509_crt_info(serverCert, sizeof(serverCert),"\r  ", mbedtls_ssl_get_peer_cert(&ssl));
 	if (ret < 0)
 	{
-		////PRINT_DEBUG1("Error geting server certificate info returned ", -ret);
-		//THROW
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_PARSE_CERTF, "Server certificate can not be parsed");
 	}
-	////PRINT_DEBUG1("Server certificate:\n%s\n", serverCert);
+	PRINT_DEBUG1("Server certificate:\n%s\n", serverCert);
 
 	uint32_t flags = mbedtls_ssl_get_verify_result(&ssl);
-	if (flags != 0)
+	if (flags != ERR_OK)
 	{
 		ret = mbedtls_x509_crt_verify_info(serverCert, sizeof(serverCert), "\r  ! ", flags);
-		if (ret < 0)
-		{
-			////PRINT_DEBUG1("mbedtls_x509_crt_verify_info() returned ", -ret);
-			//THROW
-		}
-		else
-		{
-			////PRINT_DEBUG1("Certificate verification failed -> flags: ", flags);
-			//THROW
-		}
+		PRINT_DEBUG1("Certificate verification failed: ", serverCert);
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_VERIFY_CHAIN_CERTF, "Chain of certificates can not be validated");
 	}
-
-	PRINT_INFO("Certificate verification passed\n");
-	PRINT_INFO1("Established TLS connection to %s\n", serverIP.c_str());
-
+#endif
 }
 
 void CryptoMng::sendData(const std::string& getReq)
 {
-	int ret = 0;
-	size_t pendingData = 0;
+#ifndef TEST_BUILD
+	int ret;
+	size_t pendingData;
 	size_t dataLenght = getReq.length();
+	ASSERT_TECH(ERROR_CODE::TLS_INVALID_MSG_SIZE, dataLenght <= MBEDTLS_SSL_OUT_CONTENT_LEN, "SSL content size is higher than the maximum");
+
 	ret = mbedtls_ssl_write(&ssl,reinterpret_cast<const unsigned char *>(getReq.c_str()), dataLenght);
 	if ((ret > 0) && (static_cast<size_t>(ret) != dataLenght))
 	{
-		//TODO check if throw an exception when not full request is send and then retry!
 		pendingData = static_cast<size_t>(ret);
 		PRINT_WARN1("The full request was not sent! Pending byte: %d", (dataLenght - pendingData));
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_INCOMPLETE_SEND, "The full request was not sent");
 	}
-	else if (ret < 0)
+	else if ((ret < 0) || (ret == MBEDTLS_ERR_SSL_WANT_WRITE) || (ret == MBEDTLS_ERR_SSL_WANT_READ))
 	{
-		//PRINT_ERROR1("Error during SSL write process ", -ret);
-		//Throw exception with the send data error!
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_SEND_DATA, "Failed SSL write process");
 	}
+#endif
 }
 
-void CryptoMng::readResponse()
+void CryptoMng::readResponse(std::string& response)
 {
-	//TODO review read response method
+#ifndef TEST_BUILD
 	char serverResponse[SERVER_BUFFER_LENGTH] = " ";
-	constexpr char* HTTP_OKEY_RESPONSE = "200 OK";
-	constexpr char* HTTP_ERROR_RESPONSE = "501 ERROR";
+	size_t readBytes = 0;
 
-	bool timeout = false;
-	size_t pendingBytes = 0;
-	int readResult = MBEDTLS_ERR_SSL_WANT_READ;
-	//TODO add active wait and check status(MBEDTLS_ERR_SSL_WANT_READ, MBEDTLS_ERR_SSL_WANT_WRITE)
-	while(!timeout && (readResult == MBEDTLS_ERR_SSL_WANT_READ || readResult == MBEDTLS_ERR_SSL_WANT_WRITE))
+	const int readResult = mbedtls_ssl_read(&ssl,reinterpret_cast<unsigned char *>(serverResponse  + readBytes),SERVER_BUFFER_LENGTH - readBytes - 1);
+	readBytes = static_cast<size_t>(readResult);
+
+	if(readResult == MBEDTLS_ERR_SSL_CLIENT_RECONNECT)
 	{
-		readResult = mbedtls_ssl_read(&ssl,reinterpret_cast<unsigned char *>(serverResponse  + pendingBytes),sizeof(serverResponse) - pendingBytes - 1);
-		serverResponse[pendingBytes] = '\0';
-		pendingBytes += static_cast<size_t>(readResult);
-		timeout = false;
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_CONNECTION_LOST, "Connection lost with the server.");
 	}
-	if (readResult < 0)
+	else if(readResult == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
 	{
-		//Throw error during read response
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_CLOSE_CONNECTION, "Close notification to server failed");
+	}
+	else if (readResult < 0)
+	{
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_INCOMPLETE_RESPONSE, "Failed HTTPs read process.");
 	}
 
-	//PRINT_DEBUG1("Received %u chars from server\n", offset);
-	//PRINT_DEBUG1("Received message:\n", serverResponse);
+	response = serverResponse;
+	PRINT_DEBUG1("Received message:\n", serverResponse);
+#endif
 }
 
 //TODO refactor this method to get the SSL config as parameters
-void CryptoMng::configureSSL(int socket)
+void CryptoMng::configureSSL()
 {
+#ifndef TEST_BUILD
 	int ret;
 
 	configureEntropy();
@@ -147,15 +170,16 @@ void CryptoMng::configureSSL(int socket)
 
 	ret = mbedtls_ssl_config_defaults(&sslConfig, MBEDTLS_SSL_IS_CLIENT,MBEDTLS_SSL_TRANSPORT_STREAM,MBEDTLS_SSL_PRESET_DEFAULT);
 
-	if (ret != 0)
+	if (ret != ERR_OK)
 	{
-		//PRINT_ERROR1("Error configuring default SSL configuration: ",-ret);
-		//THROW exception
+		PRINT_ERROR1("Error configuring default SSL configuration: ",-ret);
+		//THROW exception???
 	}
 
 	mbedtls_ssl_conf_rng(&sslConfig, mbedtls_ctr_drbg_random, &ctrfDrbg);
 
 	uint8_t verificationMethod = MBEDTLS_SSL_VERIFY_REQUIRED;
+	crtVerification = false;
 	if(!crtVerification)
 	{
 		verificationMethod = MBEDTLS_SSL_VERIFY_NONE;
@@ -164,75 +188,91 @@ void CryptoMng::configureSSL(int socket)
 
 	mbedtls_ssl_conf_verify(&sslConfig, crtfVerify, this);
 
-	if ((ret = mbedtls_ssl_setup( &ssl, &sslConfig)) != 0)
+	if ((ret = mbedtls_ssl_setup( &ssl, &sslConfig)) != ERR_OK)
 	{
-		//PRINT_ERROR1("Error during Secure socket layer ", -ret);
+		PRINT_ERROR1("Error during Secure socket layer ", -ret);
 		//THROW exception
 	}
 
 	//TODO check to enable
 	if(checkHostName)
 	{
-		if ((ret = mbedtls_ssl_set_hostname( &ssl, serverIP.c_str() )) != 0)
+		if ((ret = mbedtls_ssl_set_hostname( &ssl, serverIP.c_str() )) != ERR_OK)
 		{
-			//PRINT_ERROR1("Error assigning the server host name returned ", -ret);
+			PRINT_ERROR1("Error assigning the server host name returned ", -ret);
 			//THROW exception
 		}
 	}
 	mbedtls_ssl_set_bio(&ssl, static_cast<void *>(&socket), sendDataCallback, readDataCallback,	NULL);
-
+	mbedtls_ssl_session_reset(&ssl);
+#endif
 }
 
 void CryptoMng::importRootCA()
 {
-	//const std::string rootCA = readRootCA();
-	const int ret = mbedtls_x509_crt_parse(&caCrtf,reinterpret_cast<const unsigned char *>(ROOT_CA),strlen(ROOT_CA) + 1);
-	if (ret != 0)
+#ifndef TEST_BUILD
+	std::string rootCA;
+	int ret = readRootCA(rootCA);
+	if(!ret)
 	{
-		PRINT_FATAL1("Error during import root CA ", -ret);
-		//THROW EXCEPTION
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_RETRIEVE_ROOT_CA, "Root CA can not be retrieved");
+	}
+	ret = mbedtls_x509_crt_parse(&caCrtf,reinterpret_cast<const unsigned char *>(ROOT_CA),strlen(ROOT_CA) + 1);
+
+	if (ret != ERR_OK)
+	{
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_VALIDATE_ROOT_CA, "Root CA can not be validated");
 	}
 
 	mbedtls_ssl_conf_ca_chain(&sslConfig, &caCrtf, NULL);
-
+#endif
 }
 void CryptoMng::configureEntropy()
 {
+#ifndef TEST_BUILD
 	//TODO ADAB check the entropy source --> very important!
-	const std::string DRBG_CUSTOM = "TLS client";
-	const int ret = mbedtls_ctr_drbg_seed(&ctrfDrbg, mbedtls_entropy_func, &entropy,DRBG_CUSTOM.c_str(),DRBG_CUSTOM.length() + 1);
-	if (ret != 0)
+	const int ret = mbedtls_ctr_drbg_seed(&ctrfDrbg, mbedtls_entropy_func, &entropy,nullptr, 0);
+	if (ret != ERR_OK)
 	{
-		////PRINT_ERROR1("Error during entropy configuration ", -ret);
-		//THROW ERROR;
+		//TODO check if add CryptoMng as device to throw initialization memory errors
+		PRINT_ERROR1("Error during entropy configuration ", -ret);
+		//THROW_INIT_EXCEPT(ERROR_CODE::AXI_DMA_INIT_LOOKUP, DEVICE_ID::, "Error during entropy configuration");
 	}
+#endif
 }
 
-int CryptoMng::readDataCallback(void *ctx, unsigned char *buf, size_t len)
+void CryptoMng::closeSSLContext()
 {
-	int socket = 0 ;
-	int ret = recv(socket,buf, len,0);
-	return ret;
-}
+#ifndef TEST_BUILD
+	uint8_t closedState = mbedtls_ssl_close_notify(&ssl);
+	if(closedState != ERR_OK)
+	{
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_VALIDATE_ROOT_CA, "Close notification to server failed");
+	}
 
-int CryptoMng::sendDataCallback(void *ctx, const unsigned char *buf, size_t len)
-{
-	int socket = 0;
-	int ret = send(socket,buf, len,0);
-	return ret;
-}
+	mbedtls_ssl_session_reset(&ssl);
 
+	mbedtls_entropy_free(&entropy);
+	mbedtls_ctr_drbg_free(&ctrfDrbg);
+	mbedtls_x509_crt_free(&caCrtf);
+	mbedtls_ssl_free(&ssl);
+	mbedtls_ssl_config_free(&sslConfig);
+#endif
+}
 
 int CryptoMng::crtfVerify(void *ctx, mbedtls_x509_crt *crt, int depth,uint32_t *flags)
 {
 	int ret = 0;
+#ifndef TEST_BUILD
 	char serverCert[SERVER_BUFFER_LENGTH] = "";
+	CryptoMng *cryptoMng = static_cast<CryptoMng *>(ctx);
 
-	//TODO: Add the validty check with the RTC is available. For the moment we clear the flags
-	*flags &= ~MBEDTLS_X509_BADCERT_FUTURE & ~MBEDTLS_X509_BADCERT_EXPIRED;
-
-
-	//TODO: maybe is needed add a revocation ticket (OCSP?).
+	const bool validityPeriod = cryptoMng->checkCertificateValidityPeriod(crt, flags);
+	if(!validityPeriod)
+	{
+		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_CERTF_PERIOD, "Invalid validity period of server certificate ");
+	}
+	//TODO: maybe is needed add a revocation ticket (OCSP?) and check the others fields of the subject???
 	ret = mbedtls_x509_crt_info(serverCert, sizeof(serverCert), "\r  ", crt);
 
 	if (ret < 0)
@@ -240,40 +280,61 @@ int CryptoMng::crtfVerify(void *ctx, mbedtls_x509_crt *crt, int depth,uint32_t *
 		PRINT_DEBUG("Error getting server certificate information");
 	}
 
-	////PRINT_DEBUG1("Server certificate:\n", serverCert);
+	PRINT_DEBUG1("Server certificate:\n", serverCert);
 
-	CryptoMng *cryptoMng = static_cast<CryptoMng *>(ctx);
 	const mbedtls_ssl_context sslCtx = cryptoMng->getSslContext();
 	uint32_t doubleCheck = mbedtls_ssl_get_verify_result(&sslCtx);
-	PRINT_DEBUG2("Checking the parsed certificate flags: ", flags, "  against the previous one:  ", doubleCheck);
+	PRINT_DEBUG2("Checking the parsed certificate flags: ", *flags, "  against the previous one:  ", doubleCheck);
 
-	if (doubleCheck != 0)
+	if (doubleCheck != ERR_OK)
 	{
 		ret = mbedtls_x509_crt_verify_info(serverCert, sizeof(serverCert), "\r  ! ", flags);
 		if (ret < 0)
 		{
-			////PRINT_DEBUG1("mbedtls_x509_crt_verify_info() returned ", -ret);
-			//THROW
+			PRINT_DEBUG1("mbedtls_x509_crt_verify_info() returned ", -ret);
 		}
 		else
 		{
-			////PRINT_DEBUG1("Certificate verification failed -> flags: ", flags);
-			//THROW
+			PRINT_DEBUG1("Certificate verification failed -> flags: ", flags);
 		}
 	}
 
-	PRINT_INFO("Certificate verification passed\n");
-	ret = 0;
+#endif
 	return ret;
 }
 
+bool CryptoMng::checkCertificateValidityPeriod(mbedtls_x509_crt *crt,uint32_t *flags)
+{
+#ifndef TEST_BUILD
+	//TODO: Add the validty check with the RTC is available. For the moment we clear the flags
+	*flags &= ~MBEDTLS_X509_BADCERT_FUTURE & ~MBEDTLS_X509_BADCERT_EXPIRED;
+#endif
+	return true;
+}
 const mbedtls_ssl_context& CryptoMng::getSslContext()
 {
 	return ssl;
 }
-std::string& CryptoMng::readRootCA()
+
+bool CryptoMng::readRootCA(std::string& rootCA)
 {
 	//TODO implement the method when the FS will be ready and we can retrieve from there instead of hardcoded.
-	std::string rootCA{ROOT_CA};
-	return rootCA;
+	bool retrieved = true;
+	return retrieved;
+}
+
+Tools::SPDSocket* CryptoMng::getSocket()
+{
+	return socket;
+}
+
+void  CryptoMng::reconnect(void)
+{
+#ifndef TEST_BUILD
+	mbedtls_ssl_close_notify( &ssl );
+
+	mbedtls_ssl_session_reset(&ssl);
+
+//	mbedtls_ssl_set_session( &ssl, &saved_session );
+#endif
 }
