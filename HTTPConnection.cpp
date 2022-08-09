@@ -5,24 +5,23 @@
  *      Author: Alejandro
  */
 
-#include "lwip/altcp_tcp.h"
-#include "lwip/dns.h"
-#include "lwip/debug.h"
-#include "lwip/mem.h"
-#include "lwip/altcp_tls.h"
-#include "lwip/init.h"
-#include "xil_printf.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
 #include <sstream>
+
+#include "lwip/altcp_tcp.h"
+#include "lwip/init.h"
+#include "lwip/sockets.h"
+
 #include "HTTPConnection.h"
+#include "CryptoMng.h"
+#include "Logger.h"
 
 using namespace std;
-typedef const char* cstring;
+#define TCP_SERVER_IP_ADDRESS "192.168.1.100"
 
 #if LWIP_TCP && LWIP_CALLBACK_API
-
 
 
 static err_t httpc_free_state(httpc_state_t* req)
@@ -302,7 +301,7 @@ static err_t httpConnectedCallback(void *arg, struct altcp_pcb *pcb, err_t err)
 
 void endConnCallback(void *arg, httpc_result_t httpc_result, u32_t rx_content_len, u32_t srv_res, err_t err)
 {
-	xil_printf("Received HTTP  RESPONSE\n");
+	PRINT_DEBUG("Received HTTP  RESPONSE\n");
 }
 
 #endif /* LWIP_TCP && LWIP_CALLBACK_API */
@@ -310,82 +309,134 @@ void endConnCallback(void *arg, httpc_result_t httpc_result, u32_t rx_content_le
 
 namespace Conectivity
 {
-HTTPConnection::HTTPConnection(ip_addr_t* serverAddr, uint16_t serverPort) : serverAddr(serverAddr), serverPort(serverPort)
+//TODO refactor to pass as pointer ref cryptoMng from client to connection
+HTTPConnection::HTTPConnection(ip_addr_t* serverAddr, uint16_t serverPort, bool secured) : serverAddr(serverAddr), serverPort(serverPort), secured(secured)
 {
-	connection = new httpc_state_t();
-	settings   = new httpc_connection_t();
-	settings->result_fn = endConnCallback;
+
+	if(secured)
+	{
+		//TODO refactor the socket and IP addrs
+		cryptoMng = new CryptoMng(secured,0, ipaddr_ntoa(serverAddr));
+
+	}
+	else
+	{
+		connection = new httpc_state_t();
+		settings   = new httpc_connection_t();
+		settings->result_fn = endConnCallback;
+	}
+
 }
 
 HTTPConnection::~HTTPConnection()
 {
 	delete connection;
 	delete settings;
-	_closeConnection();
+	closeConnection();
 }
 
-
-void HTTPConnection::openConnection(altcp_recv_fn recv_fn, const std::string& getReq)
+void HTTPConnection::serverHandshake()
 {
-
-	int reqLength =  getReq.length();
-	//ASSERT_TECH(ERROR_CODE::HTTP_WRONG_GET_REQ_SIZE, ((reqLength > 0) || (reqLength < 0xFFFF)), "Wrong get request length");
-	//ASSERT_INI_NOT_NULL(ERROR_CODE::HTTP_NULL_URL,getReq.c_str());
-	//ASSERT_INI_NOT_NULL(ERROR_CODE::HTTP_NULL_URL,req);
-
-
-	connection->timeout_ticks = HTTPC_POLL_TIMEOUT;
-	connection->request = pbuf_alloc(PBUF_RAW, (u16_t)(reqLength + 1), PBUF_RAM);
-
-	connection->hdr_content_len = HTTPC_CONTENT_LEN_INVALID;
-	connection->pcb = altcp_new(settings->altcp_allocator);
-	if(connection->pcb == NULL)
-	{
-		//THROW --> during creating TCP control block
-	}
-
-	connection->remote_port = serverPort;
-	connection->recv_fn = recv_fn;
-	connection->conn_settings = settings;
-	connection->callback_arg = NULL;
-	connection->request->payload = (char*)getReq.c_str();
-	connection->remote_addr = *serverAddr;
-
-	altcp_arg(connection->pcb, connection);
-	altcp_recv(connection->pcb, httpRxCallback);
-	altcp_err(connection->pcb, httpErrorCallback);
-	altcp_poll(connection->pcb, httpPollingCallback, HTTPC_POLL_INTERVAL);
-	altcp_sent(connection->pcb, httpTxCallback);
-
-	const err_t err = altcp_connect(connection->pcb, &connection->remote_addr, connection->remote_port, httpConnectedCallback);
-	if (err == ERR_OK)
-	{
-		//THROW --> during creating the connection
-	}
+	cryptoMng->tlsHandshake();
 }
 
-void HTTPConnection::_closeConnection()
+void HTTPConnection::openConnection()
 {
+	socket = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in address;
+	address.sin_family = AF_INET;
+	address.sin_port = htons(serverPort);
+	address.sin_addr.s_addr = inet_addr(TCP_SERVER_IP_ADDRESS);
+	if (connect(socket, (struct sockaddr*)&address, sizeof(address)) < 0)
+	{
+		close(socket);
+		//THROW
+	}
 
+	PRINT_DEBUG("Successfully connected to server");
+}
+
+void HTTPConnection::createTLSConfig()
+{
+	cryptoMng->configureSSL(socket);
 }
 
 void HTTPConnection::closeConnection()
 {
-	_closeConnection();
+	close(socket);
 }
 
+void HTTPConnection::request(const std::string& getReq)
+{
+	if(secured)
+	{
+		httpsRequest(getReq);
+	}
+	else
+	{
+		httpRequest(getReq);
+	}
 
+}
 void HTTPConnection::httpRequest(const std::string& getReq)
 {
 
 	try
 	{
-		openConnection(httpRxCallback, getReq);
+		int reqLength =  getReq.length();
+		//ASSERT_TECH(ERROR_CODE::HTTP_WRONG_GET_REQ_SIZE, ((reqLength > 0) || (reqLength < 0xFFFF)), "Wrong get request length");
+		//ASSERT_INI_NOT_NULL(ERROR_CODE::HTTP_NULL_URL,getReq.c_str());
+		//ASSERT_INI_NOT_NULL(ERROR_CODE::HTTP_NULL_URL,req);
+
+
+		connection->timeout_ticks = HTTPC_POLL_TIMEOUT;
+		connection->request = pbuf_alloc(PBUF_RAW, (u16_t)(reqLength + 1), PBUF_RAM);
+
+		connection->hdr_content_len = HTTPC_CONTENT_LEN_INVALID;
+		connection->pcb = altcp_new(settings->altcp_allocator);
+		if(connection->pcb == NULL)
+		{
+			//THROW --> during creating TCP control block
+		}
+
+		connection->remote_port = serverPort;
+		connection->recv_fn = httpRxCallback;
+		connection->conn_settings = settings;
+		connection->callback_arg = NULL;
+		connection->request->payload = (char*)getReq.c_str();
+		connection->remote_addr = *serverAddr;
+
+		altcp_arg(connection->pcb, connection);
+		altcp_recv(connection->pcb, httpRxCallback);
+		altcp_err(connection->pcb, httpErrorCallback);
+		altcp_poll(connection->pcb, httpPollingCallback, HTTPC_POLL_INTERVAL);
+		altcp_sent(connection->pcb, httpTxCallback);
+
+		const err_t err = altcp_connect(connection->pcb, &connection->remote_addr, connection->remote_port, httpConnectedCallback);
+		if (err == ERR_OK)
+		{
+			//THROW --> during creating the connection
+		}
 	}
 	catch (...)
 	{
 
 	}
+}
+
+void HTTPConnection::httpsRequest(const std::string& getReq)
+{
+
+	openConnection();
+	createTLSConfig();
+
+	cryptoMng->tlsHandshake();
+
+	//cryptoMng->certificateVerification();
+
+	cryptoMng->sendData(getReq);
+
+	cryptoMng->readResponse();
 }
 
 void HTTPConnection::parseGetRequest(const string& url, std::string& getHttpReq)
