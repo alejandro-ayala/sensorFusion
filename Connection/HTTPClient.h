@@ -10,7 +10,7 @@
 
 class HTTPClient
 {
-protected:
+private:
 	Conectivity::HTTPConnection* conn;
 
 public:
@@ -20,7 +20,7 @@ public:
 	TVIRTUAL void openConnection();
 	TVIRTUAL void closeConnection();
 
-	TVIRTUAL void getRequest(const char* url);
+	TVIRTUAL std::string getRequest(const char* url);
 	TVIRTUAL void postRequest(const char* url,std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod);
 	TVIRTUAL Conectivity::HTTPConnection* createNewConnection(bool secureConn);
 };

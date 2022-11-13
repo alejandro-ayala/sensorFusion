@@ -1,12 +1,21 @@
 #ifndef LWIP_HDR_APPS_HTTP_CLIENT_H
 #define LWIP_HDR_APPS_HTTP_CLIENT_H
 
+#include <string>
 
 enum class HTTP_POST_METHOD { Urlencoded, Json, Multipart };
 
+struct CryptoConfig
+{
+	bool crtVerification;
+	bool rootCA;
+	bool checkHostName;
+	std::string hostName;
+};
+
 //TODO review the right headers parameters
 #define USER_AGENT "TBD"
-const size_t RESPONSE_MAX_SIZE = 500;
+const size_t RESPONSE_MAX_SIZE = 5000;
 
 #ifdef TEST_BUILD
 typedef struct mbedtls_ctr_drbg_context

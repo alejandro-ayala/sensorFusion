@@ -20,7 +20,7 @@ using std::ifstream;
 
 HTTPClient::HTTPClient()
 {
-	conn = createNewConnection(true);
+	conn = createNewConnection(false);
 }
 
 HTTPClient::~HTTPClient()
@@ -39,48 +39,36 @@ void HTTPClient::closeConnection()
 	conn->closeConnection();
 }
 
-void HTTPClient::getRequest(const char* url)
+std::string HTTPClient::getRequest(const char* url)
 {
 	std::string getHttpReq;
 	conn->parseGetRequest(url, getHttpReq);
-	conn->request(getHttpReq);
+	std::string response = conn->request(getHttpReq);
+	return response;
 }
 
 void HTTPClient::postRequest(const char* url,std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod)
 {
 	std::string postHttpReq;
-	if(postMethod == HTTP_POST_METHOD::Urlencoded)
-	{
-		conn->parsePostRequest(url, postHttpReq,msgContent);
-	}
-	else if(postMethod == HTTP_POST_METHOD::Json)
-	{
-		conn->parseJsonPostRequest(url, postHttpReq,msgContent);
-	}
-	else if(postMethod == HTTP_POST_METHOD::Multipart)
-	{
-
-	}
+	conn->parsePostRequest(url, postHttpReq,msgContent, postMethod);
 	conn->request(postHttpReq);
-
 }
 
 Conectivity::HTTPConnection* HTTPClient::createNewConnection(bool secureConn)
 {
-	ip_addr_t* serverIP = new ip_addr_t();
+	cstring serverIP = "192.168.0.20";
 	uint16_t serverPort;
-
-	IP4_ADDR(serverIP, 192, 168, 56, 1);
+	CryptoConfig cryptoConfig = {false,false,false,serverIP};
+	static CryptoMng* cryptoMng = new CryptoMng(cryptoConfig);
 
 	if(secureConn)
 	{
 		serverPort = 7233;
-		CryptoMng* cryptoMng = new CryptoMng();
-		return new Conectivity::HTTPConnection(serverIP,serverPort, cryptoMng);
 	}
 	else
 	{
 		serverPort = 5233;
-		return new Conectivity::HTTPConnection(serverIP,serverPort);
 	}
+	return new Conectivity::HTTPConnection(serverIP,serverPort, cryptoMng, secureConn);
+
 }

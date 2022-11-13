@@ -18,21 +18,25 @@
 
 #include "HTTPConnection.h"
 #include "CryptoMng.h"
-#include "Logger.h"
+#include "Tools/Logger.h"
 #include "ProjectExceptions.h"
 
 using namespace std;
 
-#define TCP_SERVER_IP_ADDRESS "192.168.56.1"
-
 
 namespace Conectivity
 {
-//TODO refactor to pass as pointer ref cryptoMng from client to connection
-HTTPConnection::HTTPConnection(ip_addr_t* serverAddr, uint16_t serverPort, CryptoMng* cryptoMng) : serverAddr(serverAddr), serverPort(serverPort), cryptoMng(cryptoMng)
+HTTPConnection::HTTPConnection(cstring serverAddr, uint16_t serverPort, CryptoMng* cryptoMng, bool enableSSL) : serverAddr(serverAddr), serverPort(serverPort), cryptoMng(cryptoMng), enableSSL(enableSSL)
 {
-		secured = true;
+	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, serverAddr);
+	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, serverPort);
+	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, enableSSL);
+	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, cryptoMng);
+
+	if(enableSSL)
+	{
 		handshakeDone = false;
+	}
 }
 
 HTTPConnection::~HTTPConnection()
@@ -46,60 +50,60 @@ Tools::SPDSocket* HTTPConnection::getSocket()
 {
 	return new Tools::SPDSocket();
 }
-void HTTPConnection::serverHandshake()
-{
-	cryptoMng->tlsHandshake();
-}
 
 void HTTPConnection::openConnection()
 {
 	socket = getSocket();
-	socket->connectSocket(TCP_SERVER_IP_ADDRESS,serverPort);
+	socket->connectSocket(serverAddr,serverPort);
 
-	if(secured)
+	if(enableSSL)
 	{
-		openTlsConnection();
+		openSSLConnection();
 	}
 }
 
-void HTTPConnection::createTLSConfig()
+void HTTPConnection::createSSLConfig()
 {
 	cryptoMng->configureSSL();
 }
 
 void HTTPConnection::closeConnection()
 {
-	if(secured)
+	if(enableSSL)
 	{
 		cryptoMng->closeSSLContext();
 	}
 	socket->disconnectSocket();
 }
 
-void HTTPConnection::request(const std::string& getReq)
+std::string HTTPConnection::request(const std::string& getReq)
 {
+	std::string response;
 	try
 	{
-		httpRequest(getReq);
+		response = httpRequest(getReq);
 	}
 	catch (const FunctionalError& e)
 	{
 		PRINT_WARNE("Functional error, retry server request", e);
 	}
+	return response;
 }
-void HTTPConnection::httpRequest(const std::string& getReq)
+std::string HTTPConnection::httpRequest(const std::string& getReq)
 {
 	std::string response;
+
 	openConnection();
 	sendData(getReq);
 	readResponse(response);
+
 	closeConnection();
-	return;
+	return response;
 }
 
 void HTTPConnection::sendData(const std::string& getReq)
 {
-	if(secured)
+	if(enableSSL)
 	{
 		cryptoMng->sendData(getReq);
 	}
@@ -109,7 +113,7 @@ void HTTPConnection::sendData(const std::string& getReq)
 
 		if(sentData != getReq.length())
 		{
-			//THROW error
+			THROW_FUNC_EXCEPT(ERROR_CODE::HTTP_INCOMPLETE_SEND, "The full request was not sent");
 		}
 	}
 }
@@ -117,7 +121,7 @@ void HTTPConnection::sendData(const std::string& getReq)
 void HTTPConnection::readResponse(std::string& response)
 {
 	char response2[RESPONSE_MAX_SIZE];
-	if(secured)
+	if(enableSSL)
 	{
 		cryptoMng->readResponse(response);
 	}
@@ -128,13 +132,13 @@ void HTTPConnection::readResponse(std::string& response)
 	}
 }
 
-void HTTPConnection::openTlsConnection()
+void HTTPConnection::openSSLConnection()
 {
-	createTLSConfig();
+	createSSLConfig();
 
 	if(!handshakeDone)
 	{
-		cryptoMng->tlsHandshake();
+		cryptoMng->handshakeSSL();
 		handshakeDone = true;
 	}
 }
@@ -142,22 +146,36 @@ void HTTPConnection::openTlsConnection()
 void HTTPConnection::parseGetRequest(const std::string& url, std::string& getHttpReq)
 {
 	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, url.c_str());
-	cstring serverIP = ipaddr_ntoa(serverAddr);
-	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, serverIP);
 
 	getHttpReq = "GET " + url + " HTTP/1.1\r\n"
 		+ "User-Agent: " + USER_AGENT + "\r\n"
 		+ "Accept: */*\r\n"
-		+ "Host: " + serverIP + "\r\n"
+		+ "Host: " + serverAddr + "\r\n"
 		+ "Connection: Close\r\n"
 		+ "\r\n";
 }
 
-void HTTPConnection::parsePostRequest(const string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent)
+void HTTPConnection::parsePostRequest(const string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod)
 {
 	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, url.c_str());
-	cstring serverIP = ipaddr_ntoa(serverAddr);
-	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, serverIP);
+
+	if(postMethod == HTTP_POST_METHOD::Urlencoded)
+	{
+		parseURLPostRequest(url, postHttpReq,msgContent);
+	}
+	else if(postMethod == HTTP_POST_METHOD::Json)
+	{
+		parseJsonPostRequest(url, postHttpReq,msgContent);
+	}
+	else if(postMethod == HTTP_POST_METHOD::Multipart)
+	{
+		//TODO:
+	}
+}
+
+void HTTPConnection::parseURLPostRequest(const string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent)
+{
+	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, url.c_str());
 
 	string msgBody;
 	for(const auto& keyValue : msgContent)
@@ -171,7 +189,7 @@ void HTTPConnection::parsePostRequest(const string& url, std::string& postHttpRe
 
 	postHttpReq = "POST " + url + " HTTP/1.1\r\n"
 		+ "User-Agent: " + USER_AGENT + "\r\n"
-		+ "Host: " + serverIP + "\r\n"
+		+ "Host: " + serverAddr + "\r\n"
 		+ "Content-Type: application/x-www-form-urlencoded\r\n"
 		+ "Content-Length: " + std::to_string(msgBody.length()) + "\r\n"
 		+ "\r\n"
@@ -182,8 +200,6 @@ void HTTPConnection::parsePostRequest(const string& url, std::string& postHttpRe
 void HTTPConnection::parseJsonPostRequest(const string& url, std::string& postHttpReq, std::vector<pair<string,string>> msgContent)
 {
 	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, url.c_str());
-	cstring serverIP = ipaddr_ntoa(serverAddr);
-	ASSERT_TEC_NOT_NULL(ERROR_CODE::NULL_PARAMETER, serverIP);
 
 	//TODO: implement the real Json parser
 	stringstream jsonMsg;
@@ -211,7 +227,7 @@ void HTTPConnection::parseJsonPostRequest(const string& url, std::string& postHt
 
 	postHttpReq = "POST " + url + " HTTP/1.1\r\n"
 		+ "User-Agent: " + USER_AGENT + "\r\n"
-		+ "Host: " + serverIP + "\r\n"
+		+ "Host: " + serverAddr + "\r\n"
 		+ "Content-Type: application/json\r\n"
 		+ "Content-Length: " + std::to_string(jsonMsg.str().length()) + "\r\n"
 		+ "\r\n"

@@ -11,7 +11,7 @@
 #include "mbedtls/x509.h"
 #endif
 #include "CryptoMng.h"
-#include "Logger.h"
+#include "Tools/Logger.h"
 #include "ProjectExceptions.h"
 #include "Tools/SPDSocket.h"
 
@@ -40,7 +40,7 @@ size_t sendDataCallback(void *ctx, const unsigned char *buf, size_t len)
 }
 }
 #endif
-CryptoMng::CryptoMng()
+CryptoMng::CryptoMng(CryptoConfig cryptoCfg) : cryptoCfg(cryptoCfg)
 {
 #ifndef TEST_BUILD
 	mbedtls_entropy_init(&entropy);
@@ -56,7 +56,7 @@ CryptoMng::~CryptoMng()
 	closeSSLContext();
 }
 
-void CryptoMng::tlsHandshake()
+void CryptoMng::handshakeSSL()
 {
 #ifndef TEST_BUILD
 	int status = MBEDTLS_ERR_SSL_WANT_READ;
@@ -74,7 +74,6 @@ void CryptoMng::tlsHandshake()
 	}
 	if (status < 0)
 	{
-		//TODO: check if needed idenfity the root cause
 		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_SERVER_HANDSHAKE, "Error happen during handshake with server");
 	}
 	else
@@ -154,7 +153,6 @@ void CryptoMng::readResponse(std::string& response)
 #endif
 }
 
-//TODO refactor this method to get the SSL config as parameters
 void CryptoMng::configureSSL()
 {
 #ifndef TEST_BUILD
@@ -163,7 +161,7 @@ void CryptoMng::configureSSL()
 	configureEntropy();
 
 	//TODO add chain of certificates for security. A intermediate one could be interesting.
-	if(rootCA)
+	if(cryptoCfg.rootCA)
 	{
 		importRootCA();
 	}
@@ -179,8 +177,7 @@ void CryptoMng::configureSSL()
 	mbedtls_ssl_conf_rng(&sslConfig, mbedtls_ctr_drbg_random, &ctrfDrbg);
 
 	uint8_t verificationMethod = MBEDTLS_SSL_VERIFY_REQUIRED;
-	crtVerification = false;
-	if(!crtVerification)
+	if(!cryptoCfg.crtVerification)
 	{
 		verificationMethod = MBEDTLS_SSL_VERIFY_NONE;
 	}
@@ -194,12 +191,11 @@ void CryptoMng::configureSSL()
 		//THROW exception
 	}
 
-	//TODO check to enable
-	if(checkHostName)
+	if(cryptoCfg.checkHostName)
 	{
-		if ((ret = mbedtls_ssl_set_hostname( &ssl, serverIP.c_str() )) != ERR_OK)
+		if ((ret = mbedtls_ssl_set_hostname( &ssl, cryptoCfg.hostName.c_str())) != ERR_OK)
 		{
-			PRINT_ERROR1("Error assigning the server host name returned ", -ret);
+			PRINT_DEBUG("Error assigning the server host name to the crypto layer ");
 			//THROW exception
 		}
 	}
@@ -236,7 +232,6 @@ void CryptoMng::configureEntropy()
 	{
 		//TODO check if add CryptoMng as device to throw initialization memory errors
 		PRINT_ERROR1("Error during entropy configuration ", -ret);
-		//THROW_INIT_EXCEPT(ERROR_CODE::AXI_DMA_INIT_LOOKUP, DEVICE_ID::, "Error during entropy configuration");
 	}
 #endif
 }
@@ -272,7 +267,7 @@ int CryptoMng::crtfVerify(void *ctx, mbedtls_x509_crt *crt, int depth,uint32_t *
 	{
 		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_CERTF_PERIOD, "Invalid validity period of server certificate ");
 	}
-	//TODO: maybe is needed add a revocation ticket (OCSP?) and check the others fields of the subject???
+	//TODO: maybe check the others fields of the subject to increase the security??
 	ret = mbedtls_x509_crt_info(serverCert, sizeof(serverCert), "\r  ", crt);
 
 	if (ret < 0)
@@ -282,7 +277,7 @@ int CryptoMng::crtfVerify(void *ctx, mbedtls_x509_crt *crt, int depth,uint32_t *
 
 	PRINT_DEBUG1("Server certificate:\n", serverCert);
 
-	const mbedtls_ssl_context sslCtx = cryptoMng->getSslContext();
+	const mbedtls_ssl_context sslCtx = cryptoMng->getSSLContext();
 	uint32_t doubleCheck = mbedtls_ssl_get_verify_result(&sslCtx);
 	PRINT_DEBUG2("Checking the parsed certificate flags: ", *flags, "  against the previous one:  ", doubleCheck);
 
@@ -311,21 +306,27 @@ bool CryptoMng::checkCertificateValidityPeriod(mbedtls_x509_crt *crt,uint32_t *f
 #endif
 	return true;
 }
-const mbedtls_ssl_context& CryptoMng::getSslContext()
+const mbedtls_ssl_context& CryptoMng::getSSLContext()
 {
+#ifndef TEST_BUILD
 	return ssl;
+#endif
 }
 
 bool CryptoMng::readRootCA(std::string& rootCA)
 {
+#ifndef TEST_BUILD
 	//TODO implement the method when the FS will be ready and we can retrieve from there instead of hardcoded.
 	bool retrieved = true;
 	return retrieved;
+#endif
 }
 
 Tools::SPDSocket* CryptoMng::getSocket()
 {
-	return socket;
+#ifndef TEST_BUILD
+	return new Tools::SPDSocket();
+#endif
 }
 
 void  CryptoMng::reconnect(void)

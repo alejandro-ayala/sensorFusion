@@ -28,33 +28,33 @@ namespace Conectivity
 {
 class HTTPConnection
 {
-protected:
-	ip_addr_t* serverAddr;
+private:
+	cstring serverAddr;
 	uint16_t serverPort;
-	Tools::SPDSocket* socket;
-	bool secured;
-	bool handshakeDone;
 	CryptoMng* cryptoMng;
+	bool enableSSL;
+	bool handshakeDone;
+	Tools::SPDSocket* socket;
 
-	void httpRequest(const std::string& getReq);
+	void createSSLConfig();
+	void openSSLConnection();
+	std::string httpRequest(const std::string& getReq);
 	void sendData(const std::string& getReq);
 	void readResponse(std::string& response);
+	void parseURLPostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent);
+	void parseJsonPostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent);
 	Tools::SPDSocket* getSocket();
 
 public:
-	HTTPConnection(ip_addr_t* serverAddr, uint16_t serverPort, CryptoMng* cryptoMng);
-	HTTPConnection(ip_addr_t* serverAddr, uint16_t serverPort) : serverAddr(serverAddr), serverPort(serverPort), secured(false) {};
+	HTTPConnection(cstring serverAddr, uint16_t serverPort, CryptoMng* cryptoMng, bool enableSSL);
 	virtual ~HTTPConnection();
 	TVIRTUAL void openConnection();
 	TVIRTUAL void closeConnection();
-	TVIRTUAL void createTLSConfig();
-	TVIRTUAL void serverHandshake();
-	TVIRTUAL void openTlsConnection();
 
+
+	TVIRTUAL void parsePostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod);
 	TVIRTUAL void parseGetRequest(const std::string& url, std::string& getHttpReq);
-	TVIRTUAL void parsePostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent);
-	TVIRTUAL void parseJsonPostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent);
-	TVIRTUAL void request(const std::string& getReq);
+	TVIRTUAL std::string request(const std::string& getReq);
 
 };
 }
