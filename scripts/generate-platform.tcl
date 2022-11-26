@@ -8,9 +8,11 @@
 # To create the platform in a different location, modify the -out option of "platform create" command.
 # -out option specifies the output directory of the platform project.
 
+set currentDir [pwd]
+set hwFileDir ${currentDir}9876
 platform create -name {zyboProject}\
--hw {D:/Master/TFM/VitisWorkspace/Nueva/sensorFusion/HWFile/design_1_wrapper.xsa}\
--proc {ps7_cortexa9_0} -os {freertos10_xilinx} -out {D:/Master/TFM/VitisWorkspace/Nueva/sensorFusion}
+-hw $currentDir/../HWFile/design_1_wrapper.xsa\
+-proc {ps7_cortexa9_0} -os {freertos10_xilinx} -out $currentDir/..
 
 platform write
 platform generate -domains 
