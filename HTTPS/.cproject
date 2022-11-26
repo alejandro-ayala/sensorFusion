@@ -85,7 +85,7 @@
                                     									
                                     <listOptionValue builtIn="false" value="&quot;D:\Master\TFM\FW\SensorFusionProject\zyboProject\export\zyboProject\sw\zyboProject\freertos10_xilinx_domain\bspinclude\include&quot;"/>
                                     									
-                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/libs/include}&quot;"/>
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/libs/mbedtls/include}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include}&quot;"/>
                                     								
