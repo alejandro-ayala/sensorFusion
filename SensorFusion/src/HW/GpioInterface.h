@@ -35,6 +35,7 @@ typedef struct
 {
 	GPIOcontrol     axiGpio0;
 	GPIOcontrol     axiGpio1;
-	PmodGPIOcontrol axiLiteGpio0;
+	PmodGPIOcontrol axiLiteGpioLed;
+	PmodGPIOcontrol axiLiteGpioBtn;
 }AxiGpioInterface;
 }

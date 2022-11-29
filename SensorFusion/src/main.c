@@ -152,10 +152,10 @@ int main()
 
 
 	static UserControlManager* userControlMng = new UserControlManager();
-	static ServerManager* serverMng = new ServerManager();
-	static CommunicationManager* commMng = new CommunicationManager();
+	//static ServerManager* serverMng = new ServerManager();
+	//static CommunicationManager* commMng = new CommunicationManager();
 
-	xTaskCreate( CommunicationTask, "CommunicationTask",THREAD_STACKSIZE,commMng,DEFAULT_THREAD_PRIO,&communicationHandle );
+	//xTaskCreate( CommunicationTask, "CommunicationTask",THREAD_STACKSIZE,commMng,DEFAULT_THREAD_PRIO,&communicationHandle );
 	//xTaskCreate( UpdateConfigurationTask, "UpdateConfigurationTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&updateConfigHandle );
 	//xTaskCreate( SendReportTask, "SendReportTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&sendingHandle );
 	xTaskCreate( userIfaceControlTask, "UserIfaceControlTask",THREAD_STACKSIZE,userControlMng,DEFAULT_THREAD_PRIO,&userIfHandle);

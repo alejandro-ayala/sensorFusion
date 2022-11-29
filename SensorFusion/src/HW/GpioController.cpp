@@ -39,7 +39,8 @@ void  GpioController::initialization()
 	configGPIO(gpioIntefaces.axiGpio1.gpioDriver, gpioIntefaces.axiGpio1.chOutput, gpioIntefaces.axiGpio1.directionOutput);
 	configGPIO(gpioIntefaces.axiGpio1.gpioDriver, gpioIntefaces.axiGpio1.chInput , gpioIntefaces.axiGpio1.directionInput);
 
-	configPmodGPIO(gpioIntefaces.axiLiteGpio0.gpioDriver, gpioIntefaces.axiLiteGpio0.address, gpioIntefaces.axiLiteGpio0.direction);
+	configPmodGPIO(gpioIntefaces.axiLiteGpioBtn.gpioDriver, gpioIntefaces.axiLiteGpioBtn.address, gpioIntefaces.axiLiteGpioBtn.direction);
+	configPmodGPIO(gpioIntefaces.axiLiteGpioLed.gpioDriver, gpioIntefaces.axiLiteGpioLed.address, gpioIntefaces.axiLiteGpioLed.direction);
 
 }
 

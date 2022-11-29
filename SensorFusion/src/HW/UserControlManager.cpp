@@ -7,7 +7,8 @@ namespace Hardware
 {
 XGpio gpio0;
 XGpio gpio1;
-PmodGpio pmod_gpio0;
+PmodGpio pmodGpioBtn;
+PmodGpio pmodGpioLeds;
 UserControlManager::UserControlManager()
 {
 	gpioInterface.axiGpio0.gpioDriver = &gpio0;
@@ -21,9 +22,15 @@ UserControlManager::UserControlManager()
 	gpioInterface.axiGpio1.directionInput  = 0x0F;
 	gpioInterface.axiGpio1.directionOutput = 0x00;
 
-	gpioInterface.axiLiteGpio0.gpioDriver = &pmod_gpio0;
-	gpioInterface.axiLiteGpio0.address = XPAR_PMODGPIO_0_AXI_LITE_GPIO_BASEADDR;
-	gpioInterface.axiLiteGpio0.direction = 0xFF;
+	gpioInterface.axiLiteGpioBtn.gpioDriver = &pmodGpioBtn;
+	gpioInterface.axiLiteGpioBtn.address = XPAR_PMODGPIO_0_AXI_LITE_GPIO_BASEADDR;
+	gpioInterface.axiLiteGpioBtn.direction = 0xFF;
+
+	gpioInterface.axiLiteGpioLed.gpioDriver = &pmodGpioLeds;
+	gpioInterface.axiLiteGpioLed.address = XPAR_PMODGPIO_1_AXI_LITE_GPIO_BASEADDR;
+	gpioInterface.axiLiteGpioLed.direction = 0x00;
+
+	gpioController = new GpioController(gpioInterface);
 
 }
 
@@ -77,11 +84,11 @@ bool UserControlManager::readSwitch(uint8_t switchChannel)
 
 void UserControlManager::controlPmodLED(uint8_t ledChannel, bool state)
 {
-	gpioController->writePmodGPIO(gpioInterface.axiLiteGpio0.gpioDriver,ledChannel, state);
+	gpioController->writePmodGPIO(gpioInterface.axiLiteGpioLed.gpioDriver,ledChannel, state);
 }
 bool UserControlManager::readPmodButton(uint8_t buttonChannel)
 {
-	return gpioController->readPmodGPIO(gpioInterface.axiLiteGpio0.gpioDriver,buttonChannel);
+	return gpioController->readPmodGPIO(gpioInterface.axiLiteGpioBtn.gpioDriver,buttonChannel);
 }
 
 void UserControlManager::selfTest()
@@ -111,9 +118,19 @@ void UserControlManager::selfTest()
 
 	controlRGB(0x0F,TURN_OFF);
 
-	readPmodButton(0);
-	readPmodButton(1);
-	readPmodButton(2);
-	readPmodButton(3);
+	input = readPmodButton(1);
+	input = readPmodButton(2);
+	input = readPmodButton(3);
+	input = readPmodButton(4);
+
+	controlPmodLED(1,true);
+	controlPmodLED(2,true);
+	controlPmodLED(3,true);
+	controlPmodLED(4,true);
+
+	controlPmodLED(1,false);
+	controlPmodLED(2,false);
+	controlPmodLED(3,false);
+	controlPmodLED(4,false);
 }
 }
