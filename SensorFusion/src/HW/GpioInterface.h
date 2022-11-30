@@ -38,4 +38,18 @@ typedef struct
 	PmodGPIOcontrol axiLiteGpioLed;
 	PmodGPIOcontrol axiLiteGpioBtn;
 }AxiGpioInterface;
+
+typedef struct PmodKeyPad
+{
+   uint32_t GPIO_addr;
+   uint8_t  keytable[16];
+   uint32_t keytable_loaded;
+} PmodKeyPad;
+
+typedef struct
+{
+	PmodKeyPad  axiGpioKYPD;
+	uint32_t    address;
+}AxiKeyPadInterface;
+
 }
