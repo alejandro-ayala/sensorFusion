@@ -11,6 +11,7 @@
 #include "HTTPConnectionTypes.h"
 #include "CryptoMng.h"
 #include "TestInclude.h"
+#include "Definitions.h"
 
 namespace Tools
 {

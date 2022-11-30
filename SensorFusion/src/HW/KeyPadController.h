@@ -1,6 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include "TestInclude.h"
+#include "Definitions.h"
 #include "GpioInterface.h"
 
 namespace Hardware

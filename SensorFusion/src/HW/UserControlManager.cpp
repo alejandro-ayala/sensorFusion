@@ -30,7 +30,8 @@ UserControlManager::UserControlManager()
 	gpioInterface.axiLiteGpioLed.address = XPAR_PMODGPIO_1_AXI_LITE_GPIO_BASEADDR;
 	gpioInterface.axiLiteGpioLed.direction = 0x00;
 
-	gpioController = new GpioController(gpioInterface);
+	gpioController   = new GpioController(gpioInterface);
+	keypadController = new KeyPadController();
 
 }
 
@@ -42,6 +43,7 @@ UserControlManager::~UserControlManager()
 void UserControlManager::initialization()
 {
 	gpioController->initialization();
+	keypadController->initialization();
 }
 
 void UserControlManager::controlRGB(uint32_t color, bool state)
@@ -132,5 +134,7 @@ void UserControlManager::selfTest()
 	controlPmodLED(2,false);
 	controlPmodLED(3,false);
 	controlPmodLED(4,false);
+
+	keypadController->selfTest();
 }
 }

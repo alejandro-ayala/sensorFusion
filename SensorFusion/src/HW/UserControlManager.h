@@ -1,5 +1,6 @@
 #pragma once
 #include "GpioController.h"
+#include "KeyPadController.h"
 #include "TestInclude.h"
 namespace Hardware
 {
@@ -7,7 +8,8 @@ namespace Hardware
 class UserControlManager
 {
 private:
-	GpioController*     gpioController;
+	GpioController*    gpioController;
+	KeyPadController*  keypadController;
 	AxiGpioInterface   gpioInterface;
 public:
 	UserControlManager();

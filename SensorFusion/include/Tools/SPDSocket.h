@@ -1,12 +1,6 @@
-/*
- * SPDSocket.h
- *
- *  Created on: 25 jul. 2022
- *      Author: Alejandro
- */
-
 #include <string>
 #include "TestInclude.h"
+#include "Definitions.h"
 
 namespace Tools
 {

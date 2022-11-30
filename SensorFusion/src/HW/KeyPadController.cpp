@@ -1,5 +1,6 @@
 #include "KeyPadController.h"
-#include "KeyPadState.h"
+
+#include "KeyPadStateEnum.h"
 
 namespace Hardware
 {
