@@ -10,12 +10,9 @@ extern "C" {
 #endif
 #include "HTTPConnectionTypes.h"
 #include "TestInclude.h"
-
-namespace Tools
+#include "SocketController.h"
+namespace Conectivity
 {
-	class SPDSocket;
-}
-
 class CryptoMng
 {
 private:
@@ -27,7 +24,7 @@ private:
 	struct CryptoConfig cryptoCfg;
 
 
-	Tools::SPDSocket* socket;
+	SocketController* socket;
 
 	void configureEntropy();
     void importRootCA();
@@ -48,6 +45,7 @@ public:
 	TVIRTUAL void handshakeSSL();
 	TVIRTUAL void certificateVerification();
 	TVIRTUAL void closeSSLContext();
-	Tools::SPDSocket* getSocket();
+	SocketController* getSocket();
 };
+}
 

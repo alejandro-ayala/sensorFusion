@@ -83,6 +83,8 @@
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/zyboProject/export/zyboProject/sw/zyboProject/freertos10_xilinx_domain/bspinclude/include}&quot;"/>
                                     									
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src}&quot;"/>
+                                    									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/libs/mbedtls/include}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include}&quot;"/>
@@ -163,9 +165,7 @@
                         					
                     </folderInfo>
                     					
-                    <fileInfo id="xilinx.gnu.armv7.exe.debug.1786109810.1343140207" name="SPDSocket.h" rcbsApplicability="disable" resourcePath="include/Tools/SPDSocket.h" toolsToInvoke=""/>
-                    					
-                    <fileInfo id="xilinx.gnu.armv7.exe.debug.1786109810.1921928627" name="HTTPConnectionTypes.h" rcbsApplicability="disable" resourcePath="src/Connection/HTTPConnectionTypes.h" toolsToInvoke="">
+                    <fileInfo id="xilinx.gnu.armv7.exe.debug.1786109810.1921928627" name="HTTPConnectionTypes.h" rcbsApplicability="disable" resourcePath="src/Conectivity/HTTPConnectionTypes.h" toolsToInvoke="">
                         						
                         <tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1130171691" name="Resource Custom Build Step">
                             							
@@ -181,7 +181,7 @@
                         					
                     </fileInfo>
                     					
-                    <fileInfo id="xilinx.gnu.armv7.exe.debug.1786109810.1332525226" name="HTTPConnection.h" rcbsApplicability="disable" resourcePath="src/Connection/HTTPConnection.h" toolsToInvoke="">
+                    <fileInfo id="xilinx.gnu.armv7.exe.debug.1786109810.1332525226" name="HTTPConnection.h" rcbsApplicability="disable" resourcePath="src/Conectivity/HTTPConnection.h" toolsToInvoke="">
                         						
                         <tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.777840071" name="Resource Custom Build Step">
                             							
@@ -196,6 +196,8 @@
                         </tool>
                         					
                     </fileInfo>
+                    					
+                    <fileInfo id="xilinx.gnu.armv7.exe.debug.1786109810.1343140207" name="SPDSocket.h" rcbsApplicability="disable" resourcePath="src/Conectivity/SocketController.h" toolsToInvoke=""/>
                     					
                     <fileInfo id="xilinx.gnu.armv7.exe.debug.1786109810.1977725476" name="TaskManager.h" rcbsApplicability="disable" resourcePath="src/Common/TaskManager.h" toolsToInvoke=""/>
                     					

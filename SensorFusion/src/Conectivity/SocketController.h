@@ -1,17 +1,18 @@
+#pragma once
 #include <string>
 #include "TestInclude.h"
 #include "Definitions.h"
 
-namespace Tools
+namespace Conectivity
 {
-class SPDSocket
+class SocketController
 {
 protected:
 	int socket;
 
 public:
-	SPDSocket();
-	virtual ~SPDSocket();
+	SocketController();
+	virtual ~SocketController();
 
 	TVIRTUAL void connectSocket(cstring ip, uint16_t port);
 	TVIRTUAL void disconnectSocket();

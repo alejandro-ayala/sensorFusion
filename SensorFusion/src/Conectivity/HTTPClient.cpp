@@ -53,7 +53,7 @@ Conectivity::HTTPConnection* HTTPClient::createNewConnection(bool secureConn)
 	cstring serverIP = "192.168.0.20";
 	uint16_t serverPort;
 	CryptoConfig cryptoConfig = {false,false,false,serverIP};
-	static CryptoMng* cryptoMng = new CryptoMng(cryptoConfig);
+	static Conectivity::CryptoMng* cryptoMng = new Conectivity::CryptoMng(cryptoConfig);
 
 	if(secureConn)
 	{

@@ -7,10 +7,10 @@
 #else
 #define ipaddr_ntoa(ip) "dummyIP"
 #endif
-#include "Tools/SPDSocket.h"
+#include <Conectivity/SocketController.h>
 
-#include "HTTPConnection.h"
-#include "CryptoMng.h"
+#include <Conectivity/HTTPConnection.h>
+#include <Conectivity/CryptoMng.h>
 #include "Tools/Logger.h"
 #include "ProjectExceptions.h"
 
@@ -39,9 +39,9 @@ HTTPConnection::~HTTPConnection()
 	closeConnection();
 }
 
-Tools::SPDSocket* HTTPConnection::getSocket()
+SocketController* HTTPConnection::getSocket()
 {
-	return new Tools::SPDSocket();
+	return new SocketController();
 }
 
 void HTTPConnection::openConnection()

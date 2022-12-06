@@ -13,11 +13,6 @@
 #include "TestInclude.h"
 #include "Definitions.h"
 
-namespace Tools
-{
-	class SPDSocket;
-}
-
 namespace Conectivity
 {
 class HTTPConnection
@@ -28,7 +23,7 @@ private:
 	CryptoMng* cryptoMng;
 	bool enableSSL;
 	bool handshakeDone;
-	Tools::SPDSocket* socket;
+	SocketController* socket;
 
 	void createSSLConfig();
 	void openSSLConnection();
@@ -37,7 +32,7 @@ private:
 	void readResponse(std::string& response);
 	void parseURLPostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent);
 	void parseJsonPostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent);
-	Tools::SPDSocket* getSocket();
+	SocketController* getSocket();
 
 public:
 	HTTPConnection(cstring serverAddr, uint16_t serverPort, CryptoMng* cryptoMng, bool enableSSL);

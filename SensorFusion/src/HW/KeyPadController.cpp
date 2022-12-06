@@ -4,12 +4,12 @@
 
 namespace Hardware
 {
-KeyPadController::KeyPadController()
+KeyPadController::KeyPadController() : IController("KeyPadController")
 {}
 
 KeyPadController::~KeyPadController() {}
 
-void KeyPadController::initialization()
+void KeyPadController::initialize()
 {
 	kypdInterface.GPIO_addr = XPAR_PMODKYPD_0_AXI_LITE_GPIO_BASEADDR;
 	// Set tri-state register, lower 4 pins are column outputs, upper 4 pins are

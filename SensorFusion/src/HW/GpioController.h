@@ -2,9 +2,11 @@
 
 #include "TestInclude.h"
 #include "GpioInterface.h"
+#include  "IController.h"
+
 namespace Hardware
 {
-class GpioController
+class GpioController : public IController
 {
 private:
 	AxiGpioInterface gpioIntefaces;
@@ -12,7 +14,7 @@ public:
 	GpioController(AxiGpioInterface& gpioIntefaces);
 	virtual ~GpioController();
 
-	TVIRTUAL void initialization();
+	TVIRTUAL void initialize() override;
 
 	void writeGPIO(XGpio *InstancePtr, uint8_t channel, uint32_t mask);
 	uint32_t readGPIO(XGpio *InstancePtr, uint8_t channel);

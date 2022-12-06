@@ -61,7 +61,7 @@ static u32 RxFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
 
 /* Driver instance */
 static XCanPs Can;
-CanController::CanController() : deviceId(CAN_DEVICE_ID)
+CanController::CanController() : IController("CanController"), deviceId(CAN_DEVICE_ID)
 {
 	CanInstPtr = &Can;
 }
@@ -71,7 +71,7 @@ CanController::~CanController()
 
 }
 
-int CanController::initialization()
+void CanController::initialize()
 {
 
 	int Status;
@@ -83,13 +83,15 @@ int CanController::initialization()
 	 */
 	ConfigPtr = XCanPs_LookupConfig(deviceId);
 	if (CanInstPtr == NULL) {
-		return XST_FAILURE;
+		//TODO throw exception
+		//return XST_FAILURE;
 	}
 	Status = XCanPs_CfgInitialize(CanInstPtr,
 					ConfigPtr,
 					ConfigPtr->BaseAddr);
 	if (Status != XST_SUCCESS) {
-		return XST_FAILURE;
+		//TODO throw exception
+		//return XST_FAILURE;
 	}
 
 	/*
@@ -98,7 +100,8 @@ int CanController::initialization()
 	 */
 	Status = XCanPs_SelfTest(CanInstPtr);
 	if (Status != XST_SUCCESS) {
-		return XST_FAILURE;
+		//TODO throw exception
+		//return XST_FAILURE;
 	}
 
 	/*

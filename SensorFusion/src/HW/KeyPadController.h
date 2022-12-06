@@ -3,10 +3,11 @@
 #include "TestInclude.h"
 #include "Definitions.h"
 #include "GpioInterface.h"
+#include  "IController.h"
 
 namespace Hardware
 {
-class KeyPadController
+class KeyPadController : public IController
 {
 private:
 	PmodKeyPad kypdInterface;
@@ -19,7 +20,7 @@ public:
 	KeyPadController();
 	virtual ~KeyPadController();
 
-	TVIRTUAL void initialization();
+	TVIRTUAL void initialize() override;
 	TVIRTUAL void loadKeyTable(cstring keyTable);
 	TVIRTUAL void setCols(uint32_t cols);
 	TVIRTUAL uint32_t getRows();

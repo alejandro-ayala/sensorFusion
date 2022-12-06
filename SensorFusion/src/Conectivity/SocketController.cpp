@@ -1,20 +1,20 @@
 
-#include "SPDSocket.h"
+#include "Conectivity/SocketController.h"
 #include <lwip/sockets.h>
-namespace Tools
+namespace Conectivity
 {
 
-SPDSocket::SPDSocket()
-{
-
-}
-
-SPDSocket::~SPDSocket()
+SocketController::SocketController()
 {
 
 }
 
-void SPDSocket::connectSocket(cstring ip, uint16_t port)
+SocketController::~SocketController()
+{
+
+}
+
+void SocketController::connectSocket(cstring ip, uint16_t port)
 {
 	socket = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in address;
@@ -29,12 +29,12 @@ void SPDSocket::connectSocket(cstring ip, uint16_t port)
 	}
 }
 
-void SPDSocket::disconnectSocket()
+void SocketController::disconnectSocket()
 {
 	close(socket);
 }
 
-size_t SPDSocket::writeSocket(const unsigned char *buf, size_t len)
+size_t SocketController::writeSocket(const unsigned char *buf, size_t len)
 {
 	socket = 0;
 	int ret = send(socket,buf, len,0);
@@ -42,7 +42,7 @@ size_t SPDSocket::writeSocket(const unsigned char *buf, size_t len)
 	return ret;
 }
 
-size_t SPDSocket::readSocket(unsigned char *buf, size_t len)
+size_t SocketController::readSocket(unsigned char *buf, size_t len)
 {
 	socket = 0;
 	int ret = recv(socket,buf, len,0);

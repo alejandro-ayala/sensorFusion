@@ -1,13 +1,14 @@
 #pragma once
 #include "TestInclude.h"
 #include "xadcps.h"
+#include "HW/IController.h"
 #include "xcanps.h"
 #include "xparameters.h"
 #include "xil_printf.h"
 
 namespace Communication
 {
-class CanController
+class CanController : public Hardware::IController
 {
 private:
 	int deviceId;
@@ -17,7 +18,7 @@ public:
 	CanController();
 	virtual ~CanController();
 
-	int initialization();
+	virtual void initialize() override;
 	int sendFrame();
 	int receiveFrame();
 	bool selfTest();

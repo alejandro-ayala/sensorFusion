@@ -2,14 +2,14 @@
 
 namespace Hardware
 {
-MotorController::MotorController(IHbridge* hbridge): hbridge(hbridge)
+MotorController::MotorController(IHbridge* hbridge): IController("MotorController") , hbridge(hbridge)
 {
 
 }
 
 MotorController::~MotorController() {}
 
-void MotorController::initialization()
+void MotorController::initialize()
 {
 
 }

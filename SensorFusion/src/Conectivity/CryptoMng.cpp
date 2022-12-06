@@ -1,9 +1,4 @@
-/*
- * CryptoMng.cpp
- *
- *  Created on: 25 jul. 2022
- *      Author: Alejandro
- */
+
 #include <stdint.h>
 #include <string.h>
 #ifndef TEST_BUILD
@@ -13,20 +8,22 @@
 #include "CryptoMng.h"
 #include "Tools/Logger.h"
 #include "ProjectExceptions.h"
-#include "Tools/SPDSocket.h"
+#include "Conectivity/SocketController.h"
 
+#ifndef TEST_BUILD
+namespace
+{
+
+using namespace Conectivity;
 const char *CryptoMng::ROOT_CA = "-----BEGIN CERTIFICATE-----\nMIIDEzCCAfsCFCoP4eoHE17jVrmoc+NxSybT9FL+MA0GCSqGSIb3DQEBCwUAMEYxCzAJBgNVBAYTAlNQMQ8wDQYDVQQIDAZNYWRyaWQxDzANBgNVBAcMBk1hZHJpZDEVMBMGA1UECgwMQW1wYWNpbW9uIENBMB4XDTIyMDgwMjExMDYyMVoXDTMyMDczMDExMDYyMVowRjELMAkGA1UEBhMCU1AxDzANBgNVBAgMBk1hZHJpZDEPMA0GA1UEBwwGTWFkcmlkMRUwEwYDVQQKDAxBbXBhY2ltb24gQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCVN9RU5AWqfHeiCef+1ZbFbKGchHzHSEW57ctTP2lxqHjjHVqEjY57DZO3JoHe8ex8Jd3yC7zlBAUa/ezIkivitAoSXHWWVsrMavMMd9VJzjQ6sVym5PwrnTRt4AyN1y97pctNXKPXRD01CaTAmloniEGs4grft96Q/qbyY9FdOszc3odlHhw00cv0Li/e/wBa137NN8lqSQeK13yyZs2eO/lKJUQ1JAgVdU/aGtQfCX82I6iHB07rts8J7vpd2lm/O4jaWtbBhDPefSdGSJoaZFQkENP6r3D5kmu/S4KWmDe1YYTN/9lJMlnBygwejjKgONurPmgewd9OW+q84qa1AgMBAAEwDQYJKoZIhvcNAQELBQADggEBAEfMX28wkyM+wgWDsjR7YftXt27xVcAkBtGpphPkMhBIE81TYWLtnO7Xj8VNj6jcbb1K/ABcdL5AtO48bhO4/Eh4ACf9oC1WBDI3yYIkVmY8RCNrEsTacmKBUlHq88Q3V50mXOsr9hnJUEzogBoBUZSlrNcUPnuRp05gcFobY0BoGNhDkEobglfC47rMjM3pgF8PWHTMgAQBip2okzD2bW3Ay1Oc2pUFZQpfQD0MEaFExk6a0lyPAaL7GX0CvUyh96e0e7DMn1W/VWPv0vErAJQE7d6vT64xSZNCWnyUxLd/bE+ulJkDTIX6BLp58a8tuaeWT8Nk3Wy2BH4iQqoXnSo=-----END CERTIFICATE-----\n";
 /*fail CA*/
 //const char *CryptoMng::ROOT_CA = "-----BEGIN CERTIFICATE-----\nMIIDSzCCAjOgAwIBAgIUOJXtmYcCBW/o8V+HXI8AccG8qwgwDQYJKoZIhvcNAQELBQAwFjEUMBIGA1UEAwwLRWFzeS1SU0EgQ0EwHhcNMjIwODAyMDczNzQ5WhcNMzIwNzMwMDczNzQ5WjAWMRQwEgYDVQQDDAtFYXN5LVJTQSBDQTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAPP/2ysUZIf6HpHH3F41SkqvsAQHVR+5f4nyXHYzYr25rlx79zBKNz4aTuxCX6YxdYULse0aYPAg49wBcFZ2QHoOEhRjmAk8OT8/xNNpGABrfreyi4f0OrsmaMGOeiWUYtEjb6VArlTl4Y+FiFiyS0l1UzO2f+1f/Wd8MH/iRUUJ0TehbP2f3Pw6URSlgWbc/jEqiW77Oud1uyaBdNduc3OsV78QbyuHa39HP2pB06mY7IUN930AHgIIeKm5TVujIDx/8eija/p0aeBhx5k+qfAmPcD/mY9rF+jiCUsjnuyOSeMKGpe8/Xt6lD0Ta6lrHhtikZTLrBi0tEs0CQuZO9cCAwEAAaOBkDCBjTAdBgNVHQ4EFgQUIwnFlbnnDHvcy5GKeyA/QPQxgxMwUQYDVR0jBEowSIAUIwnFlbnnDHvcy5GKeyA/QPQxgxOhGqQYMBYxFDASBgNVBAMMC0Vhc3ktUlNBIENBghQ4le2ZhwIFb+jxX4dcjwBxwbyrCDAMBgNVHRMEBTADAQH/MAsGA1UdDwQEAwIBBjANBgkqhkiG9w0BAQsFAAOCAQEAeTLom9CPOPa2dgWDoFgK+/NYNqDHEnqH82d7F6N6xAIq3ufq8obAkz3o70sNNpydk3fj5L/ze+Y0pnfPWaHW0uXoe/g8K6AP0kgpplJMOLIaUq3Ia8k5nHSN1lFgo4ls87wfMe5dC1TIO2x5bizrOsAuxAbC0YDZ5GfA57N6zcjg9qsXHZch1E7sQyqBeZe2qn+aeYrfuz3Z/hGilKFNHn/1MxRD5Yzv+PuzcRmxRcF7N8vgVu5fuBd0oGva2nQVJCG2mSx3ekSv/s22wui7N+pLHl9/EezJQ5lQyVKD9aeDPXVWmQc2k0JgryK5OXU45mS90CUqtOMk4mqOgrznYA==-----END CERTIFICATE-----\n";
 const size_t SERVER_BUFFER_LENGTH = 1024;
 
-#ifndef TEST_BUILD
-namespace
-{
 int readDataCallback(void *ctx, unsigned char *buf, size_t len)
 {
 	CryptoMng *cryptoMng = static_cast<CryptoMng *>(ctx);
-	Tools::SPDSocket* socket = cryptoMng->getSocket();
+	SocketController* socket = cryptoMng->getSocket();
 	size_t ret = socket->readSocket(buf, len);
 	return ret;
 }
@@ -34,12 +31,14 @@ int readDataCallback(void *ctx, unsigned char *buf, size_t len)
 int sendDataCallback(void *ctx, const unsigned char *buf, size_t len)
 {
 	CryptoMng *cryptoMng = static_cast<CryptoMng *>(ctx);
-	Tools::SPDSocket* socket = cryptoMng->getSocket();
+	SocketController* socket = cryptoMng->getSocket();
 	size_t ret = socket->writeSocket(buf, len);
 	return ret;
 }
 }
 #endif
+namespace Conectivity
+{
 CryptoMng::CryptoMng(CryptoConfig cryptoCfg) : cryptoCfg(cryptoCfg)
 {
 #ifndef TEST_BUILD
@@ -322,10 +321,10 @@ bool CryptoMng::readRootCA(std::string& rootCA)
 #endif
 }
 
-Tools::SPDSocket* CryptoMng::getSocket()
+SocketController* CryptoMng::getSocket()
 {
 #ifndef TEST_BUILD
-	return new Tools::SPDSocket();
+	return new SocketController();
 #endif
 }
 
@@ -338,4 +337,5 @@ void  CryptoMng::reconnect(void)
 
 //	mbedtls_ssl_set_session( &ssl, &saved_session );
 #endif
+}
 }

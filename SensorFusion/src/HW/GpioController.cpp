@@ -9,7 +9,7 @@
 namespace Hardware
 {
 
-GpioController::GpioController(AxiGpioInterface& gpioIntefaces) : gpioIntefaces(gpioIntefaces)
+GpioController::GpioController(AxiGpioInterface& gpioIntefaces) : IController("GpioController") , gpioIntefaces(gpioIntefaces)
 {
 
 }
@@ -19,7 +19,7 @@ GpioController::~GpioController()
 
 }
 
-void  GpioController::initialization()
+void  GpioController::initialize()
 {
 
 	int status = XGpio_Initialize(gpioIntefaces.axiGpio0.gpioDriver, XPAR_GPIO_0_DEVICE_ID);
@@ -39,7 +39,7 @@ void  GpioController::initialization()
 	configGPIO(gpioIntefaces.axiGpio1.gpioDriver, gpioIntefaces.axiGpio1.chOutput, gpioIntefaces.axiGpio1.directionOutput);
 	configGPIO(gpioIntefaces.axiGpio1.gpioDriver, gpioIntefaces.axiGpio1.chInput , gpioIntefaces.axiGpio1.directionInput);
 
-	configPmodGPIO(gpioIntefaces.axiLiteGpioBtn.gpioDriver, gpioIntefaces.axiLiteGpioBtn.address, gpioIntefaces.axiLiteGpioBtn.direction);
+	//configPmodGPIO(gpioIntefaces.axiLiteGpioBtn.gpioDriver, gpioIntefaces.axiLiteGpioBtn.address, gpioIntefaces.axiLiteGpioBtn.direction);
 	configPmodGPIO(gpioIntefaces.axiLiteGpioLed.gpioDriver, gpioIntefaces.axiLiteGpioLed.address, gpioIntefaces.axiLiteGpioLed.direction);
 
 }

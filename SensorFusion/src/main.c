@@ -7,16 +7,16 @@
 #include "netif/xadapter.h"
 #include "Common/platform_config.h"
 #include "xil_printf.h"
-#include "Connection/ConnectionSettings.h"
-#include "Connection/CryptoMng.h"
-#include "Connection/HTTPConnectionTypes.h"
+#include "Conectivity/ConnectionSettings.h"
+#include "Conectivity/CryptoMng.h"
+#include "Conectivity/HTTPConnectionTypes.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
 #include "lwipopts.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "mbedtls/platform.h"
-#include "Connection/ServerManager.h"
+#include "Conectivity/ServerManager.h"
 #include "Communication/CommunicationManager.h"
 #include "lwip/dhcp.h"
 #include "HW/UserControlManager.h"
@@ -149,7 +149,7 @@ void userIfaceControlTask(void *argument)
 void motorControlTask(void *argument)
 {
 	MotorController* motorController = reinterpret_cast<MotorController*>(argument);
-	motorController->initialization();
+	motorController->initialize();
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	while(1)

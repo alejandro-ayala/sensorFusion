@@ -7,7 +7,7 @@ namespace Hardware
 {
 XGpio gpio0;
 XGpio gpio1;
-PmodGpio pmodGpioBtn;
+//PmodGpio pmodGpioBtn;
 PmodGpio pmodGpioLeds;
 UserControlManager::UserControlManager()
 {
@@ -22,9 +22,9 @@ UserControlManager::UserControlManager()
 	gpioInterface.axiGpio1.directionInput  = 0x0F;
 	gpioInterface.axiGpio1.directionOutput = 0x00;
 
-	gpioInterface.axiLiteGpioBtn.gpioDriver = &pmodGpioBtn;
-	gpioInterface.axiLiteGpioBtn.address = XPAR_PMODGPIO_0_AXI_LITE_GPIO_BASEADDR;
-	gpioInterface.axiLiteGpioBtn.direction = 0xFF;
+//	gpioInterface.axiLiteGpioBtn.gpioDriver = &pmodGpioBtn;
+//	gpioInterface.axiLiteGpioBtn.address = XPAR_PMODGPIO_0_AXI_LITE_GPIO_BASEADDR;
+//	gpioInterface.axiLiteGpioBtn.direction = 0xFF;
 
 	gpioInterface.axiLiteGpioLed.gpioDriver = &pmodGpioLeds;
 	gpioInterface.axiLiteGpioLed.address = XPAR_PMODGPIO_1_AXI_LITE_GPIO_BASEADDR;
@@ -42,8 +42,8 @@ UserControlManager::~UserControlManager()
 
 void UserControlManager::initialization()
 {
-	gpioController->initialization();
-	keypadController->initialization();
+	gpioController->initialize();
+	keypadController->initialize();
 }
 
 void UserControlManager::controlRGB(uint32_t color, bool state)
@@ -120,10 +120,10 @@ void UserControlManager::selfTest()
 
 	controlRGB(0x0F,TURN_OFF);
 
-	input = readPmodButton(1);
-	input = readPmodButton(2);
-	input = readPmodButton(3);
-	input = readPmodButton(4);
+//	input = readPmodButton(1);
+//	input = readPmodButton(2);
+//	input = readPmodButton(3);
+//	input = readPmodButton(4);
 
 	controlPmodLED(1,true);
 	controlPmodLED(2,true);

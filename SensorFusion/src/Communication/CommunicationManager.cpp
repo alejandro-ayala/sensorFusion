@@ -15,7 +15,7 @@ CommunicationManager::~CommunicationManager()
 
 void CommunicationManager::initialization()
 {
-	canController->initialization();
+	canController->initialize();
 }
 
 void CommunicationManager::syncSharedClock()
