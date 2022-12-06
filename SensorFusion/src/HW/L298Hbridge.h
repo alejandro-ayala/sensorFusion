@@ -13,6 +13,7 @@ public:
 	L298Hbridge(PWMController* pwmcontroller) : IHbridge("L298Hbridge") , pwmController (pwmcontroller){};
 	~L298Hbridge(){};
 
+	void initialize();
 	void turnOn(MOTOR_CHANNEL ch) override;
 	void turnOff(MOTOR_CHANNEL ch) override;
 	void forward(MOTOR_CHANNEL ch) override;
