@@ -10,18 +10,23 @@
 #include "Conectivity/ConnectionSettings.h"
 #include "Conectivity/CryptoMng.h"
 #include "Conectivity/HTTPConnectionTypes.h"
-#include "lwip/init.h"
-#include "lwip/sockets.h"
-#include "lwipopts.h"
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "mbedtls/platform.h"
 #include "Conectivity/ServerManager.h"
 #include "Communication/CommunicationManager.h"
-#include "lwip/dhcp.h"
+
 #include "HW/UserControlManager.h"
 #include "HW/MotorController.h"
 #include "HW/L298Hbridge.h"
+
+#include "lwip/dhcp.h"
+#include "lwip/init.h"
+#include "lwip/sockets.h"
+#include "lwipopts.h"
+
+#include "HW/OLEDController.h"
 
 using namespace Conectivity;
 using namespace Communication;
@@ -138,6 +143,7 @@ void userIfaceControlTask(void *argument)
 	userControlMng->initialization();
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
+
 	while(1)
 	{
 		xil_printf("\r\nSendReportTask wakeup\r\n");

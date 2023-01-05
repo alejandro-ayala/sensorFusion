@@ -7,6 +7,7 @@ namespace Hardware
 {
 XGpio gpio0;
 XGpio gpio1;
+uint32_t SPI_Address = 0x00;
 //PmodGpio pmodGpioBtn;
 PmodGpio pmodGpioLeds;
 UserControlManager::UserControlManager()
@@ -26,12 +27,14 @@ UserControlManager::UserControlManager()
 //	gpioInterface.axiLiteGpioBtn.address = XPAR_PMODGPIO_0_AXI_LITE_GPIO_BASEADDR;
 //	gpioInterface.axiLiteGpioBtn.direction = 0xFF;
 
-	gpioInterface.axiLiteGpioLed.gpioDriver = &pmodGpioLeds;
-	gpioInterface.axiLiteGpioLed.address = XPAR_PMODGPIO_1_AXI_LITE_GPIO_BASEADDR;
-	gpioInterface.axiLiteGpioLed.direction = 0x00;
+//	gpioInterface.axiLiteGpioLed.gpioDriver = &pmodGpioLeds;
+//	gpioInterface.axiLiteGpioLed.address = XPAR_PMODGPIO_1_AXI_LITE_GPIO_BASEADDR;
+//	gpioInterface.axiLiteGpioLed.direction = 0x00;
 
 	gpioController   = new GpioController(gpioInterface);
 	keypadController = new KeyPadController();
+
+	oledController   = new OLEDController();
 
 }
 
@@ -125,16 +128,18 @@ void UserControlManager::selfTest()
 //	input = readPmodButton(3);
 //	input = readPmodButton(4);
 
-	controlPmodLED(1,true);
-	controlPmodLED(2,true);
-	controlPmodLED(3,true);
-	controlPmodLED(4,true);
-
-	controlPmodLED(1,false);
-	controlPmodLED(2,false);
-	controlPmodLED(3,false);
-	controlPmodLED(4,false);
+//	controlPmodLED(1,true);
+//	controlPmodLED(2,true);
+//	controlPmodLED(3,true);
+//	controlPmodLED(4,true);
+//
+//	controlPmodLED(1,false);
+//	controlPmodLED(2,false);
+//	controlPmodLED(3,false);
+//	controlPmodLED(4,false);
 
 	keypadController->selfTest();
+
+	oledController->selfTest();
 }
 }
