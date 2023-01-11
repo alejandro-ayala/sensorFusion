@@ -37,13 +37,13 @@ private:
 public:
 	HTTPConnection(cstring serverAddr, uint16_t serverPort, CryptoMng* cryptoMng, bool enableSSL);
 	virtual ~HTTPConnection();
-	TVIRTUAL void openConnection();
-	TVIRTUAL void closeConnection();
+	void openConnection();
+	void closeConnection();
 
 
-	TVIRTUAL void parsePostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod);
-	TVIRTUAL void parseGetRequest(const std::string& url, std::string& getHttpReq);
-	TVIRTUAL std::string request(const std::string& getReq);
+	void parsePostRequest(const std::string& url, std::string& postHttpReq, std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod);
+	void parseGetRequest(const std::string& url, std::string& getHttpReq);
+	std::string request(const std::string& getReq);
 
 };
 }

@@ -16,6 +16,7 @@
 #include "mbedtls/platform.h"
 #include "Conectivity/ServerManager.h"
 #include "Communication/CommunicationManager.h"
+#include "Communication/CanController.h"
 
 #include "HW/UserControlManager.h"
 #include "HW/MotorController.h"
@@ -27,11 +28,13 @@
 #include "lwipopts.h"
 
 #include "HW/OLEDController.h"
-
+#include "ClockSyncronization/TimeController.h"
+#include "ClockSyncronization/TimeBaseManager.h"
 using namespace Conectivity;
 using namespace Communication;
 using namespace Hardware;
-
+using namespace ClockSyncronization;
+void clockSyncTask(void *argument);
 int main_thread();
 int main_thread()
 {
@@ -52,6 +55,7 @@ int main_thread()
 	vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_RATE_MS);
 		if (server_netif.ip_addr.addr) {
 			xil_printf("DHCP request success\r\n");
+
 			print_ip_settings(&(server_netif.ip_addr), &(server_netif.netmask), &(server_netif.gw));
 		    int exit_code;
 
@@ -88,8 +92,7 @@ int main_thread()
     vTaskDelete(NULL);
     return 0;
 }
-TaskHandle_t task1Handle = NULL;
-TaskHandle_t task2Handle = NULL;
+
 void CommunicationTask(void *argument)
 {
 	CommunicationManager* commMng = reinterpret_cast<CommunicationManager*>(argument);
@@ -152,6 +155,51 @@ void userIfaceControlTask(void *argument)
 	}
 }
 
+void clockSyncTask(void *argument)
+{
+//	TimeBaseManager* timeBaseMng = reinterpret_cast<TimeBaseManager*>(argument);
+//
+//	timeBaseMng->initialization();
+//	TickType_t xLastWakeTime;
+//	xLastWakeTime = xTaskGetTickCount();
+//
+//	while(1)
+//	{
+//		timeBaseMng->sendGlobalTime();
+//		vTaskDelay(300 / portTICK_RATE_MS);
+//	}
+	CanController* canController = reinterpret_cast<CanController*>(argument);
+	TickType_t xLastWakeTime;
+
+	xLastWakeTime = xTaskGetTickCount();
+	xil_printf("\r\nCommunicationTask init\r\n");
+
+	canController->initialize();
+	uint8_t cnt = 0;
+	uint8_t lenght = 8;
+	uint8_t data[lenght];
+  /* Infinite loop */
+	while(1)
+	{
+		xil_printf("\r\nCommunicationTask send frame\r\n");
+
+
+		data[0] = cnt;
+		data[1] = 0x02;
+		data[2] = 0xF4;
+		data[3] = 0x08;
+		data[4] = 0x10;
+		data[5] = 0x20;
+		data[6] = 0x40;
+		data[7] = 0x81;
+
+		canController->transmitMsg(0x1E,data,lenght);
+		cnt++;
+		//vTaskDelayUntil(xLastWakeTime,5000 / portTICK_RATE_MS);
+		vTaskDelay(5000 / portTICK_RATE_MS);
+	}
+}
+
 void motorControlTask(void *argument)
 {
 	MotorController* motorController = reinterpret_cast<MotorController*>(argument);
@@ -173,8 +221,7 @@ int main()
 	TaskHandle_t sendingHandle = NULL;
 	TaskHandle_t userIfHandle = NULL;
 	TaskHandle_t motorControllerHandle = NULL;
-
-
+	TaskHandle_t timeBaseMngHandle = NULL;
 	static UserControlManager* userControlMng = new UserControlManager();
 
 	//TODO add a factory pattern to get HBridge controller
@@ -188,11 +235,15 @@ int main()
 	//xTaskCreate( CommunicationTask, "CommunicationTask",THREAD_STACKSIZE,commMng,DEFAULT_THREAD_PRIO,&communicationHandle );
 	//xTaskCreate( UpdateConfigurationTask, "UpdateConfigurationTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&updateConfigHandle );
 	//xTaskCreate( SendReportTask, "SendReportTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&sendingHandle );
-	xTaskCreate( userIfaceControlTask, "UserIfaceControlTask",THREAD_STACKSIZE,userControlMng,DEFAULT_THREAD_PRIO,&userIfHandle);
-	xTaskCreate(motorControlTask, "MotorControlTask",THREAD_STACKSIZE,motorController,DEFAULT_THREAD_PRIO,&motorControllerHandle);
+	//xTaskCreate( userIfaceControlTask, "UserIfaceControlTask",THREAD_STACKSIZE,userControlMng,DEFAULT_THREAD_PRIO,&userIfHandle);
+	//xTaskCreate(motorControlTask, "MotorControlTask",THREAD_STACKSIZE,motorController,DEFAULT_THREAD_PRIO,&motorControllerHandle);
 
-	sys_thread_new("main_thrd", (void(*)(void*))main_thread, 0,THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
-
+	//sys_thread_new("main_thrd", (void(*)(void*))main_thread, 0,THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
+	static TimeController*  timecontroller = new TimeController();
+	static CanController*   canController = new CanController();
+	static HTTPClient*      httpClient = new HTTPClient();
+	static TimeBaseManager* timeBaseMng = new TimeBaseManager(timecontroller,canController,httpClient);
+	xTaskCreate(clockSyncTask, "ClockSyncTask",THREAD_STACKSIZE,canController,DEFAULT_THREAD_PRIO,&timeBaseMngHandle);
 	vTaskStartScheduler();
 	while(1);
 	return 0;

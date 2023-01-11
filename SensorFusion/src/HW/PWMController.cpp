@@ -52,4 +52,9 @@ uint32_t PWMController::getPeriod()
 	return Xil_In32(baseAddr + PWM_AXI_PERIOD_REG_OFFSET);
 }
 
+bool PWMController::selfTest()
+{
+	bool result = true;
+	return result;
+}
 }

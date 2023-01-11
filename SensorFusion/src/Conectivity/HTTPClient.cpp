@@ -11,7 +11,8 @@ using std::ifstream;
 #include <string.h>
 
 #include "HTTPClient.h"
-
+namespace Conectivity
+{
 HTTPClient::HTTPClient()
 {
 	conn = createNewConnection(false);
@@ -50,7 +51,7 @@ void HTTPClient::postRequest(const char* url,std::vector<std::pair<std::string,s
 
 Conectivity::HTTPConnection* HTTPClient::createNewConnection(bool secureConn)
 {
-	cstring serverIP = "192.168.0.20";
+	cstring serverIP = "192.168.0.1";
 	uint16_t serverPort;
 	CryptoConfig cryptoConfig = {false,false,false,serverIP};
 	static Conectivity::CryptoMng* cryptoMng = new Conectivity::CryptoMng(cryptoConfig);
@@ -65,4 +66,5 @@ Conectivity::HTTPConnection* HTTPClient::createNewConnection(bool secureConn)
 	}
 	return new Conectivity::HTTPConnection(serverIP,serverPort, cryptoMng, secureConn);
 
+}
 }

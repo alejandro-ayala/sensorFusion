@@ -1,227 +1,275 @@
 #include "CanController.h"
+#include "CanCommandsRegisters.h"
+
+
+using namespace Hardware;
 namespace Communication
 {
-/************************** Constant Definitions *****************************/
 
-/*
- * The following constants map to the XPAR parameters created in the
- * xparameters.h file. They are defined here such that a user can easily
- * change all the needed parameters in one place.
- */
-#define CAN_DEVICE_ID	XPAR_XCANPS_0_DEVICE_ID
-
-/*
- * Maximum CAN frame length in words.
- */
-#define XCANPS_MAX_FRAME_SIZE_IN_WORDS (XCANPS_MAX_FRAME_SIZE / sizeof(u32))
-
-#define FRAME_DATA_LENGTH 		8  /* Frame Data field length */
-
-/*
- * Message Id Constant.
- */
-#define TEST_MESSAGE_ID			2000
-
-/*
- * The Baud Rate Prescaler Register (BRPR) and Bit Timing Register (BTR)
- * are setup such that CAN baud rate equals 40Kbps, assuming that the
- * the CAN clock is 24MHz. The user needs to modify these values based on
- * the desired baud rate and the CAN clock frequency. For more information
- * see the CAN 2.0A, CAN 2.0B, ISO 11898-1 specifications.
- */
-
-/*
- * Timing parameters to be set in the Bit Timing Register (BTR).
- * These values are for a 40 Kbps baudrate assuming the CAN input clock
- frequency
- * is 24 MHz.
- */
-#define TEST_BTR_SYNCJUMPWIDTH		3
-#define TEST_BTR_SECOND_TIMESEGMENT	2
-#define TEST_BTR_FIRST_TIMESEGMENT	15
-
-/*
- * The Baud rate Prescalar value in the Baud Rate Prescaler Register (BRPR)
- * needs to be set based on the input clock  frequency to the CAN core and
- * the desired CAN baud rate.
- * This value is for a 40 Kbps baudrate assuming the CAN input clock frequency
- * is 24 MHz.
- */
-#define TEST_BRPR_BAUD_PRESCALAR	29
-
-/************************** Variable Definitions *****************************/
-
-/*
- * Buffers to hold frames to send and receive. These are declared as global so
- * that they are not on the stack.
- * These buffers need to be 32-bit aligned
- */
-static u32 TxFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
-static u32 RxFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
-
-/* Driver instance */
-static XCanPs Can;
-CanController::CanController() : IController("CanController"), deviceId(CAN_DEVICE_ID)
+CanController::CanController() : ICommunication("CanController")
 {
-	CanInstPtr = &Can;
+	xspiConfig.spiConfiguration = {0,0,1,0,1,8,0,0,0,0,0};
+	xspiConfig.gpioAddress      = XPAR_PMODCAN_0_AXI_LITE_GPIO_BASEADDR;
+	xspiConfig.spiBaseAddress   = XPAR_PMODCAN_0_AXI_LITE_SPI_BASEADDR;
+	spiControl = new SPIController(xspiConfig);
 }
 
 CanController::~CanController()
 {
-
+	delete spiControl;
 }
 
 void CanController::initialize()
 {
 
-	int Status;
-	XCanPs *CanInstPtr = &Can;
-	XCanPs_Config *ConfigPtr;
+   // 0b1111 for input 0b0000 for output, 0b0001 for pin1 in pin 2 out etc.
+   Xil_Out32(xspiConfig.gpioAddress + 4, 0b1111);
+   //CAN_SPIInit(&InstancePtr->CANSpi);
+   spiControl->initialize();
 
-	/*
-	 * Initialize the Can device.
-	 */
-	ConfigPtr = XCanPs_LookupConfig(deviceId);
-	if (CanInstPtr == NULL) {
-		//TODO throw exception
-		//return XST_FAILURE;
-	}
-	Status = XCanPs_CfgInitialize(CanInstPtr,
-					ConfigPtr,
-					ConfigPtr->BaseAddr);
-	if (Status != XST_SUCCESS) {
-		//TODO throw exception
-		//return XST_FAILURE;
-	}
 
-	/*
-	 * Run self-test on the device, which verifies basic sanity of the
-	 * device and the driver.
-	 */
-	Status = XCanPs_SelfTest(CanInstPtr);
-	if (Status != XST_SUCCESS) {
-		//TODO throw exception
-		//return XST_FAILURE;
-	}
-
-	/*
-	 * Enter Configuration Mode so we can setup Baud Rate Prescaler
-	 * Register (BRPR) and Bit Timing Register (BTR).
-	 */
-	XCanPs_EnterMode(CanInstPtr, XCANPS_MODE_CONFIG);
-	while(XCanPs_GetMode(CanInstPtr) != XCANPS_MODE_CONFIG);
-
-	/*
-	 * Setup Baud Rate Prescaler Register (BRPR) and
-	 * Bit Timing Register (BTR).
-	 */
-	XCanPs_SetBaudRatePrescaler(CanInstPtr, TEST_BRPR_BAUD_PRESCALAR);
-	XCanPs_SetBitTiming(CanInstPtr, TEST_BTR_SYNCJUMPWIDTH,
-				TEST_BTR_SECOND_TIMESEGMENT,
-
-				TEST_BTR_FIRST_TIMESEGMENT);
+   configureTransceiver(CAN_ModeNormalOperation);
 }
 
-int CanController::sendFrame()
+void CanController::configureTransceiver(uint8_t mode)
 {
-	u8 *FramePtr;
-	int Index;
-	int status;
-	XCanPs *CanInstPtr = &Can;
-	/*
-	 * Create correct values for Identifier and Data Length Code Register.
-	 */
-	TxFrame[0] = (u32)XCanPs_CreateIdValue((u32)TEST_MESSAGE_ID, 0, 0, 0, 0);
-	TxFrame[1] = (u32)XCanPs_CreateDlcValue((u32)FRAME_DATA_LENGTH);
+	uint8_t CNF[3] = {0x86, 0xFB, 0x41};
 
-	/*
-	 * Now fill in the data field with known values so we can verify them
-	 * on receive.
-	 */
-	FramePtr = (u8 *)(&TxFrame[2]);
-	for (Index = 0; Index < FRAME_DATA_LENGTH; Index++) {
-		*FramePtr++ = FRAME_DATA_LENGTH - (u8)Index;
-	}
+   // Set CAN control mode to configuration
+   modifyRegister(CAN_CANCTRL_REG_ADDR, CAN_CAN_CANCTRL_MODE_MASK, CAN_ModeConfiguration);
 
-	/*
-	 * Wait until TX FIFO has room.
-	 */
-	while (XCanPs_IsTxFifoFull(CanInstPtr) == TRUE);
+   // Set config rate and clock for CAN
+   writeRegister(CAN_CNF3_REG_ADDR, CNF, 3);
 
-	/*
-	 * Now send the frame.
-	 *
-	 * Another way to send a frame is keep calling XCanPs_sendFrame() until it
-	 * returns XST_SUCCESS. No check on if TX FIFO is full is needed anymore
-	 * in that case.
-	 */
-	status = XCanPs_Send(CanInstPtr, TxFrame);
+   clearRegister(0x00, 12); // Initiate CAN buffer filters and
+   clearRegister(0x10, 12); // registers
+   clearRegister(0x20, 8);
+   clearRegister(0x30, 14);
+   clearRegister(0x40, 14);
+   clearRegister(0x50, 14);
 
-	return status;
+   // Set the CAN mode for any message type
+   modifyRegister(CAN_RXB0CTRL_REG_ADDR, 0x64, 0x60);
+
+   // Set CAN control mode to selected mode (exit configuration)
+   modifyRegister(CAN_CANCTRL_REG_ADDR, CAN_CAN_CANCTRL_MODE_MASK, mode << CAN_CANCTRL_MODE_BIT);
 }
 
-int CanController::receiveFrame()
+void CanController::modifyRegister(uint8_t reg, uint8_t mask, uint8_t value)
 {
-	u8 *FramePtr;
-	int status;
-	int Index;
-	XCanPs *CanInstPtr = &Can;
-	/*
-	 * Wait until a frame is received.
-	 */
-	while (XCanPs_IsRxEmpty(CanInstPtr) == TRUE);
+	uint8_t buf[4] = {CAN_MODIFY_REG_CMD, reg, mask, value};
+	spiControl->writeData(buf, 4, NULL, 0);
+}
 
-	/*
-	 * Receive a frame and verify its contents.
-	 */
-	status = XCanPs_Recv(CanInstPtr, RxFrame);
-	if (status == XST_SUCCESS) {
-		/*
-		 * Verify Identifier and Data Length Code.
-		 */
-		if (RxFrame[0] !=
-			(u32)XCanPs_CreateIdValue((u32)TEST_MESSAGE_ID, 0, 0, 0, 0))
-			return XST_LOOPBACK_ERROR;
 
-		if ((RxFrame[1] & ~XCANPS_DLCR_TIMESTAMP_MASK) != TxFrame[1])
-			return XST_LOOPBACK_ERROR;
+void CanController::writeRegister(uint8_t reg, uint8_t *data, uint32_t nData)
+{
+	uint8_t buf[nData + 2];
+	uint32_t i;
+	buf[0] = CAN_WRITE_REG_CMD;
+	buf[1] = reg;
+	for (i = 0; i < nData; i++)
+	  buf[i + 2] = data[i];
 
-		/*
-		 * Verify Data field contents.
-		 */
-		FramePtr = (u8 *)(&RxFrame[2]);
-		for (Index = 0; Index < FRAME_DATA_LENGTH; Index++) {
-			if (*FramePtr++ != (u8)Index) {
-				return XST_LOOPBACK_ERROR;
-			}
-		}
+	spiControl->writeData(buf, nData + 2, NULL, 0);
+}
+
+void CanController::clearRegister(uint8_t reg, uint32_t nData)
+{
+	uint8_t buf[nData + 2];
+	buf[0] = CAN_WRITE_REG_CMD;
+	buf[1] = reg;
+	spiControl->writeData(buf, nData + 2, NULL, 0);
+}
+
+int CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
+{
+	CanFrame message;
+	uint8_t status;
+	message.id  = idMsg;
+	message.dlc = msgLength;
+	message.eid = 0x15a;
+	message.rtr = 0;
+	message.ide = 0;
+	for(int i = 0; i<msgLength; i++)
+	{
+		message.data[i] = txMsg[i];
 	}
 
-	return status;
+	xil_printf("Waiting to send\r\n");
+	do
+	{
+	  status = spiControl->readRegister(CAN_READSTATUS_CMD);
+	} while ((status & CAN_STATUS_TX0REQ_MASK) != 0); // Wait for buffer 0 to be clear
 
+
+	xil_printf("sending ");
+
+
+	modifyRegister(CAN_CANINTF_REG_ADDR, CAN_CANINTF_TX0IF_MASK, 0);
+
+	xil_printf("requesting to transmit message through transmit buffer 0 \\r\n");
+
+
+	transmit(message);
+
+	modifyRegister(CAN_CANINTF_REG_ADDR, CAN_CANINTF_TX0IF_MASK, 0);
+
+	do
+	{
+	 status = spiControl->readRegister(CAN_READSTATUS_CMD);//CAN_ReadStatus(&myDevice);
+	 xil_printf("Waiting to complete transmission\r\n");
+	} while ((status & CAN_STATUS_TX0IF_MASK) != 0); // Wait for message to transmit successfully
+	return 1;
 }
+
+void CanController::loadTxBuffer(uint8_t start_addr, uint8_t *data, uint32_t nData)
+{
+	uint8_t buf[nData + 1];
+	buf[0] = CAN_LOADBUF_CMD | start_addr;
+	for (uint8_t i = 0; i < nData; i++)
+		buf[i + 1] = data[i];
+
+	spiControl->writeData(buf, nData + 1, NULL, 0);
+}
+
+void CanController::requestToSend(uint8_t mask)
+{
+	uint8_t buf[1] = {CAN_RTS_CMD | mask};
+	spiControl->writeData(buf, 1, NULL, 0);
+}
+
+void CanController::transmit(CanFrame msg)
+{
+	uint8_t data[13];
+	uint8_t rts_mask;
+	uint8_t load_start_addr;
+	CAN_TxBuffer target = CAN_Tx0;
+	switch (target)
+	{
+	case CAN_Tx0:
+	  rts_mask = CAN_RTS_TXB0_MASK;
+	  load_start_addr = CAN_LOADBUF_TXB0SIDH;
+	  break;
+	case CAN_Tx1:
+	  rts_mask = CAN_RTS_TXB1_MASK;
+	  load_start_addr = CAN_LOADBUF_TXB1SIDH;
+	  break;
+	case CAN_Tx2:
+	  rts_mask = CAN_RTS_TXB2_MASK;
+	  load_start_addr = CAN_LOADBUF_TXB2SIDH;
+	  break;
+	default:
+	  return XST_FAILURE;
+	}
+
+	data[0] = (msg.id >> 3) & 0xFF; // TXB0 SIDH
+
+	data[1] = (msg.id << 5) & 0xE0; // TXB0 SIDL
+	data[1] |= (msg.ide << 3) & 0x08;
+	data[1] |= (msg.eid >> 16) & 0x03;
+
+	data[2] = (msg.eid >> 8) & 0xFF;
+	data[3] = (msg.eid) & 0xFF;
+
+	data[4] = (msg.rtr << 6) & 0x40;
+	data[4] |= (msg.dlc) & 0x0F;
+
+	for (uint8_t i = 0; i < msg.dlc; i++)
+	  data[i + 5] = msg.data[i];
+
+	xil_printf("CAN_SendMessage msg.dlc: %02x\r\n", msg.dlc);
+	for (uint8_t i = 0; i < 5 + msg.dlc; i++)
+	  xil_printf("CAN_SendMessage: %02x\r\n", data[i]);
+
+	//CAN_LoadTxBuffer(InstancePtr, load_start_addr, data, message.dlc + 5);
+	loadTxBuffer(load_start_addr, data, msg.dlc + 5);
+	//CAN_RequestToSend(InstancePtr, rts_mask);
+	requestToSend(rts_mask);
+}
+
+void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
+{
+	uint8_t data[13];
+	uint8_t read_start_addr;
+
+	switch (target)
+	{
+	case CAN_Rx0:
+		read_start_addr = CAN_READBUF_RXB0SIDH;
+		break;
+	case CAN_Rx1:
+		read_start_addr = CAN_READBUF_RXB1SIDH;
+		break;
+	default:
+		return XST_FAILURE;
+	}
+
+	spiControl->readData(CAN_READBUF_CMD | read_start_addr, data, receiveMsg->dlc);
+
+	receiveMsg->id = (u16) data[0] << 3;
+	receiveMsg->id |= (data[1] & 0xE0) >> 5;
+
+	receiveMsg->ide = (data[1] & 0x08) >> 3;
+
+	receiveMsg->srr = (data[1] & 0x10) >> 4;
+
+	receiveMsg->eid = (u32) (data[1] & 0x03) << 16;
+	receiveMsg->eid |= (u32) (data[2] & 0xFF) << 8;
+	receiveMsg->eid |= (u32) (data[3] & 0xFF);
+
+	receiveMsg->rtr = (data[4] & 0x40) >> 6;
+
+	receiveMsg->dlc = data[4] & 0x0F;
+
+	// Read only relevant data bytes
+	spiControl->readData(CAN_READBUF_CMD | read_start_addr, data, receiveMsg->dlc);
+
+	for (uint8_t i = 0; i < receiveMsg->dlc; i++)
+		receiveMsg->data[i] = data[i + 5];
+}
+
+int CanController::receiveMsg(uint8_t *rxBuffer)
+{
+	CanFrame rxMsg;
+	CAN_RxBuffer target;
+	uint8_t status;
+	uint8_t rx_int_mask;
+
+	do {
+	 status = spiControl->readRegister(CAN_READSTATUS_CMD);
+	 xil_printf("\r\nWaiting to receive\r\n");
+	} while ((status & CAN_STATUS_RX0IF_MASK) != 0 && (status & CAN_STATUS_RX1IF_MASK) != 0);
+
+	switch (status & 0x03) {
+	case 0b01:
+	case 0b11:
+	 xil_printf("fetching message from receive buffer 0\r\n");
+	 target = CAN_Rx0;
+	 rx_int_mask = CAN_CANINTF_RX0IF_MASK;
+	 break;
+	case 0b10:
+	 xil_printf("fetching message from receive buffer 1\r\n");
+	 target = CAN_Rx1;
+	 rx_int_mask = CAN_CANINTF_RX1IF_MASK;
+	 break;
+	default:
+	 //xil_printf("Error, message not received\r\n");
+	 return 0;
+	}
+
+	receive(&rxMsg, target);
+	modifyRegister(CAN_CANINTF_REG_ADDR, rx_int_mask, 0);
+	xil_printf("received ");
+	for(uint32_t i=0; i<rxMsg.dlc;i++)
+	{
+		rxBuffer[i] = rxMsg.data[i];
+	}
+	return rxMsg.dlc;
+}
+
 bool CanController::selfTest()
 {
-	XCanPs *CanInstPtr = &Can;
-	int status;
-	/*
-	 * Enter Loop Back Mode.
-	 */
-	XCanPs_EnterMode(CanInstPtr, XCANPS_MODE_LOOPBACK);
-	while(XCanPs_GetMode(CanInstPtr) != XCANPS_MODE_LOOPBACK);
-
-	/*
-	 * Send a frame, receive the frame via the loop back and verify its
-	 * contents.
-	 */
-	status = sendFrame();
-	if (status != XST_SUCCESS) {
-		return status;
-	}
-
-	status = receiveFrame();
-
-	return status;
-
+	return true;
 }
 }

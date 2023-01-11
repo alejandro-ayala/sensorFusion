@@ -1,6 +1,6 @@
 
 #include "CommunicationManager.h"
-
+#include "CanController.h"
 namespace Communication
 {
 CommunicationManager::CommunicationManager()
@@ -15,22 +15,22 @@ CommunicationManager::~CommunicationManager()
 
 void CommunicationManager::initialization()
 {
-	canController->initialize();
+	//canController->initialize();
 }
 
 void CommunicationManager::syncSharedClock()
 {
 	xil_printf("syncSharedClock\r\n");
-	canController->sendFrame();
+	//canController->sendFrame();
 }
 
-void CommunicationManager::selfTest()
+bool CommunicationManager::selfTest()
 {
 	initialization();
 	xil_printf("selfTest\r\n");
-	auto result = canController->selfTest();
+	bool result ;//= canController->selfTest();
 	if(result)	xil_printf("PASS\r\n");
 	else xil_printf("FAILED\r\n");
-
+	return result;
 }
 }

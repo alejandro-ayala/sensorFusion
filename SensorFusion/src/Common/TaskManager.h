@@ -8,7 +8,7 @@ public:
 	TaskManager();
 	virtual ~TaskManager();
 
-	TVIRTUAL void initialization(int deviceId);
-	TVIRTUAL void send(XCanPs *InstancePtr);
-	TVIRTUAL void receive(XCanPs *InstancePtr);
+	void initialization(int deviceId);
+	void send(XCanPs *InstancePtr);
+	void receive(XCanPs *InstancePtr);
 };

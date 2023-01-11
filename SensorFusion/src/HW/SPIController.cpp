@@ -2,13 +2,13 @@
 
 namespace Hardware
 {
-SPIController::SPIController(): IController("SPIController")
+SPIController::SPIController(const SPIConfig& xspiCfg): IController("SPIController")
 {
 	xspi = new XSpi();
-	//xspi->BaseAddr = XPAR_PMODOLEDRGB_0_AXI_LITE_SPI_BASEADDR;
-	xspiConfig = {0,0,1,0,1,8,0,0,0,0,0};
-	gpioAddr = XPAR_PMODOLEDRGB_0_AXI_LITE_GPIO_BASEADDR;
-	xspiConfig.BaseAddress = XPAR_PMODOLEDRGB_0_AXI_LITE_SPI_BASEADDR;
+
+	xspiConfig = xspiCfg.spiConfiguration;//{0,0,1,0,1,8,0,0,0,0,0};
+	gpioAddr = xspiCfg.gpioAddress;//XPAR_PMODOLEDRGB_0_AXI_LITE_GPIO_BASEADDR;
+	xspiConfig.BaseAddress = xspiCfg.spiBaseAddress;//XPAR_PMODOLEDRGB_0_AXI_LITE_SPI_BASEADDR;
 }
 
 SPIController::~SPIController()
@@ -77,8 +77,23 @@ void SPIController::writeData(uint8_t *pCmd, int nCmd, uint8_t *pData, int nData
 	}
 }
 
-void SPIController::selfTest()
+uint8_t SPIController::readRegister(uint8_t regAddr)
 {
+	u8 buf[2] = {regAddr, 0x00};
+	XSpi_Transfer(xspi,buf, buf, 2);
+	return buf[1];
+}
 
+void SPIController::readData(uint8_t start_addr, uint8_t *data, uint32_t nData)
+{
+	uint8_t buf[nData + 1];
+	buf[0] = start_addr;
+	XSpi_Transfer(xspi, buf, buf, nData + 1);
+	for (uint32_t i = 0; i < nData; i++)
+	  data[i] = buf[i + 1];
+}
+bool SPIController::selfTest()
+{
+	return true;
 }
 }

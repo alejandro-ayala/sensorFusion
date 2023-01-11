@@ -13,7 +13,6 @@ class OLEDController : public IController
 private:
 	SPIController* spiControl;
 	PmodOLEDrgb    oledControl;
-	PmodOLEDrgb    oledrgb_wrapper;
 public:
 	OLEDController();
 	virtual ~OLEDController();
@@ -53,7 +52,7 @@ public:
 	uint8_t extractRFromRGB(uint16_t wRGB);
 	uint8_t extractGFromRGB(uint16_t wRGB);
 	uint8_t extractBFromRGB(uint16_t wRGB);
-	void selfTest();
+	bool selfTest() override;
 };
 }
 

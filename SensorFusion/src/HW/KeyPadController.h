@@ -26,6 +26,6 @@ public:
 	TVIRTUAL uint32_t getRows();
 	TVIRTUAL uint16_t getKeyStates();
 	TVIRTUAL uint32_t getKeyPressed(uint16_t keystate, uint8_t *cptr);
-	void selfTest();
+	bool selfTest() override;
 };
 }

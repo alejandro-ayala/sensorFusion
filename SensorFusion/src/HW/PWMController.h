@@ -19,6 +19,7 @@ public:
 	TVIRTUAL void setPeriod(uint32_t clocks);
 	TVIRTUAL uint32_t getDutyCicle(uint32_t pwmIndex);
 	TVIRTUAL uint32_t getPeriod();
+	bool selfTest() override;
 };
 
 }

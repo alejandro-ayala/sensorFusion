@@ -39,13 +39,15 @@ void MotorController::backward(MOTOR_CHANNEL ch)
 //	hbridge->setVelocity(ch,speed);
 //}
 
-void MotorController::selfTest()
+bool MotorController::selfTest()
 {
+	bool result;
 	MOTOR_CHANNEL ch = MOTOR_CHANNEL::LEFT;
 	turnOn(ch);
 	turnOff(ch);
 	turnOff(ch);
 	backward(ch);
+	return result;
 }
 
 }

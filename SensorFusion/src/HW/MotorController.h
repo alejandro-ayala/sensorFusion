@@ -21,7 +21,7 @@ public:
 	void forward(MOTOR_CHANNEL ch);
 	void backward(MOTOR_CHANNEL ch);
 	//void setVelocity(MOTOR_CHANNEL ch, uint32_t speed);
-	void selfTest();
+	bool selfTest() override;
 };
 }
 

@@ -86,8 +86,9 @@ void GpioController::writePmodGPIO(PmodGpio *InstancePtr, uint8_t pinNumber, uin
 	  Xil_Out32(InstancePtr->GPIO_addr, (data & ~(1 << (pinNumber - 1))));
 }
 
-void GpioController::selfTest()
+bool GpioController::selfTest()
 {
+	bool result;
 //
 //	writeGPIO(&Gpio0, LED_CHANNEL, 0x0F);
 //	uint32_t value = readGPIO(&Gpio0,BTN_CHANNEL);
@@ -97,5 +98,6 @@ void GpioController::selfTest()
 //	/* Clear the LED bit */
 //	XGpio_DiscreteClear(&Gpio0, LED_CHANNEL, 0x0F);
 //	/* Wait a small amount of time so the LED is visible */
+	return result;
 }
 }

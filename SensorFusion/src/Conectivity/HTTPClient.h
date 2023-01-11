@@ -2,7 +2,8 @@
 
 #include <string>
 #include "HTTPConnection.h"
-
+namespace Conectivity
+{
 class HTTPClient
 {
 private:
@@ -12,11 +13,12 @@ public:
 	HTTPClient();
 	virtual ~HTTPClient();
 
-	TVIRTUAL void openConnection();
-	TVIRTUAL void closeConnection();
+	void openConnection();
+	void closeConnection();
 
-	TVIRTUAL std::string getRequest(const char* url);
-	TVIRTUAL void postRequest(const char* url,std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod);
-	TVIRTUAL Conectivity::HTTPConnection* createNewConnection(bool secureConn);
+	std::string getRequest(const char* url);
+	void postRequest(const char* url,std::vector<std::pair<std::string,std::string>> msgContent, const HTTP_POST_METHOD& postMethod);
+	Conectivity::HTTPConnection* createNewConnection(bool secureConn);
 };
+}
 

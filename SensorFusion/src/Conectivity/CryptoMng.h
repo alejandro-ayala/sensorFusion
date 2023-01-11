@@ -38,13 +38,13 @@ public:
 	CryptoMng(CryptoConfig cryptoCfg);
 	~CryptoMng();
 
-	TVIRTUAL void reconnect(void);
-	TVIRTUAL void configureSSL();
-	TVIRTUAL void sendData(const std::string& getReq);
-	TVIRTUAL void readResponse(std::string& response);
-	TVIRTUAL void handshakeSSL();
-	TVIRTUAL void certificateVerification();
-	TVIRTUAL void closeSSLContext();
+	void reconnect(void);
+	void configureSSL();
+	void sendData(const std::string& getReq);
+	void readResponse(std::string& response);
+	void handshakeSSL();
+	void certificateVerification();
+	void closeSSLContext();
 	SocketController* getSocket();
 };
 }
