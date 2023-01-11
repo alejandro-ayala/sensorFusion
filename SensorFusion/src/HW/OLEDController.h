@@ -13,7 +13,6 @@ class OLEDController : public IController
 private:
 	SPIController* spiControl;
 	PmodOLEDrgb    oledControl;
-	PmodOLEDrgb    oledrgb_wrapper;
 public:
 	OLEDController();
 	virtual ~OLEDController();

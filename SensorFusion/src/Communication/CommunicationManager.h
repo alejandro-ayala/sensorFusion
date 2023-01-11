@@ -11,9 +11,7 @@ public:
 	CommunicationManager();
 	virtual ~CommunicationManager();
 
-	TVIRTUAL void initialization();
-	TVIRTUAL void syncSharedClock(void);
-	TVIRTUAL void selfTest();
-
+	void initialization();
+	void syncSharedClock(void);
 };
 }

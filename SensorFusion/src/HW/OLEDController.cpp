@@ -8,14 +8,17 @@
 #include "OLEDcommands.h"
 #include "OLEDrgbFont.h"
 #include "Common/bitmap.h"
-
+#include "SPIConfig.h"
 namespace Hardware
 {
-PmodOLEDrgb oledrgb2;
 
 OLEDController::OLEDController(): IController("OLEDController")
 {
-	spiControl = new SPIController();
+	static SPIConfig xspiCfg;
+	xspiCfg.spiConfiguration = {0,0,1,0,1,8,0,0,0,0,0};
+	xspiCfg.gpioAddress      = XPAR_PMODOLEDRGB_0_AXI_LITE_GPIO_BASEADDR;
+	xspiCfg.spiBaseAddress   = XPAR_PMODOLEDRGB_0_AXI_LITE_SPI_BASEADDR;
+	spiControl = new SPIController(xspiCfg);
 
 }
 
