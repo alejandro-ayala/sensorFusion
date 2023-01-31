@@ -117,12 +117,13 @@ uint32_t KeyPadController::getKeyPressed(uint16_t keystate, uint8_t *cptr)
 	return keyPadState;
 }
 
-void KeyPadController::selfTest()
+bool KeyPadController::selfTest()
 {
 	uint16_t keystate;
 	int16_t status;
 	int16_t last_status = static_cast<int16_t>(KEY_PAD_STATUS::NO_KEY);
 	uint8_t key, last_key = 'x';
+	bool result = true;
 
 	Xil_Out32(kypdInterface.GPIO_addr, 0xF);
 
@@ -141,6 +142,6 @@ void KeyPadController::selfTest()
 		xil_printf("Error: Multiple keys pressed\r\n");
 
 	last_status = status;
-
+	return result;
 }
 }

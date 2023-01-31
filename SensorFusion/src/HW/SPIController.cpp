@@ -92,8 +92,8 @@ void SPIController::readData(uint8_t start_addr, uint8_t *data, uint32_t nData)
 	for (uint32_t i = 0; i < nData; i++)
 	  data[i] = buf[i + 1];
 }
-void SPIController::selfTest()
+bool SPIController::selfTest()
 {
-
+	return true;
 }
 }

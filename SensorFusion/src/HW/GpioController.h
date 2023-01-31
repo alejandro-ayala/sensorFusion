@@ -24,6 +24,6 @@ public:
 	uint32_t readPmodGPIO(PmodGpio *InstancePtr, uint8_t pinNumber);
 	void configPmodGPIO(PmodGpio *InstancePtr,uint32_t address, uint8_t direction);
 
-	void selfTest();
+	bool selfTest() override;
 };
 }

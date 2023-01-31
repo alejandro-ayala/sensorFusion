@@ -21,7 +21,7 @@ public:
 	void writeData(uint8_t *pCmd, int nCmd, uint8_t *pData,int nData);
 	uint8_t readRegister(uint8_t regAddr);
 	void readData(uint8_t start_addr, uint8_t *data, uint32_t nData);
-	void selfTest();
+	bool selfTest() override;
 };
 }
 

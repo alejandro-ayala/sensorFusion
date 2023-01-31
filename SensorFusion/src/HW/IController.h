@@ -4,12 +4,14 @@
 namespace Hardware
 {
 class IController {
-private:
-	cstring name;
 public:
-	IController(cstring name) : name(name){};
+	cstring name;
+	bool initialized;
+
+	IController(cstring name) : name(name), initialized(false){};
 	virtual ~IController(){};
 
 	virtual void initialize() = 0;
+	virtual bool selfTest()   = 0;
 };
 }

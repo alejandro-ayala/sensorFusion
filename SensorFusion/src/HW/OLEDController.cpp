@@ -522,7 +522,7 @@ uint8_t OLEDController::extractBFromRGB(uint16_t wRGB)
 	return (uint8_t) (wRGB & 0x1F);
 }
 
-void OLEDController::selfTest()
+bool OLEDController::selfTest()
 {
 	initialize();
 
@@ -546,5 +546,6 @@ void OLEDController::selfTest()
 	sleep(5); // Wait 5 seconds
 
 	drawBitmap(0, 0, 95, 63, (u8*) oledBitmap);
+	return true;
 }
 }
