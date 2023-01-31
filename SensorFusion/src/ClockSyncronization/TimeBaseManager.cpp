@@ -44,15 +44,21 @@ void TimeBaseManager::syncTimeReference()
 void TimeBaseManager::sendSyncMessage()
 {
 	CanSyncMessage syncMsg;
+
 	globalTimeStamp.t_0_c   = timeController->getCurrentNsecTime();
 	globalTimeStamp.seconds = globalTimeStamp.t_0_c/1000000000; // Get second portion
 	globalTimeStamp.nanoseconds = globalTimeStamp.t_0_c - globalTimeStamp.seconds * 1000000000;  //Get ns portion
-	syncMsg.crc = 0;//TODO add CRC calculation
+	//syncMsg.crc = 0;//TODO add CRC calculation
 	syncMsg.secCounter = seqCounter;
-	syncMsg.userByte = 0;//TODO check why it is needed
+	//syncMsg.userByte = 0;//TODO check why it is needed
 	syncMsg.syncTimeSec = globalTimeStamp.seconds;
 	uint8_t* serializedMsg;
 	uint8_t frameSize = syncMsg.serialize(serializedMsg);
+	xil_printf(
+			"SYNC -- type: %02x, crc: %02x, cnt: %02x, uByte: %02x, sec: %d \n\r",
+			syncMsg.type, syncMsg.crc,
+			syncMsg.secCounter, syncMsg.userByte,
+			syncMsg.syncTimeSec);
 	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
 	globalTimeStamp.tx_stamp = timeController->getCurrentNsecTime();
 }
@@ -61,7 +67,7 @@ void TimeBaseManager::sendFollowUpMessage()
 {
 	CanFUPMessage fupMsg;
 	uint32_t t_tx  = globalTimeStamp.nanoseconds + (globalTimeStamp.tx_stamp - globalTimeStamp.t_0_c);
-	fupMsg.crc = 0;//TODO add CRC calculation --> maybe in the serialize method?
+	//fupMsg.crc = 0;//TODO add CRC calculation --> maybe in the serialize method?
 	fupMsg.secCounter = seqCounter;
 	if(t_tx > 1000000000)
 		fupMsg.overflowSeconds = 1;
@@ -72,14 +78,21 @@ void TimeBaseManager::sendFollowUpMessage()
 
 	uint8_t* serializedMsg;
 	uint8_t frameSize = fupMsg.serialize(serializedMsg);
+	xil_printf(
+			"FUP -- type: %02x, crc: %02x, cnt: %02x, ovf: %02x, nsec: %d \n\r",
+			fupMsg.type, fupMsg.crc,
+			fupMsg.secCounter, fupMsg.overflowSeconds,
+			fupMsg.syncTimeNSec);
+
 	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
 }
 
 void TimeBaseManager::sendGlobalTime()
 {
 	sendSyncMessage();
+
 	sendFollowUpMessage();
-	seqCounter = seqCounter++ & 0x0F;
+	seqCounter++;
 }
 
 TimeBaseRef TimeBaseManager::getReferenceTime(cstring response)

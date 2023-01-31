@@ -1,16 +1,18 @@
 
 #include "CommunicationManager.h"
 #include "CanController.h"
+#include <iostream>
+
 namespace Communication
 {
-CommunicationManager::CommunicationManager()
+CommunicationManager::CommunicationManager(ClockSyncronization::TimeController* timecontroller, Communication::ICommunication* icomm): timeController(timecontroller) , canController(icomm)
 {
-	canController = new CanController();
+
 }
 
 CommunicationManager::~CommunicationManager()
 {
-	delete canController;
+
 }
 
 void CommunicationManager::initialization()
@@ -18,10 +20,19 @@ void CommunicationManager::initialization()
 	//canController->initialize();
 }
 
-void CommunicationManager::syncSharedClock()
+void CommunicationManager::receiveData()
 {
-	xil_printf("syncSharedClock\r\n");
-	//canController->sendFrame();
+	uint8_t lenght = 800;
+	uint8_t data[lenght];
+	int msgSize = canController->receiveMsg(data);
+
+	if(msgSize > 0)
+	{
+		//xil_printf("\n\rReceived data: %d bytes", msgSize);
+		IData parsedMsg;
+		parsedMsg.deSerialize(data);
+		std::cout << "newData[" << parsedMsg.secCounter << "]. sec: " << parsedMsg.timestamp << std::endl;
+	}
 }
 
 bool CommunicationManager::selfTest()

@@ -1,7 +1,6 @@
 #include "CanController.h"
 #include "CanCommandsRegisters.h"
 
-
 using namespace Hardware;
 namespace Communication
 {
@@ -96,19 +95,20 @@ int CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
 		message.data[i] = txMsg[i];
 	}
 
-	xil_printf("Waiting to send\r\n");
+
+	////xil_printf("Waiting to send\r\n");
 	do
 	{
 	  status = spiControl->readRegister(CAN_READSTATUS_CMD);
 	} while ((status & CAN_STATUS_TX0REQ_MASK) != 0); // Wait for buffer 0 to be clear
 
 
-	xil_printf("sending ");
+	////xil_printf("sending ");
 
 
 	modifyRegister(CAN_CANINTF_REG_ADDR, CAN_CANINTF_TX0IF_MASK, 0);
 
-	xil_printf("requesting to transmit message through transmit buffer 0 \\r\n");
+	////xil_printf("requesting to transmit message through transmit buffer 0 \\r\n");
 
 
 	transmit(message);
@@ -118,7 +118,7 @@ int CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
 	do
 	{
 	 status = spiControl->readRegister(CAN_READSTATUS_CMD);//CAN_ReadStatus(&myDevice);
-	 xil_printf("Waiting to complete transmission\r\n");
+	 ////xil_printf("Waiting to complete transmission\r\n");
 	} while ((status & CAN_STATUS_TX0IF_MASK) != 0); // Wait for message to transmit successfully
 	return 1;
 }
@@ -178,9 +178,9 @@ void CanController::transmit(CanFrame msg)
 	for (uint8_t i = 0; i < msg.dlc; i++)
 	  data[i + 5] = msg.data[i];
 
-	xil_printf("CAN_SendMessage msg.dlc: %02x\r\n", msg.dlc);
-	for (uint8_t i = 0; i < 5 + msg.dlc; i++)
-	  xil_printf("CAN_SendMessage: %02x\r\n", data[i]);
+//	//xil_printf("CAN_SendMessage msg.dlc: %02x\r\n", msg.dlc);
+//	for (uint8_t i = 0; i < 5 + msg.dlc; i++)
+//	  //xil_printf("CAN_SendMessage: %02x\r\n", data[i]);
 
 	//CAN_LoadTxBuffer(InstancePtr, load_start_addr, data, message.dlc + 5);
 	loadTxBuffer(load_start_addr, data, msg.dlc + 5);
@@ -205,7 +205,7 @@ void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
 		return XST_FAILURE;
 	}
 
-	spiControl->readData(CAN_READBUF_CMD | read_start_addr, data, receiveMsg->dlc);
+	spiControl->readData(CAN_READBUF_CMD | read_start_addr, data, 13);
 
 	receiveMsg->id = (u16) data[0] << 3;
 	receiveMsg->id |= (data[1] & 0xE0) >> 5;
@@ -223,7 +223,7 @@ void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
 	receiveMsg->dlc = data[4] & 0x0F;
 
 	// Read only relevant data bytes
-	spiControl->readData(CAN_READBUF_CMD | read_start_addr, data, receiveMsg->dlc);
+	spiControl->readData(CAN_READBUF_CMD | read_start_addr, receiveMsg->data, receiveMsg->dlc);
 
 	for (uint8_t i = 0; i < receiveMsg->dlc; i++)
 		receiveMsg->data[i] = data[i + 5];
@@ -238,29 +238,29 @@ int CanController::receiveMsg(uint8_t *rxBuffer)
 
 	do {
 	 status = spiControl->readRegister(CAN_READSTATUS_CMD);
-	 xil_printf("\r\nWaiting to receive\r\n");
+	 ////xil_printf("\r\nWaiting to receive\r\n");
 	} while ((status & CAN_STATUS_RX0IF_MASK) != 0 && (status & CAN_STATUS_RX1IF_MASK) != 0);
 
 	switch (status & 0x03) {
 	case 0b01:
 	case 0b11:
-	 xil_printf("fetching message from receive buffer 0\r\n");
+	 //xil_printf("fetching message from receive buffer 0\r\n");
 	 target = CAN_Rx0;
 	 rx_int_mask = CAN_CANINTF_RX0IF_MASK;
 	 break;
 	case 0b10:
-	 xil_printf("fetching message from receive buffer 1\r\n");
+	 //xil_printf("fetching message from receive buffer 1\r\n");
 	 target = CAN_Rx1;
 	 rx_int_mask = CAN_CANINTF_RX1IF_MASK;
 	 break;
 	default:
-	 //xil_printf("Error, message not received\r\n");
+	 ////xil_printf("Error, message not received\r\n");
 	 return 0;
 	}
 
 	receive(&rxMsg, target);
 	modifyRegister(CAN_CANINTF_REG_ADDR, rx_int_mask, 0);
-	xil_printf("received ");
+	//xil_printf("received ");
 	for(uint32_t i=0; i<rxMsg.dlc;i++)
 	{
 		rxBuffer[i] = rxMsg.data[i];
