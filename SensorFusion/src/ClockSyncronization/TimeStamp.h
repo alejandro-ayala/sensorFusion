@@ -19,4 +19,9 @@ typedef struct
 	uint16_t secondsHi;
 	uint64_t tx_stamp;
 	uint64_t t_0_c;
+
+	uint64_t toNs()
+	{
+		return (seconds * 1e9) + nanoseconds;
+	}
 } TimeStamp;

@@ -15,11 +15,10 @@ typedef struct
 	uint8_t userByte = 0x13;
 	uint32_t syncTimeSec;
 	//uint8 reserved[8];
-	uint8_t reserved = 0xAA;
 
 	uint8_t serialize(uint8_t* bufferPtr)
 	{
-		uint8_t buffer[9] = {type,crc,secCounter,userByte,(syncTimeSec & 0xFF000000) >> 24 , (syncTimeSec & 0x00FF0000) >> 16 , (syncTimeSec & 0x0000FF00) >> 8, syncTimeSec & 0x000000FF,reserved};
+		uint8_t buffer[9] = {type,crc,secCounter,userByte,(syncTimeSec & 0xFF000000) >> 24 , (syncTimeSec & 0x00FF0000) >> 16 , (syncTimeSec & 0x0000FF00) >> 8, syncTimeSec & 0x000000FF};
 		for(int i = 0; i<9; i++)
 		{
 			bufferPtr[i] = buffer[i];
@@ -32,15 +31,15 @@ typedef struct
 typedef struct
 {
 	uint8_t type = static_cast<uint8_t>(SYNC_MSG_TYPES::FUP_MSG);
-	uint8_t crc = 0xAF;
+	uint8_t crc;
 	uint8_t secCounter; //In autosar: seqCounter[0:3] and timedoman[4:7]
 	uint8_t overflowSeconds; //In autosar: reserved(bit 7 to 3) SGW(bit2), OVS(bit1 to 0)
 	uint32_t syncTimeNSec;
 	//uint8 reserved[8];
-	uint8_t reserved = 0xBB;
+
 	uint8_t serialize(uint8_t* bufferPtr)
 	{
-		uint8_t buffer[9] = {type,crc,secCounter,overflowSeconds,(syncTimeNSec & 0xFF000000) >> 24, (syncTimeNSec & 0x00FF0000) >> 16 , (syncTimeNSec & 0x0000FF00) >> 8, syncTimeNSec & 0x000000FF,reserved};
+		uint8_t buffer[9] = {type,crc,secCounter,overflowSeconds,(syncTimeNSec & 0xFF000000) >> 24, (syncTimeNSec & 0x00FF0000) >> 16 , (syncTimeNSec & 0x0000FF00) >> 8, syncTimeNSec & 0x000000FF};
 		for(int i = 0; i<9; i++)
 		{
 			bufferPtr[i] = buffer[i];

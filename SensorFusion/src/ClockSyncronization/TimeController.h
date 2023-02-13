@@ -1,12 +1,14 @@
 #pragma once
 #include "HW/IController.h"
 #include "ClockSyncronization/ITimer.h"
+#include "TimeStamp.h"
 namespace ClockSyncronization
 {
 class TimeController : public Hardware::IController
 {
 private:
 	ITimer* internalTimer;
+	TimeStamp globalTimeStamp;
 public:
 	TimeController();
 	~TimeController();
@@ -22,5 +24,8 @@ public:
 	double getCurrentSecTime();
 	double getCurrentNsecTime();
 	uint64_t getCurrentTicks();
+	void setGlobalTimeReference(const TimeStamp& gt);
+	TimeStamp getGlobalTimeReference();
+	uint64_t getLocalTime();
 };
 }

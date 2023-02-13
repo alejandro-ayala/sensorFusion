@@ -54,6 +54,22 @@ uint64_t TimeController::getCurrentTicks()
 //{
 //	return internalTimer->elapsedTime();
 //}
+void TimeController::setGlobalTimeReference(const TimeStamp& gt)
+{
+	globalTimeStamp = gt;
+	restartTimer();
+}
+
+TimeStamp TimeController::getGlobalTimeReference()
+{
+	return globalTimeStamp;
+}
+
+uint64_t TimeController::getLocalTime()
+{
+	uint64_t localNs = globalTimeStamp.toNs() + getCurrentNsecTime();
+	return localNs;
+}
 
 bool TimeController::selfTest()
 {

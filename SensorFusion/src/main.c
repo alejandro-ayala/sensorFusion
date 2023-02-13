@@ -66,7 +66,7 @@ void clockSyncTask(void *argument)
 	while(1)
 	{
 		timeBaseMng->sendGlobalTime();
-		vTaskDelay(300 / portTICK_RATE_MS);
+		vTaskDelay(10000 / portTICK_RATE_MS);
 	}
 }
 
@@ -99,7 +99,7 @@ int main()
 	xTaskCreate(clockSyncTask, "ClockSyncTask",THREAD_STACKSIZE,timeBaseMng,DEFAULT_THREAD_PRIO,&timeBaseMngHandle);
 
 	static CommunicationManager* commMng = new CommunicationManager(timecontroller,canController);
-	//xTaskCreate( CommunicationTask, "CommunicationTask",THREAD_STACKSIZE,commMng,DEFAULT_THREAD_PRIO,&communicationHandle );
+	xTaskCreate( CommunicationTask, "CommunicationTask",THREAD_STACKSIZE,commMng,DEFAULT_THREAD_PRIO,&communicationHandle );
 
 	vTaskStartScheduler();
 	while(1);

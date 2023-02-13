@@ -1,8 +1,8 @@
 #pragma once
 #include "ICommunication.h"
+#include "IData.h"
 #include "ClockSyncronization/TimeStamp.h"
 #include "ClockSyncronization/TimeController.h"
-#include "IData.h"
 namespace Communication
 {
 class CommunicationManager
@@ -16,6 +16,7 @@ public:
 	virtual ~CommunicationManager();
 
 	void initialization();
+	void sendData(IData msg);
 	void receiveData(void);
 	bool selfTest();
 
