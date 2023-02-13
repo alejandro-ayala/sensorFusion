@@ -1,7 +1,6 @@
 #include "CanController.h"
 #include "CanCommandsRegisters.h"
 
-
 using namespace Hardware;
 namespace Communication
 {
@@ -244,12 +243,12 @@ int CanController::receiveMsg(uint8_t *rxBuffer)
 	switch (status & 0x03) {
 	case 0b01:
 	case 0b11:
-	 ////xil_printf("fetching message from receive buffer 0\r\n");
+	 xil_printf("fetching message from receive buffer 0\r\n");
 	 target = CAN_Rx0;
 	 rx_int_mask = CAN_CANINTF_RX0IF_MASK;
 	 break;
 	case 0b10:
-	 ////xil_printf("fetching message from receive buffer 1\r\n");
+	 xil_printf("fetching message from receive buffer 1\r\n");
 	 target = CAN_Rx1;
 	 rx_int_mask = CAN_CANINTF_RX1IF_MASK;
 	 break;

@@ -72,11 +72,12 @@ bool SharedClockSlaveManager::getGlobalTime()
 		}
 		else
 		{
-			xil_printf("\r\nWrong MSG: size = %d\r\n", msgSize);
-			for(int i=0;i<msgSize;i++)
-			{
-				xil_printf(" %02x,",data[i]);
-			}
+			//xil_printf("\r\nWrong MSG: size = %d\r\n", msgSize);
+			std::cout << "nWrong MSG: size =" << std::endl;
+//			for(int i=0;i<msgSize;i++)
+//			{
+//				xil_printf(" %02x,",data[i]);
+//			}
 			updatedTime = false;
 		}
 	}

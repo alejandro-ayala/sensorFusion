@@ -10,7 +10,10 @@ TimeController::TimeController() : IController("TimeController")
 	internalTimer = new ZynqGT();
 }
 
-TimeController::~TimeController() {};
+TimeController::~TimeController()
+{
+	delete internalTimer;
+};
 
 void TimeController::initialize()
 {

@@ -34,6 +34,21 @@ void CommunicationManager::sendData(IData msg)
 
 }
 
+void CommunicationManager::receiveData()
+{
+	uint8_t lenght = 800;
+	uint8_t data[lenght];
+	int msgSize = canController->receiveMsg(data);
+
+	if(msgSize > 0)
+	{
+		//xil_printf("\n\rReceived data: %d bytes", msgSize);
+		IData parsedMsg;
+		parsedMsg.deSerialize(data);
+		std::cout << "newData[" << parsedMsg.secCounter << "]. sec: " << parsedMsg.timestamp << std::endl;
+	}
+}
+
 bool CommunicationManager::selfTest()
 {
 	initialization();

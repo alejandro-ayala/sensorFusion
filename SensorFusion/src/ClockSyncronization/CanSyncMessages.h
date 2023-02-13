@@ -1,5 +1,4 @@
 #pragma once
-#include "xil_printf.h"
 namespace ClockSyncronization
 {
 enum class SYNC_MSG_TYPES
