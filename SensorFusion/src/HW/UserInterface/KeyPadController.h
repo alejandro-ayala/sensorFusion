@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include "TestInclude.h"
 #include "Definitions.h"
-#include "GpioInterface.h"
+#include "GPIO/GpioInterface.h"
 #include  "IController.h"
 
 namespace Hardware

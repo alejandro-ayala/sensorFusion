@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include <ClockSyncronization/SharedClockSlaveManager.h>
-#include "Communication/CanIDs.h"
+#include "CAN/CanIDs.h"
 #include "ClockSyncronization/CanSyncMessages.h"
 using namespace Communication;
 
@@ -72,12 +72,10 @@ bool SharedClockSlaveManager::getGlobalTime()
 		}
 		else
 		{
-			//xil_printf("\r\nWrong MSG: size = %d\r\n", msgSize);
 			std::cout << "Wrong MSG: size = " << std::to_string(msgSize) << std::endl;
 			for(int i=0;i<msgSize;i++)
 			{
 				std::cout << data[i] << ",";
-				//xil_printf(" %02x,",data[i]);
 			}
 			updatedTime = false;
 		}

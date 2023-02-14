@@ -3,9 +3,9 @@
 #include "xil_cache.h"
 #include "xparameters.h"
 
-#include "HW/IController.h"
-#include "ICommunication.h"
-#include "HW/SPIController.h"
+#include "IController.h"
+#include "Communication/ICommunication.h"
+#include "SPI/SPIController.h"
 #include "CanFrame.h"
 
 namespace Communication

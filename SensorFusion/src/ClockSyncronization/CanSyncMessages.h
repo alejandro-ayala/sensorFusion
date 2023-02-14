@@ -18,13 +18,13 @@ typedef struct
 
 	uint8_t serialize(uint8_t* bufferPtr)
 	{
-		uint8_t buffer[9] = {type,crc,secCounter,userByte,(syncTimeSec & 0xFF000000) >> 24 , (syncTimeSec & 0x00FF0000) >> 16 , (syncTimeSec & 0x0000FF00) >> 8, syncTimeSec & 0x000000FF};
-		for(int i = 0; i<9; i++)
+		uint8_t buffer[8] = {type,crc,secCounter,userByte,(syncTimeSec & 0xFF000000) >> 24 , (syncTimeSec & 0x00FF0000) >> 16 , (syncTimeSec & 0x0000FF00) >> 8, syncTimeSec & 0x000000FF};
+		for(int i = 0; i<8; i++)
 		{
 			bufferPtr[i] = buffer[i];
 		}
 
-		return 9;
+		return 8;
 	}
 } CanSyncMessage;
 

@@ -1,7 +1,7 @@
 
 #include "CommunicationManager.h"
-#include "CanController.h"
-#include "CanIDs.h"
+#include "CAN/CanController.h"
+#include "CAN/CanIDs.h"
 #include "IData.h"
 #include <iostream>
 using namespace ClockSyncronization;

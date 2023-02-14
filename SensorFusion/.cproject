@@ -83,6 +83,8 @@
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/zyboProject/export/zyboProject/sw/zyboProject/freertos10_xilinx_domain/bspinclude/include}&quot;"/>
                                     									
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/HW}&quot;"/>
+                                    									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/libs/mbedtls/include}&quot;"/>

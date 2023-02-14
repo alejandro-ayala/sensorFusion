@@ -1,6 +1,6 @@
 
 #include "UserControlManager.h"
-#include "GpioInterface.h"
+#include "GPIO/GpioInterface.h"
 #include "Definitions.h"
 
 namespace Hardware

@@ -1,5 +1,5 @@
 #include <ClockSyncronization/TimeController.h>
-#include "HW/ZynqGT.h"
+#include "TIMER/ZynqGT.h"
 #include "sleep.h"
 
 using namespace Hardware;
@@ -10,7 +10,10 @@ TimeController::TimeController() : IController("TimeController")
 	internalTimer = new ZynqGT();
 }
 
-TimeController::~TimeController() {};
+TimeController::~TimeController()
+{
+	delete internalTimer;
+};
 
 void TimeController::initialize()
 {

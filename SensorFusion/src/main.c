@@ -16,18 +16,18 @@
 #include "mbedtls/platform.h"
 #include "Conectivity/ServerManager.h"
 #include "Communication/CommunicationManager.h"
-#include "Communication/CanController.h"
+#include "CAN/CanController.h"
 
-#include "HW/UserControlManager.h"
-#include "HW/MotorController.h"
-#include "HW/L298Hbridge.h"
+#include "UserInterface/UserControlManager.h"
+#include "Motor/MotorController.h"
+#include "Motor/L298Hbridge.h"
 
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
 #include "lwipopts.h"
 
-#include "HW/OLEDController.h"
+#include "OLED/OLEDController.h"
 #include "ClockSyncronization/TimeController.h"
 #include "ClockSyncronization/TimeBaseManager.h"
 using namespace Conectivity;

@@ -8,7 +8,7 @@
 #include "OLEDcommands.h"
 #include "OLEDrgbFont.h"
 #include "Common/bitmap.h"
-#include "SPIConfig.h"
+#include "SPI/SPIConfig.h"
 namespace Hardware
 {
 

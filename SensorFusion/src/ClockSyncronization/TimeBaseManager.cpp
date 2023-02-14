@@ -1,6 +1,6 @@
 #include "ClockSyncronization/TimeBaseManager.h"
 #include "ClockSyncronization/CanSyncMessages.h"
-#include "Communication/CanIDs.h"
+#include "CAN/CanIDs.h"
 
 using namespace Communication;
 namespace ClockSyncronization

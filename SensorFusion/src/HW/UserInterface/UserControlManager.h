@@ -1,8 +1,8 @@
 #pragma once
-#include "GpioController.h"
+#include "GPIO/GpioController.h"
 #include "KeyPadController.h"
-#include "OLEDController.h"
-#include "SPIController.h"
+#include "OLED/OLEDController.h"
+#include "SPI/SPIController.h"
 #include "TestInclude.h"
 namespace Hardware
 {

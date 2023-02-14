@@ -1,8 +1,8 @@
 #pragma once
 
-#include "HW/OLEDrgb.h"
+#include "OLED/OLEDrgb.h"
 #include "IController.h"
-#include "SPIController.h"
+#include "SPI/SPIController.h"
 #include "TestInclude.h"
 
 namespace Hardware
