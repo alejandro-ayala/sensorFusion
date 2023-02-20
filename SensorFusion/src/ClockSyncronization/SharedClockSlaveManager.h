@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ClockSyncronization/TimeController.h"
-#include "Communication/ICommunication.h"
+#include "CAN/CanController.h"
 #include "TimeStamp.h"
 
 namespace ClockSyncronization
@@ -10,11 +10,11 @@ class SharedClockSlaveManager
 {
 private:
 	TimeController*                timeController;
-	Communication::ICommunication* canController;
+	Hardware::CanController*       canController;
 	TimeStamp                      globalTimeStamp;
 	TimeBaseRef                    globalTimeReference;
 public:
-	SharedClockSlaveManager(TimeController* timecontroller, Communication::ICommunication* icomm);
+	SharedClockSlaveManager(TimeController* timecontroller, Hardware::CanController* cancontroller);
 	~SharedClockSlaveManager();
 	void initialization();
 	bool getGlobalTime();

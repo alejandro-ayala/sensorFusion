@@ -1,11 +1,10 @@
 #include "CanController.h"
 #include "CanCommandsRegisters.h"
 
-using namespace Hardware;
-namespace Communication
+namespace Hardware
 {
 
-CanController::CanController() : ICommunication("CanController")
+CanController::CanController()
 {
 	xspiConfig.spiConfiguration = {0,0,1,0,1,8,0,0,0,0,0};
 	xspiConfig.gpioAddress      = XPAR_PMODCAN_0_AXI_LITE_GPIO_BASEADDR;
@@ -228,13 +227,13 @@ void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
 		receiveMsg->data[i] = data[i + 5];
 }
 
-int CanController::receiveMsg(uint8_t *rxBuffer)
+CanFrame CanController::receiveMsg()
 {
-	CanFrame rxMsg;
+
 	CAN_RxBuffer target;
 	uint8_t status;
 	uint8_t rx_int_mask;
-
+	CanFrame rxMsg;
 	do {
 	 status = spiControl->readRegister(CAN_READSTATUS_CMD);
 	 ////xil_printf("\r\nWaiting to receive\r\n");
@@ -254,18 +253,14 @@ int CanController::receiveMsg(uint8_t *rxBuffer)
 	 break;
 	default:
 	 ////xil_printf("Error, message not received\r\n");
-	 return 0;
+		rxMsg.dlc = 0;
+		return rxMsg;
 	}
 
 	receive(&rxMsg, target);
 	modifyRegister(CAN_CANINTF_REG_ADDR, rx_int_mask, 0);
-	//xil_printf("received ");
-	rxBuffer[0] = rxMsg.id;
-	for(uint32_t i=0; i<rxMsg.dlc;i++)
-	{
-		rxBuffer[i+1] = rxMsg.data[i];
-	}
-	return rxMsg.dlc;
+
+	return rxMsg;
 }
 
 bool CanController::selfTest()

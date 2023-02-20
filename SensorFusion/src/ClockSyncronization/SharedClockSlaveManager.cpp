@@ -1,13 +1,15 @@
 #include <iostream>
 
-#include <ClockSyncronization/SharedClockSlaveManager.h>
+#include "CAN/CanController.h"
+#include "ClockSyncronization/SharedClockSlaveManager.h"
 #include "CAN/CanIDs.h"
 #include "ClockSyncronization/CanSyncMessages.h"
 using namespace Communication;
+using namespace Hardware;
 
 namespace ClockSyncronization
 {
-SharedClockSlaveManager::SharedClockSlaveManager(TimeController* timecontroller, Communication::ICommunication* icomm) : timeController(timecontroller), canController(icomm)
+SharedClockSlaveManager::SharedClockSlaveManager(TimeController* timecontroller, CanController* cancontroller) : timeController(timecontroller), canController(cancontroller)
 {
 
 }
@@ -29,8 +31,8 @@ bool SharedClockSlaveManager::getGlobalTime()
 	bool updatedTime;
 	CanSyncMessage globalTimeSynMsg;
 	CanFUPMessage  globalTimeFupMsg;
-	int msgSize = canController->receiveMsg(data);
-	if(msgSize != 0 && data[0] == static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC))
+	const auto rxMsg = canController->receiveMsg();
+	if(rxMsg.dlc != 0 && data[0] == static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC))
 	{
 		if(data[1] == static_cast<uint8_t>(SYNC_MSG_TYPES::SYNC_MSG))
 		{
@@ -72,8 +74,8 @@ bool SharedClockSlaveManager::getGlobalTime()
 		}
 		else
 		{
-			std::cout << "Wrong MSG: size = " << std::to_string(msgSize) << std::endl;
-			for(int i=0;i<msgSize;i++)
+			std::cout << "Wrong MSG: size = " << std::to_string(rxMsg.dlc) << std::endl;
+			for(int i=0;i<rxMsg.dlc;i++)
 			{
 				std::cout << data[i] << ",";
 			}

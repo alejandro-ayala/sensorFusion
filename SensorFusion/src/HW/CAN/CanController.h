@@ -8,9 +8,9 @@
 #include "SPI/SPIController.h"
 #include "CanFrame.h"
 
-namespace Communication
+namespace Hardware
 {
-class CanController : public ICommunication
+class CanController
 {
 private:
 	Hardware::SPIController* spiControl;
@@ -29,9 +29,9 @@ public:
 	CanController();
 	virtual ~CanController();
 
-	virtual void initialize() override;
-	int transmitMsg(uint8_t idMsg, uint8_t *TxMsg, uint8_t msgLength) override;
-	int receiveMsg(uint8_t *rxBuffer) override;
-	bool selfTest() override;
+	virtual void initialize();
+	int transmitMsg(uint8_t idMsg, uint8_t *TxMsg, uint8_t msgLength);
+	CanFrame receiveMsg();
+	bool selfTest();
 };
 }

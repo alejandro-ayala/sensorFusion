@@ -1,7 +1,5 @@
+#pragma once
 
-
-namespace Communication
-{
 
 typedef enum CAN_RxBuffer {
    CAN_Rx0 = 0, CAN_Rx1
@@ -31,4 +29,3 @@ typedef struct CanFrame {
    // (ex:priority bits), primarily, no TXBxCTRL bits
 } CanFrame;
 
-}  // namespace Communication

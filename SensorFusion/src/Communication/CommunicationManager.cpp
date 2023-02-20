@@ -5,11 +5,11 @@
 #include "IData.h"
 #include <iostream>
 using namespace ClockSyncronization;
-
+using namespace Hardware;
 namespace Communication
 {
 
-CommunicationManager::CommunicationManager(TimeController* timecontroller, Communication::ICommunication* icomm)  : timeController(timecontroller), canController(icomm)
+CommunicationManager::CommunicationManager(TimeController* timecontroller, CanController* cancontroller)  : timeController(timecontroller), canController(cancontroller)
 {
 }
 
@@ -34,19 +34,20 @@ void CommunicationManager::sendData(IData msg)
 
 }
 
-void CommunicationManager::receiveData()
+IData CommunicationManager::receiveData()
 {
 	uint8_t lenght = 800;
 	uint8_t data[lenght];
-	int msgSize = canController->receiveMsg(data);
-
-	if(msgSize > 0)
+	const auto rxMsg = canController->receiveMsg();
+	IData parsedMsg;
+	if(rxMsg.dlc > 0)
 	{
 		//xil_printf("\n\rReceived data: %d bytes", msgSize);
-		IData parsedMsg;
+
 		parsedMsg.deSerialize(data);
 		std::cout << "newData[" << parsedMsg.secCounter << "]. sec: " << parsedMsg.timestamp << std::endl;
 	}
+	return parsedMsg;
 }
 
 bool CommunicationManager::selfTest()
