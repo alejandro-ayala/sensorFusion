@@ -3,11 +3,13 @@
 #include "CAN/CanIDs.h"
 
 using namespace Communication;
+using namespace Hardware;
+
 namespace ClockSyncronization
 {
 
 TimeBaseManager::TimeBaseManager(TimeController* timecontroller,
-		Communication::ICommunication* icomm,
+		CanController* icomm,
 		Conectivity::HTTPClient* httpclient) :
 		timeController(timecontroller), canController(icomm), httpClient(
 				httpclient), seqCounter(0) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ClockSyncronization/TimeController.h"
-#include "Communication/ICommunication.h"
+#include "CAN/CanController.h"
 #include "TimeStamp.h"
 #include "Conectivity/HTTPClient.h"
 
@@ -11,7 +11,7 @@ class TimeBaseManager
 {
 private:
 	TimeController*                timeController;
-	Communication::ICommunication* canController;
+	Hardware::CanController*       canController;
 	Conectivity::HTTPClient*       httpClient;
 	TimeStamp                      globalTimeStamp;
 	TimeBaseRef                    globalTimeReference;
@@ -20,7 +20,7 @@ private:
 	void sendFollowUpMessage();
 	void syncTimeReference();
 public:
-	TimeBaseManager(TimeController* timecontroller, Communication::ICommunication* icomm, Conectivity::HTTPClient* httpclient);
+	TimeBaseManager(TimeController* timecontroller, Hardware::CanController* icomm, Conectivity::HTTPClient* httpclient);
 	~TimeBaseManager();
 	void initialization();
 	TimeStamp getGlobalTime();
