@@ -18,8 +18,7 @@
 #include "Conectivity/ServerManager.h"
 #include "Communication/CommunicationManager.h"
 #include "CAN/CanController.h"
-
-#include "UserInterface/UserControlManager.h"
+#include "I2C/I2CController.h"
 #include "MotorControl/MotorControl.h"
 
 #include "lwip/dhcp.h"
@@ -27,7 +26,6 @@
 #include "lwip/sockets.h"
 #include "lwipopts.h"
 
-#include "UserInterface/OLED/OLEDController.h"
 #include "ClockSyncronization/TimeController.h"
 #include "ClockSyncronization/TimeBaseManager.h"
 
@@ -35,7 +33,6 @@ using namespace Controllers;
 using namespace Components;
 using namespace Conectivity;
 using namespace Communication;
-using namespace UserInterface;
 using namespace MotorControl;
 using namespace ClockSyncronization;
 void clockSyncTask(void *argument);
@@ -82,7 +79,6 @@ int main()
 	TaskHandle_t userIfHandle = NULL;
 	TaskHandle_t MotorControlHandle = NULL;
 	TaskHandle_t timeBaseMngHandle = NULL;
-	static UserControlManager* userControlMng = new UserControlManager();
 
 	//TODO add a factory pattern to get HBridge controller
 	static PWMController* pwmController = new PWMController();
@@ -99,6 +95,7 @@ int main()
 	static TimeController*  timecontroller = new TimeController();
 	static CanController*   canController = new CanController();
 	static HTTPClient*      httpClient = new HTTPClient();
+	static I2CController*      i2cController = new I2CController();
 	static TimeBaseManager* timeBaseMng = new TimeBaseManager(timecontroller,canController,httpClient);
 	xTaskCreate(clockSyncTask, "ClockSyncTask",THREAD_STACKSIZE,timeBaseMng,DEFAULT_THREAD_PRIO,&timeBaseMngHandle);
 
