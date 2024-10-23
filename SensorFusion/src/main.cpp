@@ -98,7 +98,17 @@ int main()
 	static TimeController*  timecontroller = new TimeController();
 	static CanController*   canController = new CanController();
 	static HTTPClient*      httpClient = new HTTPClient();
-	static I2CController*      i2cController = new I2CController();
+
+
+	I2CConfig cfg;
+
+	static I2CController*      i2cController = new I2CController(cfg);
+
+	uint8_t slaveAddr = (0x62);
+	uint8_t registerAddr= 0x01;
+	uint8_t buffer[15];
+	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
+
 	static TimeBaseManager* timeBaseMng = new TimeBaseManager(timecontroller,canController,httpClient);
 	xTaskCreate(clockSyncTask, "ClockSyncTask",THREAD_STACKSIZE,timeBaseMng,DEFAULT_THREAD_PRIO,&timeBaseMngHandle);
 
