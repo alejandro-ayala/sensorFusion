@@ -4,24 +4,20 @@
 namespace Controllers
 {
 
-volatile u32 sendComplete;
-volatile u32 recvComplete;
-volatile u32 totalErrorCount;
-
-void Handler(void *CallBackRef, u32 Event)
+void I2CController::irqHandler(void *callBackRef, u32 event)
 {
 	/*
 	 * All of the data transfer has been finished.
 	 */
-	if (0 != (Event & XIICPS_EVENT_COMPLETE_RECV))
+	if (0 != (event & XIICPS_EVENT_COMPLETE_RECV))
 	{
 		recvComplete = true;
 	}
-	else if (0 != (Event & XIICPS_EVENT_COMPLETE_SEND))
+	else if (0 != (event & XIICPS_EVENT_COMPLETE_SEND))
 	{
 		sendComplete = true;
 	}
-	else if (0 == (Event & XIICPS_EVENT_SLAVE_RDY))
+	else if (0 == (event & XIICPS_EVENT_SLAVE_RDY))
 	{
 		/*
 		 * If it is other interrupt but not slave ready interrupt, it is
@@ -98,7 +94,7 @@ void I2CController::initialize()
 	 * pointer to the IIC driver instance as the callback reference so
 	 * the handlers are able to access the instance data.
 	 */
-	XIicPs_SetStatusHandler(&m_config.Iic, (void *) &m_config.Iic, Handler);
+	XIicPs_SetStatusHandler(&m_config.Iic, (void *) &m_config.Iic, irqHandler);
 
 	/*
 	 * Set the IIC serial clock rate.
