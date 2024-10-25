@@ -23,6 +23,7 @@
 #include <hardware_abstraction/Controllers/I2C/I2CController.h>
 #include <hardware_abstraction/Devices/MotorControl/MotorControl.h>
 
+#include "LIDAR/GarminV3LiteCtrl.h"
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
@@ -100,31 +101,20 @@ int main()
 	static HTTPClient*      httpClient = new HTTPClient();
 
 
-	I2CConfig cfg;
+	const auto garminLiteV3Addr = (0x62);
+	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
+	auto i2cController = std::make_shared<I2CController>();
+	auto lidarDevice   = std::make_shared<GarminV3LiteCtrl>(i2cController, lidarCfg);
 
-	static I2CController*      i2cController = new I2CController(cfg);
+	lidarDevice->initialization();
+	while(1)
+	{
+		const auto distance = lidarDevice->readDistance();
+		//vTaskDelay(500 / portTICK_RATE_MS);
+		for (uint32_t Delay = 0; Delay < 0xFFFFFF; Delay++);
+	}
 
-	uint8_t slaveAddr = (0x62);
-	uint8_t registerAddr= 0x16;
-	uint8_t buffer[15];
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
 
-	buffer[0] = 0;
-	registerAddr= 0x17;
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
-
-	buffer[0] = 0;
-	registerAddr= 0x45;
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
-
-	std::vector<uint8_t> txBuf;
-	txBuf[0] = 0x45;
-	txBuf[0] = 0x18;
-	i2cController->sendData(slaveAddr, txBuf);
-
-	buffer[0] = 0;
-	registerAddr= 0x45;
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
 
 	static TimeBaseManager* timeBaseMng = new TimeBaseManager(timecontroller,canController,httpClient);
 	xTaskCreate(clockSyncTask, "ClockSyncTask",THREAD_STACKSIZE,timeBaseMng,DEFAULT_THREAD_PRIO,&timeBaseMngHandle);

@@ -147,9 +147,9 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	}
 }
 
-uint8_t I2CController::sendData(uint8_t slaveAddr, const std::vector<uint8_t>& buffer)
+uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint8_t bufferSize)
 {	
-	XIicPs_MasterSend(&m_config.Iic, buffer.data(), buffer.size(), slaveAddr);
+	XIicPs_MasterSend(&m_config.Iic, buffer, bufferSize, slaveAddr);
 				  	
 	while (!sendComplete)
 	{
