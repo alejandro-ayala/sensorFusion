@@ -1,9 +1,11 @@
 #pragma once
 
-#include "LidarConfiguration.h"
+#include <Devices/LIDAR/LidarConfiguration.h>
 #include "Controllers/I2C/I2CController.h"
 #include <memory>
 
+namespace hardware_abstraction
+{
 namespace Devices
 {
 class GarminV3LiteCtrl
@@ -18,9 +20,12 @@ public:
 	bool selfTest();
 
 private:
+	bool enableTestMode();
+	void runTestMode();
 	GarminV3LiteMode m_mode;
 	uint8_t m_addr;
 	std::shared_ptr<Controllers::I2CController> m_i2cControl;
 
 };
+}
 }

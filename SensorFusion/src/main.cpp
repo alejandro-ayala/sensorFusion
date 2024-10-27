@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <iostream>
 #include "xparameters.h"
 #include "netif/xadapter.h"
 #include <platform_config.h>
@@ -23,7 +24,7 @@
 #include <hardware_abstraction/Controllers/I2C/I2CController.h>
 #include <hardware_abstraction/Devices/MotorControl/MotorControl.h>
 
-#include "LIDAR/GarminV3LiteCtrl.h"
+#include <Devices/LIDAR/GarminV3LiteCtrl.h>
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
@@ -40,7 +41,7 @@ using namespace hardware_abstraction::Devices::MotorControl;
 using namespace business_logic::ClockSyncronization;
 void clockSyncTask(void *argument);
 
-
+uint8_t buffer[1];
 void CommunicationTask(void *argument)
 {
 	CommunicationManager* commMng = reinterpret_cast<CommunicationManager*>(argument);
@@ -104,12 +105,16 @@ int main()
 	const auto garminLiteV3Addr = (0x62);
 	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
 	auto i2cController = std::make_shared<I2CController>();
+
+	//i2cController->readData(0x08, 0x17, buffer, 1);
 	auto lidarDevice   = std::make_shared<GarminV3LiteCtrl>(i2cController, lidarCfg);
 
 	lidarDevice->initialization();
 	while(1)
 	{
 		const auto distance = lidarDevice->readDistance();
+	    std::cout << "Distance: 0x" << std::hex << std::uppercase
+	              << static_cast<int>(distance) << std::endl;
 		//vTaskDelay(500 / portTICK_RATE_MS);
 		for (uint32_t Delay = 0; Delay < 0xFFFFFF; Delay++);
 	}
@@ -129,6 +134,7 @@ int main()
 
 #else
 
+int distance;
 
 
 /******************************************************************************
@@ -187,10 +193,10 @@ int main()
 /*
  * The slave address to send to and receive from.
  */
-#define IIC_SLAVE_ADDR		(0x62)//<<1)//0x55
+#define IIC_SLAVE_ADDR		0x8//(0x62)//<<1)//0x55
 #define IIC_SCLK_RATE		100000
 
-
+#include <iostream>
 /*
  * The following constant controls the length of the buffers to be sent
  * and received with the IIC.
@@ -244,6 +250,100 @@ volatile u32 TotalErrorCount;
 * @note		None.
 *
 *******************************************************************************/
+
+void readSN()
+{
+	uint8_t cmd[1];
+	while (XIicPs_BusIsBusy(&Iic)) {}
+	SendComplete = FALSE;
+	cmd[0] = 0x16;
+	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
+	//while (!SendComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+
+	uint8_t sn[2];
+	RecvComplete = FALSE;
+	XIicPs_MasterRecvPolled(&Iic, sn, 2, IIC_SLAVE_ADDR);
+
+
+	//while (!RecvComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+	if(sn[0] != 0)
+	{
+		std::cout << "SN: " ;
+	}
+}
+
+void lidarInit()
+{
+
+	uint8_t cmd[1];
+	while (XIicPs_BusIsBusy(&Iic)) {}
+	SendComplete = FALSE;
+	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
+	//while (!SendComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+
+	/*----------CONFIGURATION LIDAR----------*/
+	cmd[0]=0xff;
+	SendComplete = FALSE;
+	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
+	//while (!SendComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+	cmd[0]=0x08;
+	SendComplete = FALSE;
+	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
+	//while (!SendComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+	cmd[0]=0x00;
+	SendComplete = FALSE;
+	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
+	//while (!SendComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+}
+
+void lidarRead()
+{
+	uint8_t cmd[1];
+	uint8_t data[2];
+  	cmd[0] = 0x00;
+  	cmd[1] = 0x04;
+	SendComplete = FALSE;
+	XIicPs_MasterSendPolled(&Iic, cmd, 2, IIC_SLAVE_ADDR);
+	//while (!SendComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+
+  	cmd[0] = 0x01;
+	data[0] = 0x1;
+	SendComplete = FALSE;
+	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
+	while (XIicPs_BusIsBusy(&Iic)) {}
+	auto res = XIicPs_MasterRecvPolled(&Iic, data, 1, IIC_SLAVE_ADDR);
+	while(!(data && 0x01))
+	{
+		auto res = XIicPs_MasterRecvPolled(&Iic, data, 1, IIC_SLAVE_ADDR);
+	}
+
+	cmd[0] = 0x0f;
+	SendComplete = FALSE;
+	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
+	//while (!SendComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+
+	RecvComplete = FALSE;
+	res = XIicPs_MasterRecvPolled(&Iic, data, 2, IIC_SLAVE_ADDR);
+
+
+	//while (!RecvComplete) {}
+	while (XIicPs_BusIsBusy(&Iic)) {}
+
+
+  	distance =(data[0]<<8)|(data[1]);
+
+
+
+}
+
 int main(void)
 {
 	int Status;
@@ -299,11 +399,6 @@ int IicPsMasterIntrExample(UINTPTR BaseAddress)
 {
 	int Status;
 	XIicPs_Config *Config;
-	int Index;
-	int tmp;
-	int BufferSizes[NUMBER_OF_SIZES] = {1, 2, 19, 31, 32, 33, 62, 63, 64,
-					    65, 66, 94, 95, 96, 97, 98, 99, 250
-					   };
 
 	/*
 	 * Initialize the IIC driver so that it's ready to use
@@ -335,14 +430,7 @@ int IicPsMasterIntrExample(UINTPTR BaseAddress)
 	 * Connect the IIC to the interrupt subsystem such that interrupts can
 	 * occur. This function is application specific.
 	 */
-#ifndef SDT
 	Status = SetupInterruptSystem(&Iic);
-#else
-	Status = XSetupInterruptSystem(&Iic, XIicPs_MasterInterruptHandler,
-				       Config->IntrId,
-				       Config->IntrParent,
-				       XINTERRUPT_DEFAULT_PRIORITY);
-#endif
 	if (Status != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
@@ -353,88 +441,34 @@ int IicPsMasterIntrExample(UINTPTR BaseAddress)
 	 * pointer to the IIC driver instance as the callback reference so
 	 * the handlers are able to access the instance data.
 	 */
-	XIicPs_SetStatusHandler(&Iic, (void *) &Iic, Handler);
+//	XIicPs_SetStatusHandler(&Iic, (void *) &Iic, Handler);
 
 	/*
 	 * Set the IIC serial clock rate.
 	 */
 	XIicPs_SetSClk(&Iic, IIC_SCLK_RATE);
 
-	/*
-	 * Initialize the send buffer bytes with a pattern to send and the
-	 * the receive buffer bytes to zero to allow the receive data to be
-	 * verified.
-	 */
-	for (Index = 0; Index < TEST_BUFFER_SIZE; Index++) {
-		SendBuffer[Index] = (Index % TEST_BUFFER_SIZE);
-		RecvBuffer[Index] = 0;
-	}
 
-	for (Index = 0; Index < NUMBER_OF_SIZES; Index++) {
+	lidarInit();
 
-		/* Wait for bus to become idle
-		 */
-		while (XIicPs_BusIsBusy(&Iic)) {
-			/* NOP */
+	readSN();
+	while(1){
+		lidarRead();
+		if(distance != 0)
+		{
+			std::cout << "distance !!!" << std::endl;
 		}
 
-		SendComplete = FALSE;
+		else
+		{
+			std::cout << "Error !!!" << std::endl;
 
-		/*
-		 * Send the buffer, errors are reported by TotalErrorCount.
-		 */
-		SendBuffer[0] = 0x01;
-		XIicPs_MasterSend(&Iic, SendBuffer, 1,
-				  IIC_SLAVE_ADDR);
-
-		/*
-		 * Wait for the entire buffer to be sent, letting the interrupt
-		 * processing work in the background, this function may get
-		 * locked up in this loop if the interrupts are not working
-		 * correctly.
-		 */
-		while (!SendComplete) {
-			if (0 != TotalErrorCount) {
-				return XST_FAILURE;
-			}
 		}
 
-		/*
-		 * Wait bus activities to finish.
-		 */
-		while (XIicPs_BusIsBusy(&Iic)) {
-			/* NOP */
-		}
-
-		/*
-		 * Receive data from slave, errors are reported through
-		 * TotalErrorCount.
-		 */
-		RecvComplete = FALSE;
-		XIicPs_MasterRecv(&Iic, RecvBuffer, 1,
-				  IIC_SLAVE_ADDR);
-
-		while (!RecvComplete) {
-			if (0 != TotalErrorCount) {
-				return XST_FAILURE;
-			}
-		}
-
-		/* Check for received data.
-		 */
-		for (tmp = 0; tmp < BufferSizes[Index]; tmp ++) {
-
-			/*
-			 * Aardvark as slave can only set up to 64 bytes for
-			 * output.
-			 */
-			if (RecvBuffer[tmp] != tmp % 64) {
-				return XST_FAILURE;
-			}
-		}
 	}
 	return XST_SUCCESS;
 }
+
 /*****************************************************************************/
 /**
 *

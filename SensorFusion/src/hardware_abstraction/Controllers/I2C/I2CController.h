@@ -18,13 +18,13 @@ private:
 	static inline uint32_t recvComplete;
 	static inline uint32_t totalErrorCount;
 public:
-	I2CController(const I2CConfig& config);
+	I2CController(const I2CConfig& config = I2CConfig());
 	virtual ~I2CController() = default;
 
 	void initialize();
 	int SetupInterruptSystem(XIicPs *IicPsPtr);
 	uint8_t readData(uint8_t slaveAddr, uint8_t registerAddr, uint8_t *buffer, uint8_t bufferSize);
-	uint8_t sendData(uint8_t regAddr, const std::vector<uint8_t>& buffer);
+	uint8_t sendData(uint8_t regAddr, uint8_t *buffer, uint32_t bufferSize);
 
 	static void irqHandler(void *callBackRef, u32 event);
 	bool selfTest();

@@ -27,6 +27,9 @@ void I2CController::irqHandler(void *callBackRef, u32 event)
 		 * Data was received with an error.
 		 */
 		totalErrorCount++;
+		totalErrorCount = 0;
+		//TODO handle error
+		std::cout << "I2C Error during irqHandler" << std::endl;
 	}
 }
 
@@ -108,7 +111,7 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 {
 	sendComplete = FALSE;
 
-	XIicPs_MasterSend(&m_config.Iic, registerAddr, 1, slaveAddr);
+	XIicPs_MasterSend(&m_config.Iic, &registerAddr, 1, slaveAddr);
 
 	/*
 	 * Wait for the entire buffer to be sent, letting the interrupt
@@ -120,7 +123,8 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		if (0 != totalErrorCount)
 		{
-			return XST_FAILURE;
+			//TODO handle error
+			std::cout << "I2C Error during sending register address" << std::endl;
 		}
 	}
 
@@ -144,20 +148,30 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		if (0 != totalErrorCount)
 		{
-			return XST_FAILURE;
+			//TODO handle error
+			std::cout << "I2C Error during receiving data register" << std::endl;
 		}
+	}
+
+	/*
+	 * Wait bus activities to finish.
+	 */
+	while (XIicPs_BusIsBusy(&m_config.Iic))
+	{
+		/* NOP */
 	}
 }
 
-uint8_t I2CController::sendData(uint8_t slaveAddr, const std::vector<uint8_t>& buffer)
+uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t bufferSize)
 {	
-	XIicPs_MasterSend(&m_config.Iic, buffer.data(), buffer.size(), slaveAddr);
+	XIicPs_MasterSend(&m_config.Iic, buffer, bufferSize, slaveAddr);
 				  	
 	while (!sendComplete)
 	{
 		if (0 != totalErrorCount)
 		{
-			return XST_FAILURE;
+			//TODO handle error
+			std::cout << "I2C Error during sending I2C data" << std::endl;
 		}
 	}
 
