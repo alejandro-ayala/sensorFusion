@@ -2,41 +2,41 @@
 #define APP
 #ifdef APP
 
-#include <MotorControl/L298Hbridge.h>
+#include <hardware_abstraction/Devices/MotorControl/L298Hbridge.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include "xparameters.h"
 #include "netif/xadapter.h"
-#include "Common/platform_config.h"
+#include <platform_config.h>
 #include "xil_printf.h"
-#include "Conectivity/ConnectionSettings.h"
-#include "Conectivity/CryptoMng.h"
-#include "Conectivity/HTTPConnectionTypes.h"
+#include <business_logic/Conectivity/ConnectionSettings.h>
+#include <business_logic/Conectivity/CryptoMng.h>
+#include <business_logic/Conectivity/HTTPConnectionTypes.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "mbedtls/platform.h"
-#include "Conectivity/ServerManager.h"
-#include "Communication/CommunicationManager.h"
-#include "CAN/CanController.h"
-#include "I2C/I2CController.h"
-#include "MotorControl/MotorControl.h"
+#include "../external/mbedtls/include/mbedtls/platform.h"
+#include <business_logic/Conectivity/ServerManager.h>
+#include <business_logic/Communication/CommunicationManager.h>
+#include <hardware_abstraction/Controllers/CAN/CanController.h>
+#include <hardware_abstraction/Controllers/I2C/I2CController.h>
+#include <hardware_abstraction/Devices/MotorControl/MotorControl.h>
 
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
 #include "lwipopts.h"
 
-#include "ClockSyncronization/TimeController.h"
-#include "ClockSyncronization/TimeBaseManager.h"
+#include <business_logic/ClockSyncronization/TimeController.h>
+#include <business_logic/ClockSyncronization/TimeBaseManager.h>
 
-using namespace Controllers;
-using namespace Components;
-using namespace Conectivity;
-using namespace Communication;
-using namespace MotorControl;
-using namespace ClockSyncronization;
+using namespace hardware_abstraction::Controllers;
+using namespace hardware_abstraction::Devices;
+using namespace business_logic::Conectivity;
+using namespace business_logic::Communication;
+using namespace hardware_abstraction::Devices::MotorControl;
+using namespace business_logic::ClockSyncronization;
 void clockSyncTask(void *argument);
 
 
