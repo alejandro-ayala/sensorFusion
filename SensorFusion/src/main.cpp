@@ -107,24 +107,12 @@ int main()
 	uint8_t slaveAddr = (0x62);
 	uint8_t registerAddr= 0x16;
 	uint8_t buffer[15];
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
+	i2cController->readData(slaveAddr, registerAddr, buffer, 10);
 
-	buffer[0] = 0;
-	registerAddr= 0x17;
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
+	buffer[0] = 0x17;
+	std::vector<uint8_t> txData{0x3E};
+	i2cController->sendData(slaveAddr, txData);
 
-	buffer[0] = 0;
-	registerAddr= 0x45;
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
-
-	std::vector<uint8_t> txBuf;
-	txBuf[0] = 0x45;
-	txBuf[0] = 0x18;
-	i2cController->sendData(slaveAddr, txBuf);
-
-	buffer[0] = 0;
-	registerAddr= 0x45;
-	i2cController->readData(slaveAddr, registerAddr, buffer, 1);
 
 	static TimeBaseManager* timeBaseMng = new TimeBaseManager(timecontroller,canController,httpClient);
 	xTaskCreate(clockSyncTask, "ClockSyncTask",THREAD_STACKSIZE,timeBaseMng,DEFAULT_THREAD_PRIO,&timeBaseMngHandle);
