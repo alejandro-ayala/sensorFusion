@@ -23,6 +23,7 @@ domain active {freertos10_xilinx_domain}
 bsp reload
 bsp setlib -name lwip211 -ver 1.7
 bsp config api_mode "SOCKET_API"
+bsp config message_buffer true
 bsp write
 bsp reload
 catch {bsp regenerate}
