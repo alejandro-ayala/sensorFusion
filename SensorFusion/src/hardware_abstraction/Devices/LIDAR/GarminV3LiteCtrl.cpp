@@ -219,20 +219,34 @@ bool GarminV3LiteCtrl::enableTestMode()
 		return testModeEnabled;
 }
 
-void GarminV3LiteCtrl::runTestMode()
+bool GarminV3LiteCtrl::runTestMode()
 {
 	uint8_t buffer[2]= {0};
-	uint16_t testData;
+	uint16_t testData = 0;
+	int16_t testDataPrev = -1;
 	uint8_t registerAddr = GarminV3LiteRegister::TEST_MODE_DATA;
+	bool testResult = true;
 
-	for(int testCycles = 0; testCycles < 10 ; testCycles++)
+	for(int testCycles = 0; (testCycles < 10 && testResult) ; testCycles++)
 	{
+
 		buffer[0] = 0x00;
 		buffer[1] = 0x00;
 		m_i2cControl->readData(m_addr, registerAddr, buffer, 2); // Read correclation data
-		testData = (buffer[0] << 8) | buffer[1];
-		std::cout << "runTestMode -- testData: " << testData << std::endl;
+		testData = (buffer[1] << 8) | buffer[0];
+		if(testData == (testDataPrev + 1))
+		{
+			std::cout << "runTestMode -- testData: " << testData << std::endl;
+			testDataPrev = testData;
+		}
+		else
+		{
+			testResult = false;
+			std::cout << "runTestMode -- testData ERROR. Data:  " << testData << "testDataPrev: "<< testDataPrev << std::endl;
+		}
+
 	}
+	return testResult;
 }
 }
 }

@@ -21,11 +21,10 @@ public:
 
 private:
 	bool enableTestMode();
-	void runTestMode();
+	bool runTestMode();
+	std::shared_ptr<Controllers::I2CController> m_i2cControl;
 	GarminV3LiteMode m_mode;
 	uint8_t m_addr;
-	std::shared_ptr<Controllers::I2CController> m_i2cControl;
-
 };
 }
 }
