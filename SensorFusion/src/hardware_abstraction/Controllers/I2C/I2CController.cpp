@@ -27,6 +27,9 @@ void I2CController::irqHandler(void *callBackRef, u32 event)
 		 * Data was received with an error.
 		 */
 		totalErrorCount++;
+		totalErrorCount = 0;
+		//TODO handle error
+		std::cout << "I2C Error during irqHandler" << std::endl;
 	}
 }
 
@@ -61,7 +64,7 @@ void I2CController::initialize()
 		std::cout << "XIicPs_LookupConfig XST_FAILURE" << std::endl;
 	}
 
-	Status = XIicPs_CfgInitialize(&m_config.Iic, Config, Config->BaseAddress);
+	Status = XIicPs_CfgInitialize(&m_config.i2cPsInstance, Config, Config->BaseAddress);
 	if (Status != XST_SUCCESS)
 	{
 		//TODO handle error
@@ -71,7 +74,7 @@ void I2CController::initialize()
 	/*
 	 * Perform a self-test to ensure that the hardware was built correctly.
 	 */
-	Status = XIicPs_SelfTest(&m_config.Iic);
+	Status = XIicPs_SelfTest(&m_config.i2cPsInstance);
 	if (Status != XST_SUCCESS)
 	{
 		//TODO handle error
@@ -82,7 +85,7 @@ void I2CController::initialize()
 	 * Connect the IIC to the interrupt subsystem such that interrupts can
 	 * occur. This function is application specific.
 	 */
-	Status = SetupInterruptSystem(&m_config.Iic);
+	Status = SetupInterruptSystem(&m_config.i2cPsInstance);
 
 	if (Status != XST_SUCCESS)
 	{
@@ -96,19 +99,19 @@ void I2CController::initialize()
 	 * pointer to the IIC driver instance as the callback reference so
 	 * the handlers are able to access the instance data.
 	 */
-	XIicPs_SetStatusHandler(&m_config.Iic, (void *) &m_config.Iic, irqHandler);
+	XIicPs_SetStatusHandler(&m_config.i2cPsInstance, (void *) &m_config.i2cPsInstance, irqHandler);
 
 	/*
 	 * Set the IIC serial clock rate.
 	 */
-	XIicPs_SetSClk(&m_config.Iic, m_config.clockRate);
+	XIicPs_SetSClk(&m_config.i2cPsInstance, m_config.clockRate);
 }
 
 uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_t *buffer, uint8_t bufferSize)
 {
 	sendComplete = FALSE;
 
-	XIicPs_MasterSend(&m_config.Iic, registerAddr, 1, slaveAddr);
+	XIicPs_MasterSend(&m_config.i2cPsInstance, &registerAddr, 1, slaveAddr);
 
 	/*
 	 * Wait for the entire buffer to be sent, letting the interrupt
@@ -120,14 +123,15 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		if (0 != totalErrorCount)
 		{
-			return XST_FAILURE;
+			//TODO handle error
+			std::cout << "I2C Error during sending register address" << std::endl;
 		}
 	}
 
 	/*
 	 * Wait bus activities to finish.
 	 */
-	while (XIicPs_BusIsBusy(&m_config.Iic))
+	while (XIicPs_BusIsBusy(&m_config.i2cPsInstance))
 	{
 		/* NOP */
 	}
@@ -137,31 +141,41 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	 * totalErrorCount.
 	 */
 	recvComplete = FALSE;
-	XIicPs_MasterRecv(&m_config.Iic, buffer, bufferSize, slaveAddr);
+	XIicPs_MasterRecv(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
 
 
 	while (!recvComplete)
 	{
 		if (0 != totalErrorCount)
 		{
-			return XST_FAILURE;
+			//TODO handle error
+			std::cout << "I2C Error during receiving data register" << std::endl;
 		}
+	}
+
+	/*
+	 * Wait bus activities to finish.
+	 */
+	while (XIicPs_BusIsBusy(&m_config.i2cPsInstance))
+	{
+		/* NOP */
 	}
 }
 
-uint8_t I2CController::sendData(uint8_t slaveAddr, const std::vector<uint8_t>& buffer)
+uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t bufferSize)
 {	
-	XIicPs_MasterSend(&m_config.Iic, buffer.data(), buffer.size(), slaveAddr);
+	XIicPs_MasterSend(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
 				  	
 	while (!sendComplete)
 	{
 		if (0 != totalErrorCount)
 		{
-			return XST_FAILURE;
+			//TODO handle error
+			std::cout << "I2C Error during sending I2C data" << std::endl;
 		}
 	}
 
-	while (XIicPs_BusIsBusy(&m_config.Iic))
+	while (XIicPs_BusIsBusy(&m_config.i2cPsInstance))
 	{
 
 	}
@@ -230,7 +244,7 @@ bool I2CController::selfTest()
 	/*
 	 * Perform a self-test to ensure that the hardware was built correctly.
 	 */
-	const auto selfTestState = XIicPs_SelfTest(&m_config.Iic);
+	const auto selfTestState = XIicPs_SelfTest(&m_config.i2cPsInstance);
 	if (selfTestState != XST_SUCCESS) 
 	{
 		return false;
