@@ -10,48 +10,56 @@ namespace Controllers
 #define PWM_AXI_CTRL_REG_OFFSET 0
 #define PWM_AXI_PERIOD_REG_OFFSET 8
 #define PWM_AXI_DUTY_REG_OFFSET 64
+#define PWM_CLK_INPUT 50000000
+#define PWM_CHANNELS 4
 
-PWMController::PWMController() : IController("PWMController"), baseAddr(XPAR_PWM_MOTOR_PWM_AXI_BASEADDR){};
+PWMController::PWMController(const PWMConfig& config) : IController("PWMController"), m_pwmBaseAddr(XPAR_PWM_MOTOR_PWM_AXI_BASEADDR), m_pwmFreq_Hz(config.pwmFreq), m_pwmIndex(config.pwmIndex)
+{
+
+}
+
 PWMController::~PWMController()
 {
 	disable();
-};
+}
 
 void PWMController::initialize()
 {
 	enable();
-	setDutyCicle(1000, 1);
-	setPeriod(10);
+	setDutyCicle(0);
+	setFrequency(PWM_CLK_INPUT / m_pwmFreq_Hz);
 }
 
 void PWMController::enable()
 {
-	Xil_Out32(baseAddr + PWM_AXI_CTRL_REG_OFFSET, 1);
+	Xil_Out32(m_pwmBaseAddr + PWM_AXI_CTRL_REG_OFFSET, 1);
 }
 
 void PWMController::disable()
 {
-	Xil_Out32(baseAddr + PWM_AXI_CTRL_REG_OFFSET, 0);
+	Xil_Out32(m_pwmBaseAddr + PWM_AXI_CTRL_REG_OFFSET, 0);
 }
 
-void PWMController::setDutyCicle(uint32_t clocks, uint32_t pwmIndex)
+void PWMController::setDutyCicle(uint32_t dutyCycle)
 {
-	Xil_Out32(baseAddr + PWM_AXI_DUTY_REG_OFFSET + (4*pwmIndex), clocks);
+	uint32_t countClk = dutyCycle * PWM_CLK_INPUT / (m_pwmFreq_Hz * 100);
+	Xil_Out32(m_pwmBaseAddr + PWM_AXI_DUTY_REG_OFFSET + (PWM_CHANNELS*m_pwmIndex), countClk);
 }
 
-void PWMController::setPeriod(uint32_t clocks)
+void PWMController::setFrequency(uint32_t freq)
 {
-	Xil_Out32(baseAddr + PWM_AXI_PERIOD_REG_OFFSET, clocks);
+	uint32_t countClk = PWM_CLK_INPUT / m_pwmFreq_Hz;
+	Xil_Out32(m_pwmBaseAddr + PWM_AXI_PERIOD_REG_OFFSET, countClk);
 }
 
-uint32_t PWMController::getDutyCicle(uint32_t pwmIndex)
+uint32_t PWMController::getDutyCicle()
 {
-	return Xil_In32(baseAddr + PWM_AXI_DUTY_REG_OFFSET + (4*pwmIndex));
+	return Xil_In32(m_pwmBaseAddr + PWM_AXI_DUTY_REG_OFFSET + (PWM_CHANNELS * m_pwmIndex));
 }
 
 uint32_t PWMController::getPeriod()
 {
-	return Xil_In32(baseAddr + PWM_AXI_PERIOD_REG_OFFSET);
+	return Xil_In32(m_pwmBaseAddr + PWM_AXI_PERIOD_REG_OFFSET);
 }
 
 bool PWMController::selfTest()

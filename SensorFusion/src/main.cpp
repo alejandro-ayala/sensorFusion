@@ -22,7 +22,7 @@
 #include <business_logic/Communication/CommunicationManager.h>
 #include <hardware_abstraction/Controllers/CAN/CanController.h>
 #include <hardware_abstraction/Controllers/I2C/I2CController.h>
-#include <hardware_abstraction/Devices/MotorControl/MotorControl.h>
+#include <hardware_abstraction/Devices/ServoMotor/ServoMotorControl.h>
 
 #include <Devices/LIDAR/GarminV3LiteCtrl.h>
 #include "lwip/dhcp.h"
@@ -37,7 +37,6 @@ using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
 using namespace business_logic::Conectivity;
 using namespace business_logic::Communication;
-using namespace hardware_abstraction::Devices::MotorControl;
 using namespace business_logic::ClockSyncronization;
 void clockSyncTask(void *argument);
 
@@ -86,10 +85,17 @@ int main()
 	TaskHandle_t timeBaseMngHandle = NULL;
 
 	//TODO add a factory pattern to get HBridge controller
-	static PWMController* pwmController = new PWMController();
-	static L298Hbridge*  hbridge = new L298Hbridge(pwmController);
-	//static MotorControl* motorControl = new MotorControl(hbridge);
+	static std::shared_ptr<PWMController> pwmController = std::make_shared<PWMController>();
+	static std::shared_ptr<ServoMotorControl> servoControl = std::make_shared<ServoMotorControl>(pwmController);
 
+	servoControl->setAngle(0);
+	auto angle = servoControl->getAngle();
+
+	servoControl->setAngle(90);
+    angle = servoControl->getAngle();
+
+	servoControl->setAngle(180);
+	angle = servoControl->getAngle();
 	//static ServerManager* serverMng = new ServerManager();
 	//xTaskCreate( UpdateConfigurationTask, "UpdateConfigurationTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&updateConfigHandle );
 	//xTaskCreate( SendReportTask, "SendReportTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&sendingHandle );
