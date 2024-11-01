@@ -84,18 +84,55 @@ int main()
 	TaskHandle_t MotorControlHandle = NULL;
 	TaskHandle_t timeBaseMngHandle = NULL;
 
-	//TODO add a factory pattern to get HBridge controller
-	static std::shared_ptr<PWMController> pwmController = std::make_shared<PWMController>();
-	static std::shared_ptr<ServoMotorControl> servoControl = std::make_shared<ServoMotorControl>(pwmController);
+	PWMConfig pwmCfg1;
+	PWMConfig pwmCfg2;
+	static std::shared_ptr<PWMController> pwmController = std::make_shared<PWMController>(pwmCfg1);
+	//static std::shared_ptr<ServoMotorControl> servoControl = std::make_shared<ServoMotorControl>(pwmController);
 
-	servoControl->setAngle(0);
-	auto angle = servoControl->getAngle();
+	pwmCfg2.pwmFreq = 1;
+	pwmCfg2.pwmIndex = 0;
+	static std::shared_ptr<PWMController> pwmController1 = std::make_shared<PWMController>(pwmCfg2);
+	//static std::shared_ptr<ServoMotorControl> servoControl1 = std::make_shared<ServoMotorControl>(pwmController);
 
-	servoControl->setAngle(90);
-    angle = servoControl->getAngle();
+	pwmController->initialize();
+	//pwmController1->initialize();
 
-	servoControl->setAngle(180);
-	angle = servoControl->getAngle();
+//	servoControl->setAngle(0);
+//	auto angle = servoControl->getAngle();
+//
+//	servoControl->setAngle(90);
+//    angle = servoControl->getAngle();
+//
+//	servoControl->setAngle(180);
+//	angle = servoControl->getAngle();
+	pwmController->setDutyCicle(0);
+	pwmController->setDutyCicle(25);
+	pwmController->setDutyCicle(50);
+	pwmController->setDutyCicle(75);
+	pwmController->setDutyCicle(100);
+
+//	pwmController1->setDutyCicle(0);
+//	pwmController1->setDutyCicle(25);
+//	pwmController1->setDutyCicle(50);
+//	pwmController1->setDutyCicle(75);
+//	pwmController1->setDutyCicle(100);
+	bool changeFreq = false;
+	bool changeDT = false;
+	uint8_t freq;
+	uint8_t dt;
+	while(1)
+	{
+		if(changeFreq)
+		{
+			pwmController->setFrequency(freq);
+			//pwmController1->setFrequency(freq);
+		}
+		if(changeDT)
+		{
+			pwmController->setDutyCicle(dt);
+			//pwmController1->setDutyCicle(dt);
+		}
+	}
 	//static ServerManager* serverMng = new ServerManager();
 	//xTaskCreate( UpdateConfigurationTask, "UpdateConfigurationTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&updateConfigHandle );
 	//xTaskCreate( SendReportTask, "SendReportTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&sendingHandle );

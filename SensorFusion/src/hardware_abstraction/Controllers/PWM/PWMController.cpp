@@ -26,8 +26,8 @@ PWMController::~PWMController()
 void PWMController::initialize()
 {
 	enable();
-	setDutyCicle(0);
-	setFrequency(PWM_CLK_INPUT / m_pwmFreq_Hz);
+	setFrequency(m_pwmFreq_Hz);
+	setDutyCicle(50);
 }
 
 void PWMController::enable()
@@ -42,12 +42,16 @@ void PWMController::disable()
 
 void PWMController::setDutyCicle(uint32_t dutyCycle)
 {
-	uint32_t countClk = dutyCycle * PWM_CLK_INPUT / (m_pwmFreq_Hz * 100);
+	//uint32_t countClk = dutyCycle * PWM_CLK_INPUT / (m_pwmFreq_Hz * 100);
+	if(dutyCycle == 100)
+		dutyCycle = 99;
+	uint32_t countClk = (PWM_CLK_INPUT / m_pwmFreq_Hz) * dutyCycle / 100;
 	Xil_Out32(m_pwmBaseAddr + PWM_AXI_DUTY_REG_OFFSET + (PWM_CHANNELS*m_pwmIndex), countClk);
 }
 
 void PWMController::setFrequency(uint32_t freq)
 {
+	m_pwmFreq_Hz = freq;
 	uint32_t countClk = PWM_CLK_INPUT / m_pwmFreq_Hz;
 	Xil_Out32(m_pwmBaseAddr + PWM_AXI_PERIOD_REG_OFFSET, countClk);
 }

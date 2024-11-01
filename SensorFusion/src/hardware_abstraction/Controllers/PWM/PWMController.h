@@ -16,7 +16,7 @@ private:
 	uint8_t  m_pwmIndex;
 
 public:
-	PWMController(const PWMConfig& config = PWMConfig());
+	PWMController(const PWMConfig& config);
 	TVIRTUAL ~PWMController();
 
 	TVIRTUAL void initialize() override;
