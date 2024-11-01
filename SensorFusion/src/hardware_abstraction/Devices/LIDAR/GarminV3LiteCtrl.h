@@ -17,6 +17,7 @@ public:
     void initialization();
     void configuration(GarminV3LiteMode mode);
     uint16_t readDistance();
+    bool applyBiasCorrection();
 	bool selfTest();
 
 private:
