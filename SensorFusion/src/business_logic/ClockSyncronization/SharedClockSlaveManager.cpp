@@ -11,7 +11,7 @@ using namespace hardware_abstraction::Controllers;
 using namespace Communication;
 namespace ClockSyncronization
 {
-SharedClockSlaveManager::SharedClockSlaveManager(TimeController* timecontroller, CanController* cancontroller) : timeController(timecontroller), canController(cancontroller)
+SharedClockSlaveManager::SharedClockSlaveManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController> cancontroller) : timeController(timecontroller), canController(cancontroller)
 {
 
 }

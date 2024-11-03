@@ -3,6 +3,7 @@
 #include <business_logic/ClockSyncronization/TimeStamp.h>
 #include <business_logic/Communication/IData.h>
 #include <hardware_abstraction/Controllers/CAN/CanController.h>
+#include <memory>
 
 namespace business_logic
 {
@@ -11,11 +12,11 @@ namespace Communication
 class CommunicationManager
 {
 private:
-	hardware_abstraction::Controllers::CanController*             canController;
-	ClockSyncronization::TimeController* timeController;
-	ClockSyncronization::TimeStamp       globalTimeStamp;
+	std::shared_ptr<ClockSyncronization::TimeController> timeController;
+	std::shared_ptr<hardware_abstraction::Controllers::CanController> canController;
+	ClockSyncronization::TimeStamp globalTimeStamp;
 public:
-	CommunicationManager(ClockSyncronization::TimeController* timecontroller, hardware_abstraction::Controllers::CanController* cancontroller);
+	CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& cancontroller);
 	virtual ~CommunicationManager();
 
 	void initialization();

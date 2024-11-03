@@ -13,7 +13,7 @@ using namespace ClockSyncronization;
 using namespace hardware_abstraction::Controllers;
 namespace Communication
 {
-CommunicationManager::CommunicationManager(TimeController* timecontroller, CanController* cancontroller)  : timeController(timecontroller), canController(cancontroller)
+CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& cancontroller)  : timeController(timecontroller), canController(cancontroller)
 {
 }
 
