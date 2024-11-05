@@ -22,10 +22,11 @@ public:
 	TVIRTUAL void initialize() override;
 	TVIRTUAL void enable();
 	TVIRTUAL void disable();
-	TVIRTUAL void setDutyCicle(uint32_t dutyCycle);
+	TVIRTUAL void setDutyCicle(float dutyCycle);
 	TVIRTUAL void setFrequency(uint32_t freq);
 	TVIRTUAL uint32_t getDutyCicle();
 	TVIRTUAL uint32_t getPeriod();
+	void setTicksDutyCicle(uint32_t dutyCycle);
 	bool selfTest() override;
 };
 }

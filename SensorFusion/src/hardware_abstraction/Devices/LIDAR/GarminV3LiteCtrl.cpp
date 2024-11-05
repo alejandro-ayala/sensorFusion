@@ -160,7 +160,7 @@ bool GarminV3LiteCtrl::applyBiasCorrection()
 
 bool GarminV3LiteCtrl::selfTest()
 {
-	auto selfTest = false;
+	auto selfTest = true;
 	if(selfTest)
 	{
 		bool selfTestResult = false;

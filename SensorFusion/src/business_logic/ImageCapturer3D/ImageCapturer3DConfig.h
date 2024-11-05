@@ -5,6 +5,9 @@
 #include "Devices/ServoMotor/ServoMotorControl.h"
 #include <stdint.h>
 
+static const uint8_t IMAGE3D_SIZE = 128;
+static const uint8_t IMAGE3D_SAMPLES_PER_POSITION = 1;
+
 namespace business_logic
 {
 struct ImageCapturer3DConfig
@@ -16,7 +19,9 @@ struct ImageCapturer3DConfig
 	uint8_t initHorizontalAngle = 20;
 	uint8_t maxVerticalAngle = 150;
 	uint8_t maxHorizontalAngle = 180;
-	bool applyBiasCorrection = true;
-	uint8_t samplesPerPosition = 1;
+	uint8_t horizontalAngleResolution = 2;
+	uint8_t verticalAngleResolution = 5;
+	bool applyBiasCorrection = false;
+	uint8_t samplesPerPosition = IMAGE3D_SAMPLES_PER_POSITION;
 };
 }

@@ -4,8 +4,6 @@
 #include "business_logic/Osal/QueueHandler.h"
 #include <array>
 #include <memory>
-static const uint8_t IMAGE3D_SIZE = 128;
-static const uint8_t IMAGE3D_SAMPLES_PER_POSITION = 5;
 
 namespace business_logic
 {
