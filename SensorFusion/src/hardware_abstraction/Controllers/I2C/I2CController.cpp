@@ -2,7 +2,7 @@
 #include <iostream>
 #include "xenv_standalone.h"
 
-#define I2C_POLLING
+//#define I2C_POLLING
 namespace hardware_abstraction
 {
 namespace Controllers
