@@ -24,7 +24,7 @@
 #include <hardware_abstraction/Controllers/I2C/I2CController.h>
 #include <hardware_abstraction/Devices/ServoMotor/ServoMotorControl.h>
 
-#include <Devices/LIDAR/GarminV3LiteCtrl.h>
+#include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
@@ -38,6 +38,8 @@ using namespace hardware_abstraction::Devices;
 using namespace business_logic::Conectivity;
 using namespace business_logic::Communication;
 using namespace business_logic::ClockSyncronization;
+using namespace business_logic;
+
 void clockSyncTask(void *argument);
 
 uint8_t buffer[1];
@@ -75,64 +77,70 @@ void clockSyncTask(void *argument)
 	}
 }
 
+void image3dCapturerTask(void *argument)
+{
+
+	PWMConfig pwmCfgVer;
+	static std::shared_ptr<PWMController> pwmVertCtrl = std::make_shared<PWMController>(pwmCfgVer);
+	static std::shared_ptr<ServoMotorControl> verServoControl = std::make_shared<ServoMotorControl>(pwmVertCtrl);
+
+	PWMConfig pwmCfgHor;
+	pwmCfgHor.pwmIndex = 0;
+	static std::shared_ptr<PWMController> pwmHortCtrl = std::make_shared<PWMController>(pwmCfgHor);
+	static std::shared_ptr<ServoMotorControl> horServoControl = std::make_shared<ServoMotorControl>(pwmHortCtrl);
+
+	const auto garminLiteV3Addr = (0x62);
+	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
+	auto i2cController = std::make_shared<I2CController>();
+	auto lidarDevice   = std::make_shared<GarminV3LiteCtrl>(i2cController, lidarCfg);
+
+	ImageCapturer3DConfig image3dConfig;
+	image3dConfig.verServoCtrl = verServoControl;
+
+	image3dConfig.horServoCtrl = horServoControl;
+	image3dConfig.lidarCtrl = lidarDevice;
+	static std::shared_ptr<ImageCapturer3D> image3dCapturer = std::make_shared<ImageCapturer3D>(image3dConfig);
+	image3dCapturer->initialize();
+	std::cout << "Image capturer initialize" << std::endl;
+	TickType_t xLastWakeTime;
+	xLastWakeTime = xTaskGetTickCount();
+	uint16_t taskSleep = 200000;
+	while(1)
+	{
+		image3dCapturer->captureImage();
+		std::cout << "Image captured" << std::endl;
+		//vTaskDelay(taskSleep / portTICK_RATE_MS);
+		vTaskDelayUntil(&xLastWakeTime,taskSleep / portTICK_RATE_MS);
+	}
+}
+
 int main()
 {
+	TaskHandle_t image3dCapturerHandle = NULL;
+
+	xTaskCreate(image3dCapturerTask, "image3dCapturerTask",THREAD_STACKSIZE,( void * ) 1,DEFAULT_THREAD_PRIO,&image3dCapturerHandle);
+	vTaskStartScheduler();
+	while(1);
+
 	TaskHandle_t updateConfigHandle = NULL;
 	TaskHandle_t communicationHandle = NULL;
 	TaskHandle_t sendingHandle = NULL;
-	TaskHandle_t userIfHandle = NULL;
 	TaskHandle_t MotorControlHandle = NULL;
 	TaskHandle_t timeBaseMngHandle = NULL;
-
-	PWMConfig pwmCfg1;
-	PWMConfig pwmCfg2;
-	static std::shared_ptr<PWMController> pwmController = std::make_shared<PWMController>(pwmCfg1);
-	//static std::shared_ptr<ServoMotorControl> servoControl = std::make_shared<ServoMotorControl>(pwmController);
-
-	pwmCfg2.pwmFreq = 1;
-	pwmCfg2.pwmIndex = 0;
-	static std::shared_ptr<PWMController> pwmController1 = std::make_shared<PWMController>(pwmCfg2);
-	//static std::shared_ptr<ServoMotorControl> servoControl1 = std::make_shared<ServoMotorControl>(pwmController);
-
-	pwmController->initialize();
-	//pwmController1->initialize();
-
-//	servoControl->setAngle(0);
-//	auto angle = servoControl->getAngle();
+//	bool changeFreq = true;
+//	bool changeDT = true;
+//	uint8_t freq = 50;
+//	uint8_t dt[] = {5,8,10};
+//	int i =0;
+//	uint8_t angle = 0;
+//	while(1)
+//	{
+//			servoControl->setAngle(angle);
+//			for (uint32_t Delay = 0; Delay < 0xFF; Delay++);
+//			angle++;
+//			if(angle>=180)angle=0;
 //
-//	servoControl->setAngle(90);
-//    angle = servoControl->getAngle();
-//
-//	servoControl->setAngle(180);
-//	angle = servoControl->getAngle();
-	pwmController->setDutyCicle(0);
-	pwmController->setDutyCicle(25);
-	pwmController->setDutyCicle(50);
-	pwmController->setDutyCicle(75);
-	pwmController->setDutyCicle(100);
-
-//	pwmController1->setDutyCicle(0);
-//	pwmController1->setDutyCicle(25);
-//	pwmController1->setDutyCicle(50);
-//	pwmController1->setDutyCicle(75);
-//	pwmController1->setDutyCicle(100);
-	bool changeFreq = false;
-	bool changeDT = false;
-	uint8_t freq;
-	uint8_t dt;
-	while(1)
-	{
-		if(changeFreq)
-		{
-			pwmController->setFrequency(freq);
-			//pwmController1->setFrequency(freq);
-		}
-		if(changeDT)
-		{
-			pwmController->setDutyCicle(dt);
-			//pwmController1->setDutyCicle(dt);
-		}
-	}
+//	}
 	//static ServerManager* serverMng = new ServerManager();
 	//xTaskCreate( UpdateConfigurationTask, "UpdateConfigurationTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&updateConfigHandle );
 	//xTaskCreate( SendReportTask, "SendReportTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&sendingHandle );
@@ -145,22 +153,17 @@ int main()
 	static HTTPClient*      httpClient = new HTTPClient();
 
 
-	const auto garminLiteV3Addr = (0x62);
-	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
-	auto i2cController = std::make_shared<I2CController>();
 
-	//i2cController->readData(0x08, 0x17, buffer, 1);
-	auto lidarDevice   = std::make_shared<GarminV3LiteCtrl>(i2cController, lidarCfg);
 
-	lidarDevice->initialization();
-	while(1)
-	{
-		const auto distance = lidarDevice->readDistance();
-	    std::cout << "Distance: 0x" << std::hex << std::uppercase
-	              << static_cast<int>(distance) << std::endl;
-		//vTaskDelay(500 / portTICK_RATE_MS);
-		for (uint32_t Delay = 0; Delay < 0xFFFFFF; Delay++);
-	}
+//	lidarDevice->initialization();
+//	while(1)
+//	{
+//		const auto distance = lidarDevice->readDistance();
+//	    std::cout << "Distance: 0x" << std::hex << std::uppercase
+//	              << static_cast<int>(distance) << std::endl;
+//		//vTaskDelay(500 / portTICK_RATE_MS);
+//		for (uint32_t Delay = 0; Delay < 0xFFFFFF; Delay++);
+//	}
 
 
 

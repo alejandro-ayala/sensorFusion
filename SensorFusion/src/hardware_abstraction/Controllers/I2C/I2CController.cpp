@@ -1,6 +1,8 @@
 #include <hardware_abstraction/Controllers/I2C/I2CController.h>
 #include <iostream>
+#include "xenv_standalone.h"
 
+//#define I2C_POLLING
 namespace hardware_abstraction
 {
 namespace Controllers
@@ -81,6 +83,7 @@ void I2CController::initialize()
 		std::cout << "XIicPs_SelfTest XST_FAILURE" << std::endl;
 	}
 
+#ifndef I2C_POLLING
 	/*
 	 * Connect the IIC to the interrupt subsystem such that interrupts can
 	 * occur. This function is application specific.
@@ -100,7 +103,7 @@ void I2CController::initialize()
 	 * the handlers are able to access the instance data.
 	 */
 	XIicPs_SetStatusHandler(&m_config.i2cPsInstance, (void *) &m_config.i2cPsInstance, irqHandler);
-
+#endif
 	/*
 	 * Set the IIC serial clock rate.
 	 */
@@ -110,7 +113,7 @@ void I2CController::initialize()
 uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_t *buffer, uint8_t bufferSize)
 {
 	sendComplete = FALSE;
-
+#ifndef I2C_POLLING
 	XIicPs_MasterSend(&m_config.i2cPsInstance, &registerAddr, 1, slaveAddr);
 
 	/*
@@ -140,6 +143,16 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	 * Receive data from slave, errors are reported through
 	 * totalErrorCount.
 	 */
+#else
+	auto Status = XIicPs_MasterSendPolled(&m_config.i2cPsInstance, registerAddr, 1, slaveAddr);
+
+	if (Status != XST_SUCCESS)
+	{
+		return XST_FAILURE;
+	}
+#endif
+	udelay(5000);
+#ifndef I2C_POLLING
 	recvComplete = FALSE;
 	XIicPs_MasterRecv(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
 
@@ -160,10 +173,20 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		/* NOP */
 	}
+
+#else
+	Status = XIicPs_MasterRecvPolled(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
+
+	if (Status != XST_SUCCESS)
+	{
+		return XST_FAILURE;
+	}
+#endif
 }
 
 uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t bufferSize)
 {	
+#ifndef I2C_POLLING
 	XIicPs_MasterSend(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
 				  	
 	while (!sendComplete)
@@ -179,6 +202,14 @@ uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t buf
 	{
 
 	}
+#else
+	auto Status = XIicPs_MasterSendPolled(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
+
+	if (Status != XST_SUCCESS)
+	{
+		return XST_FAILURE;
+	}
+#endif
 	return XST_SUCCESS;
 }
 

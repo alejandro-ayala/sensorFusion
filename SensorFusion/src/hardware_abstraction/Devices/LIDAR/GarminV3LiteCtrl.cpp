@@ -153,9 +153,14 @@ uint16_t GarminV3LiteCtrl::readDistance()
 	return distance;
 }
 
+bool GarminV3LiteCtrl::applyBiasCorrection()
+{
+
+}
+
 bool GarminV3LiteCtrl::selfTest()
 {
-	auto selfTest = false;
+	auto selfTest = true;
 	if(selfTest)
 	{
 		bool selfTestResult = false;

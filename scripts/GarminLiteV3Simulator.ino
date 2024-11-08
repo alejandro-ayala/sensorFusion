@@ -12,7 +12,7 @@ const uint8_t REG_ACQ_SETTINGS =  0x5D;
 const uint8_t REG_DISTANCE = 0x8F;        // Registro de lectura de distancia
 
 static const uint32_t simulatedSerialNumber = 0xABCD; // Número de serie ficticio
-static uint8_t lastRegisterRequested = 0x00;   // Almacena el último registro solicitado
+volatile uint8_t lastRegisterRequested = 0x00;   // Almacena el último registro solicitado
 uint8_t testCycle = 0;
 static uint16_t testData = 0;
 static bool testMode = false;
@@ -33,12 +33,16 @@ void loop() {
 
 // Evento que se ejecuta cuando el maestro solicita datos
 void requestEvent() {
+  uint8_t status = 0x00;
+  uint8_t acqSetting = 0xC0;
+  uint8_t simulatedDistance[2];
+  uint16_t distance;
   Serial.print("requestEvent -->");
   Serial.println(lastRegisterRequested, HEX);
   switch (lastRegisterRequested) {
     case REG_STATUS: 
       Serial.println("switch --> REG_STATUS");
-      uint8_t status = 0x00;
+      
       Wire.write((uint8_t*)&status, 1);
     break;
     case REG_SERIAL_NUMBER: 
@@ -47,15 +51,15 @@ void requestEvent() {
     break;
     case REG_ACQ_SETTINGS: 
       Serial.println("switch --> REG_ACQ_SETTINGS");
-      uint8_t acqSetting = 0xC0;
+      
       Wire.write((uint8_t*)&acqSetting, 1);
     break;
     case REG_DISTANCE: 
       Serial.println("switch --> REG_DISTANCE");
-      uint8_t simulatedDistance[2];
+      
       simulatedDistance[0] = random(0, 256);
       simulatedDistance[1] = random(0, 256);
-      uint16_t distance = (simulatedDistance[0] << 8 | simulatedDistance[1]);
+      distance = (simulatedDistance[0] << 8 | simulatedDistance[1]);
       Serial.print("distance: ");
       Serial.println(distance, HEX);
       Wire.write((uint8_t*)&simulatedDistance, sizeof(simulatedDistance));
