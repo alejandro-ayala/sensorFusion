@@ -33,6 +33,9 @@
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <business_logic/ClockSyncronization/TimeBaseManager.h>
 
+#include "services/Logger/LoggerMacros.h"
+#include "SW_VERSION.h"
+
 using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
 using namespace business_logic::Conectivity;
@@ -79,7 +82,7 @@ void clockSyncTask(void *argument)
 
 void image3dCapturerTask(void *argument)
 {
-
+	LOG_INFO("Starting image3dCapturerTask");
 	PWMConfig pwmCfgVer;
 	static std::shared_ptr<PWMController> pwmVertCtrl = std::make_shared<PWMController>(pwmCfgVer);
 	static std::shared_ptr<ServoMotorControl> verServoControl = std::make_shared<ServoMotorControl>(pwmVertCtrl);
@@ -101,22 +104,30 @@ void image3dCapturerTask(void *argument)
 	image3dConfig.lidarCtrl = lidarDevice;
 	static std::shared_ptr<ImageCapturer3D> image3dCapturer = std::make_shared<ImageCapturer3D>(image3dConfig);
 	image3dCapturer->initialize();
-	std::cout << "Image capturer initialize" << std::endl;
+
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	uint16_t taskSleep = 200000;
 	while(1)
 	{
+		LOG_INFO("Capturing 3D image");
 		image3dCapturer->captureImage();
-		std::cout << "Image captured" << std::endl;
-		//vTaskDelay(taskSleep / portTICK_RATE_MS);
+		LOG_INFO("Capturing 3D image done");
 		vTaskDelayUntil(&xLastWakeTime,taskSleep / portTICK_RATE_MS);
 	}
 }
-
+//Trace,
+//Debug,
+//Info,
+//Warn,
+//Error,
+//Critical,
+//Off,
 int main()
 {
 	TaskHandle_t image3dCapturerHandle = NULL;
+
+	LOG_INFO("*********************Starting Lidar Node Zybo Z7 -- SW_version: ", SW_VERSION ,"*********************");
 
 	xTaskCreate(image3dCapturerTask, "image3dCapturerTask",THREAD_STACKSIZE,( void * ) 1,DEFAULT_THREAD_PRIO,&image3dCapturerHandle);
 	vTaskStartScheduler();

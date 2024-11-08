@@ -1,5 +1,6 @@
 #include <Devices/LIDAR/GarminV3LiteCtrl.h>
 #include "Devices/LIDAR/GarminV3LiteRegisterMap.h"
+#include "services/Logger/LoggerMacros.h"
 #include <iostream>
 
 namespace hardware_abstraction
@@ -18,7 +19,7 @@ void GarminV3LiteCtrl::initialization()
 	if(!initialized)
 	{
 		//TODO handle error
-		std::cout << "Error during LIDAR selftest" << std::endl;
+		LOG_FATAL("Error during LIDAR selftest");
 	}
 	configuration(m_mode);
 }
@@ -196,7 +197,7 @@ bool GarminV3LiteCtrl::enableTestMode()
 		if(stateValue != 0)
 		{
 			//TODO handle error
-			std::cout << "Lidar is on error: " << stateValue << std::endl;
+			LOG_ERROR("Lidar is on error: " , stateValue);
 			testModeEnabled = false;
 		}
 		else
@@ -210,7 +211,7 @@ bool GarminV3LiteCtrl::enableTestMode()
 			m_i2cControl->readData(m_addr, registerAddr, buffer, 1); // Check correlation memory bank is enabled
 			if(buffer[0] != 0xC0)
 			{
-				std::cout << "Lidar correlation memory bank is NOT enabled" << std::endl;
+				LOG_FATAL("Lidar correlation memory bank is NOT enabled");
 				testModeEnabled = false;
 			}
 			else
@@ -241,13 +242,13 @@ bool GarminV3LiteCtrl::runTestMode()
 		testData = (buffer[1] << 8) | buffer[0];
 		if(testData == (testDataPrev + 1))
 		{
-			std::cout << "runTestMode -- testData: " << testData << std::endl;
+			LOG_TRACE("runTestMode -- testData: " , testData);
 			testDataPrev = testData;
 		}
 		else
 		{
 			testResult = false;
-			std::cout << "runTestMode -- testData ERROR. Data:  " << testData << "testDataPrev: "<< testDataPrev << std::endl;
+			LOG_FATAL("runTestMode -- testData ERROR. Data:  " , testData , "testDataPrev: ", testDataPrev);
 		}
 
 	}

@@ -17,7 +17,7 @@ private:
 
 	virtual void initialize();
 
-	LogLevel m_logLevel;
+	LogLevel m_logLevel = LogLevel::Debug;
 	bool m_disable;
 
 	template<typename... Args>
@@ -29,7 +29,7 @@ private:
 	}
 public:
 	virtual ~Logger() = default;
-	static Logger& Instance();
+	static Logger& getInstance();
 	void setLogLevel(LogLevel) override;
 	void disable() override;
 	void enable() override;

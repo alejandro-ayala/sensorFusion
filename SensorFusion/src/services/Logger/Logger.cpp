@@ -5,7 +5,7 @@
 namespace services
 {
 
-Logger& Logger::Instance()
+Logger& Logger::getInstance()
 {
 	static Logger instance;
 	return instance;
@@ -26,16 +26,16 @@ void Logger::log(LogLevel logLevel, const std::string& msg)
 	if((m_logLevel > logLevel) || m_disable) 
     return;
 
-	  std::string logMsg;
+	std::string logMsg;
     switch (logLevel)
     {
-      case LogLevel::Trace: logMsg = "[TRACE] " + msg; break;
-      case LogLevel::Debug: logMsg = "[DEBUG] " + msg; break;
-	    case LogLevel::Info: logMsg = "[INFO] " + msg; break;
-	    case LogLevel::Warn: logMsg = "[WARNING] " + msg; break;
-	    case LogLevel::Error: logMsg = "[ERROR] " + msg; break;
-      case LogLevel::Critical: logMsg = "[CRITICAL] " + msg; break;
-      default: break;//THROW_SERVICES_EXCEPTION(ServicesErrorId::LoggerUnknownLevel, "Unknown logging level")
+     	 case LogLevel::Trace: logMsg = "[TRACE] " + msg; break;
+     	 case LogLevel::Debug: logMsg = "[DEBUG] " + msg; break;
+     	 case LogLevel::Info: logMsg = "[INFO] " + msg; break;
+     	 case LogLevel::Warn: logMsg = "[WARNING] " + msg; break;
+     	 case LogLevel::Error: logMsg = "[ERROR] " + msg; break;
+     	 case LogLevel::Critical: logMsg = "[CRITICAL] " + msg; break;
+     	 default: break;//THROW_SERVICES_EXCEPTION(ServicesErrorId::LoggerUnknownLevel, "Unknown logging level")
     }
   std::cout << logMsg << std::endl;
 }
