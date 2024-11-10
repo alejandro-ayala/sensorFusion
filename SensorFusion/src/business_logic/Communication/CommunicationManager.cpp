@@ -3,6 +3,7 @@
 #include <business_logic/Communication/CommunicationManager.h>
 #include <business_logic/Communication/IData.h>
 #include "hardware_abstraction/Controllers/CAN/CanController.h"
+#include "services/Logger/LoggerMacros.h"
 #include <iostream>
 
 
@@ -31,7 +32,7 @@ void CommunicationManager::sendData(IData msg)
 	msg.timestamp = localNs;
 	uint8_t serializedMsg[20];
 	uint8_t frameSize = msg.serialize(serializedMsg) + 7;
-	std::cout << "sendingMsg[ " << serializedMsg[5] << "]" << msg.timestamp << "-" << serializedMsg[7] << serializedMsg[8] << serializedMsg[9] << serializedMsg[10] << std::endl;
+	LOG_DEBUG("sendingMsg[ " , serializedMsg[5] , "]" , msg.timestamp , "-" , serializedMsg[7] , serializedMsg[8] , serializedMsg[9] , serializedMsg[10]);
 
 	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::SENSOR_DATA), serializedMsg,frameSize);
 
@@ -48,7 +49,7 @@ IData CommunicationManager::receiveData()
 		//xil_printf("\n\rReceived data: %d bytes", msgSize);
 
 		parsedMsg.deSerialize(data);
-		std::cout << "newData[" << parsedMsg.secCounter << "]. sec: " << parsedMsg.timestamp << std::endl;
+		LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
 	}
 	return parsedMsg;
 }

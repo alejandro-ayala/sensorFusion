@@ -1,5 +1,6 @@
 #include <hardware_abstraction/Controllers/I2C/I2CController.h>
 #include <iostream>
+#include "services/Logger/LoggerMacros.h"
 #include "xenv_standalone.h"
 
 //#define I2C_POLLING
@@ -31,7 +32,7 @@ void I2CController::irqHandler(void *callBackRef, u32 event)
 		totalErrorCount++;
 		totalErrorCount = 0;
 		//TODO handle error
-		std::cout << "I2C Error during irqHandler" << std::endl;
+		LOG_ERROR("I2C Error during irqHandler");
 	}
 }
 
@@ -63,14 +64,14 @@ void I2CController::initialize()
 	if (NULL == Config)
 	{
 		//TODO handle error
-		std::cout << "XIicPs_LookupConfig XST_FAILURE" << std::endl;
+		LOG_FATAL("XIicPs_LookupConfig XST_FAILURE");
 	}
 
 	Status = XIicPs_CfgInitialize(&m_config.i2cPsInstance, Config, Config->BaseAddress);
 	if (Status != XST_SUCCESS)
 	{
 		//TODO handle error
-		std::cout << "XIicPs_CfgInitialize XST_FAILURE" << std::endl;
+		LOG_FATAL("XIicPs_CfgInitialize XST_FAILURE");
 	}
 
 	/*
@@ -80,7 +81,7 @@ void I2CController::initialize()
 	if (Status != XST_SUCCESS)
 	{
 		//TODO handle error
-		std::cout << "XIicPs_SelfTest XST_FAILURE" << std::endl;
+		LOG_FATAL("XIicPs_SelfTest XST_FAILURE");
 	}
 
 #ifndef I2C_POLLING
@@ -93,7 +94,7 @@ void I2CController::initialize()
 	if (Status != XST_SUCCESS)
 	{
 		//TODO handle error
-		std::cout << "SetupInterruptSystem XST_FAILURE" << std::endl;
+		LOG_FATAL("SetupInterruptSystem XST_FAILURE");
 	}
 
 	/*
@@ -127,7 +128,7 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 		if (0 != totalErrorCount)
 		{
 			//TODO handle error
-			std::cout << "I2C Error during sending register address" << std::endl;
+			LOG_ERROR("I2C Error during sending register address");
 		}
 	}
 
@@ -162,7 +163,7 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 		if (0 != totalErrorCount)
 		{
 			//TODO handle error
-			std::cout << "I2C Error during receiving data register" << std::endl;
+			LOG_ERROR("I2C Error during receiving data register");
 		}
 	}
 
@@ -194,7 +195,7 @@ uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t buf
 		if (0 != totalErrorCount)
 		{
 			//TODO handle error
-			std::cout << "I2C Error during sending I2C data" << std::endl;
+			LOG_ERROR("I2C Error during sending I2C data");
 		}
 	}
 

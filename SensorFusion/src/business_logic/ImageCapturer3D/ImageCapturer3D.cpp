@@ -2,7 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <numeric>
-#include "xenv_standalone.h"
+#include "services/Logger/LoggerMacros.h"
 
 //#define FAKE_VALUES
 namespace business_logic
@@ -38,7 +38,7 @@ void ImageCapturer3D::captureImage()
 		if(state)
 		{
 			//TODO handle error
-			std::cout << "Error applying bias correction" << std::endl;
+			LOG_WARNING("Error applying bias correction");
 		}
 	}
 	TickType_t xLastWakeTime;
