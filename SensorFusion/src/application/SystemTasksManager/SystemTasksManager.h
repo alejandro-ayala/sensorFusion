@@ -1,0 +1,39 @@
+#pragma once
+#include "business_logic/Osal/TaskHandler.h"
+#include "business_logic/Communication/CommunicationManager.h"
+#include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
+#include "business_logic/ClockSyncronization/TimeBaseManager.h"
+#include "TaskParams.h"
+
+#include <memory>
+#include <vector>
+
+namespace application
+{
+
+constexpr uint32_t DefaultPriorityTask = 0;
+class SystemTasksManager
+{
+private:
+
+	TaskParams m_taskParam;
+	std::shared_ptr<business_logic::ImageCapturer3D> m_image3DCapturer;
+
+	std::shared_ptr<business_logic::ClockSyncronization::SharedClockSlaveManager> m_globalClkMng;
+	std::shared_ptr<business_logic::Communication::CommunicationManager> m_commMng;
+
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_clockSyncTaskHandler;
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_image3dCapturerTaskHandler;
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_commTaskHandler;
+	static inline std::shared_ptr<business_logic::Osal::QueueHandler> m_capturesQueue;
+
+public:
+	SystemTasksManager(const TaskParams& systemTaskMngParams);
+	virtual ~SystemTasksManager() = default;
+	static void globalClockSyncronization(void* argument);
+	static void communicationTask(void* argument);
+	static void image3dMappingTask(void* argument);
+    void createPoolTasks();
+};
+
+}

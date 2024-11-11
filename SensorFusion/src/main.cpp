@@ -32,7 +32,7 @@
 
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <business_logic/ClockSyncronization/TimeBaseManager.h>
-
+#include "application/SystemTasksManager/SystemTasksManager.h"
 #include "services/Logger/LoggerMacros.h"
 #include "SW_VERSION.h"
 
@@ -43,146 +43,77 @@ using namespace business_logic::Communication;
 using namespace business_logic::ClockSyncronization;
 using namespace business_logic;
 
-void clockSyncTask(void *argument);
 
-uint8_t buffer[1];
-void CommunicationTask(void *argument)
+static std::shared_ptr<PWMController> pwmVertCtrl;
+static std::shared_ptr<ServoMotorControl> verServoControl;
+static std::shared_ptr<PWMController> pwmHortCtrl;
+static std::shared_ptr<ServoMotorControl> horServoControl;
+static std::shared_ptr<ImageCapturer3D> image3dCapturer;
+static std::shared_ptr<I2CController> i2cController;
+static std::shared_ptr<GarminV3LiteCtrl> lidarDevice;
+static std::shared_ptr<CommunicationManager> commMng;
+static std::shared_ptr<SharedClockSlaveManager> globalClkMng;
+static std::shared_ptr<application::SystemTasksManager> systemTaskHandler;
+
+static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
+static std::shared_ptr<CanController> canController;
+static std::shared_ptr<HTTPClient> httpClient;
+
+
+void createHardwareAbstractionLayerComponents()
 {
-	CommunicationManager* commMng = reinterpret_cast<CommunicationManager*>(argument);
-	TickType_t xLastWakeTime;
-
-	xLastWakeTime = xTaskGetTickCount();
-
-
-  /* Infinite loop */
-	while(1)
-	{
-		commMng->receiveData();
-		//vTaskDelayUntil(xLastWakeTime,5000 / portTICK_RATE_MS);
-		vTaskDelay(5 / portTICK_RATE_MS);
-	}
-}
-
-
-void clockSyncTask(void *argument)
-{
-	TimeBaseManager* timeBaseMng = reinterpret_cast<TimeBaseManager*>(argument);
-	xil_printf("\r\clockSyncTask\r\n");
-
-	timeBaseMng->initialization();
-	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
-
-	while(1)
-	{
-		timeBaseMng->sendGlobalTime();
-		vTaskDelay(10000 / portTICK_RATE_MS);
-	}
-}
-
-void image3dCapturerTask(void *argument)
-{
-	LOG_INFO("Starting image3dCapturerTask");
 	PWMConfig pwmCfgVer;
-	static std::shared_ptr<PWMController> pwmVertCtrl = std::make_shared<PWMController>(pwmCfgVer);
-	static std::shared_ptr<ServoMotorControl> verServoControl = std::make_shared<ServoMotorControl>(pwmVertCtrl);
+	pwmVertCtrl = std::make_shared<PWMController>(pwmCfgVer);
+	verServoControl = std::make_shared<ServoMotorControl>(pwmVertCtrl);
 
 	PWMConfig pwmCfgHor;
 	pwmCfgHor.pwmIndex = 0;
-	static std::shared_ptr<PWMController> pwmHortCtrl = std::make_shared<PWMController>(pwmCfgHor);
-	static std::shared_ptr<ServoMotorControl> horServoControl = std::make_shared<ServoMotorControl>(pwmHortCtrl);
+	pwmHortCtrl = std::make_shared<PWMController>(pwmCfgHor);
+	horServoControl = std::make_shared<ServoMotorControl>(pwmHortCtrl);
 
 	const auto garminLiteV3Addr = (0x62);
 	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
-	auto i2cController = std::make_shared<I2CController>();
-	auto lidarDevice   = std::make_shared<GarminV3LiteCtrl>(i2cController, lidarCfg);
+	i2cController = std::make_shared<I2CController>();
+	lidarDevice   = std::make_shared<GarminV3LiteCtrl>(i2cController, lidarCfg);
+
+	canController = std::make_shared<CanController>();
+	LOG_DEBUG("Created Hardware Abstraction layer components");
+}
+
+void createBusinessLogicLayerComponents()
+{
+	timecontroller = std::make_shared<TimeController>();
+	commMng = std::make_shared<CommunicationManager>(timecontroller, canController);
 
 	ImageCapturer3DConfig image3dConfig;
 	image3dConfig.verServoCtrl = verServoControl;
 
 	image3dConfig.horServoCtrl = horServoControl;
 	image3dConfig.lidarCtrl = lidarDevice;
-	static std::shared_ptr<ImageCapturer3D> image3dCapturer = std::make_shared<ImageCapturer3D>(image3dConfig);
-	image3dCapturer->initialize();
+	image3dCapturer = std::make_shared<ImageCapturer3D>(image3dConfig);
 
-	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
-	uint16_t taskSleep = 200000;
-	while(1)
-	{
-		LOG_INFO("Capturing 3D image");
-		image3dCapturer->captureImage();
-		LOG_INFO("Capturing 3D image done");
-		vTaskDelayUntil(&xLastWakeTime,taskSleep / portTICK_RATE_MS);
-	}
+	globalClkMng = std::make_shared<SharedClockSlaveManager>(timecontroller, canController);
+	LOG_DEBUG("Created Business Logic layer components");
 }
-//Trace,
-//Debug,
-//Info,
-//Warn,
-//Error,
-//Critical,
-//Off,
+
+void createApplicationLayerComponents()
+{
+	application::TaskParams systemTaskMngParams;
+	systemTaskMngParams.image3dCapturer = image3dCapturer;
+	systemTaskMngParams.globalClkMng    = globalClkMng;
+	systemTaskMngParams.commMng         = commMng;
+	systemTaskHandler = std::make_shared<application::SystemTasksManager>(systemTaskMngParams);
+	systemTaskHandler->createPoolTasks();
+	LOG_DEBUG("Created Application layer components");
+}
+
 int main()
 {
-	TaskHandle_t image3dCapturerHandle = NULL;
-
 	LOG_INFO("*********************Starting Lidar Node Zybo Z7 -- SW_version: ", SW_VERSION ,"*********************");
 
-	xTaskCreate(image3dCapturerTask, "image3dCapturerTask",THREAD_STACKSIZE,( void * ) 1,DEFAULT_THREAD_PRIO,&image3dCapturerHandle);
-	vTaskStartScheduler();
-	while(1);
-
-	TaskHandle_t updateConfigHandle = NULL;
-	TaskHandle_t communicationHandle = NULL;
-	TaskHandle_t sendingHandle = NULL;
-	TaskHandle_t MotorControlHandle = NULL;
-	TaskHandle_t timeBaseMngHandle = NULL;
-//	bool changeFreq = true;
-//	bool changeDT = true;
-//	uint8_t freq = 50;
-//	uint8_t dt[] = {5,8,10};
-//	int i =0;
-//	uint8_t angle = 0;
-//	while(1)
-//	{
-//			servoControl->setAngle(angle);
-//			for (uint32_t Delay = 0; Delay < 0xFF; Delay++);
-//			angle++;
-//			if(angle>=180)angle=0;
-//
-//	}
-	//static ServerManager* serverMng = new ServerManager();
-	//xTaskCreate( UpdateConfigurationTask, "UpdateConfigurationTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&updateConfigHandle );
-	//xTaskCreate( SendReportTask, "SendReportTask",THREAD_STACKSIZE,serverMng,DEFAULT_THREAD_PRIO,&sendingHandle );
-	//xTaskCreate( userIfaceControlTask, "UserIfaceControlTask",THREAD_STACKSIZE,userControlMng,DEFAULT_THREAD_PRIO,&userIfHandle);
-	//xTaskCreate(motorControlTask, "MotorControlTask",THREAD_STACKSIZE,MotorControl,DEFAULT_THREAD_PRIO,&MotorControlHandle);
-
-	//sys_thread_new("main_thrd", (void(*)(void*))main_thread, 0,THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
-	static TimeController*  timecontroller = new TimeController();
-	static CanController*   canController = new CanController();
-	static HTTPClient*      httpClient = new HTTPClient();
-
-
-
-
-//	lidarDevice->initialization();
-//	while(1)
-//	{
-//		const auto distance = lidarDevice->readDistance();
-//	    std::cout << "Distance: 0x" << std::hex << std::uppercase
-//	              << static_cast<int>(distance) << std::endl;
-//		//vTaskDelay(500 / portTICK_RATE_MS);
-//		for (uint32_t Delay = 0; Delay < 0xFFFFFF; Delay++);
-//	}
-
-
-
-	static TimeBaseManager* timeBaseMng = new TimeBaseManager(timecontroller,canController,httpClient);
-	xTaskCreate(clockSyncTask, "ClockSyncTask",THREAD_STACKSIZE,timeBaseMng,DEFAULT_THREAD_PRIO,&timeBaseMngHandle);
-
-	static CommunicationManager* commMng = new CommunicationManager(timecontroller,canController);
-	xTaskCreate( CommunicationTask, "CommunicationTask",THREAD_STACKSIZE,commMng,DEFAULT_THREAD_PRIO,&communicationHandle );
+	createHardwareAbstractionLayerComponents();
+	createBusinessLogicLayerComponents();
+	createApplicationLayerComponents();
 
 	vTaskStartScheduler();
 	while(1);

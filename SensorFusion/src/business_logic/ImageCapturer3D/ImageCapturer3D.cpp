@@ -4,7 +4,7 @@
 #include <numeric>
 #include "services/Logger/LoggerMacros.h"
 
-//#define FAKE_VALUES
+#define FAKE_VALUES
 namespace business_logic
 {
 ImageCapturer3D::ImageCapturer3D(const ImageCapturer3DConfig& config):  m_horServoCtrl(config.horServoCtrl), m_verServoCtrl(config.verServoCtrl), m_lidarCtrl(config.lidarCtrl), m_config(config)
