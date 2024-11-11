@@ -63,7 +63,7 @@ void CryptoMng::handshakeSSL()
 #ifndef TEST_BUILD
 	int status = MBEDTLS_ERR_SSL_WANT_READ;
 	bool handShakeTimeout = false;
-	PRINT_NOTIF("Getting certificate from server");
+	//PRINT_NOTIF("Getting certificate from server");
 	//TODO ADD active waiting
 	//while(!handShakeTimeout && (status == MBEDTLS_ERR_SSL_WANT_READ || status == MBEDTLS_ERR_SSL_WANT_WRITE))
 	while((status != ERR_OK))
@@ -80,7 +80,7 @@ void CryptoMng::handshakeSSL()
 	}
 	else
 	{
-		PRINT_DEBUG("Certificate verification passed");
+		//PRINT_DEBUG("Certificate verification passed");
 	}
 #endif
 }
@@ -94,13 +94,13 @@ void CryptoMng::certificateVerification()
 	{
 		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_PARSE_CERTF, "Server certificate can not be parsed");
 	}
-	PRINT_DEBUG1("Server certificate:\n%s\n", serverCert);
+	//PRINT_DEBUG1("Server certificate:\n%s\n", serverCert);
 
 	uint32_t flags = mbedtls_ssl_get_verify_result(&ssl);
 	if (flags != ERR_OK)
 	{
 		ret = mbedtls_x509_crt_verify_info(serverCert, sizeof(serverCert), "\r  ! ", flags);
-		PRINT_DEBUG1("Certificate verification failed: ", serverCert);
+		//PRINT_DEBUG1("Certificate verification failed: ", serverCert);
 		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_VERIFY_CHAIN_CERTF, "Chain of certificates can not be validated");
 	}
 #endif
@@ -118,7 +118,7 @@ void CryptoMng::sendData(const std::string& getReq)
 	if ((ret > 0) && (static_cast<size_t>(ret) != dataLenght))
 	{
 		pendingData = static_cast<size_t>(ret);
-		PRINT_WARN1("The full request was not sent! Pending byte: %d", (dataLenght - pendingData));
+		//PRINT_WARN1("The full request was not sent! Pending byte: %d", (dataLenght - pendingData));
 		THROW_FUNC_EXCEPT(ERROR_CODE::TLS_INCOMPLETE_SEND, "The full request was not sent");
 	}
 	else if ((ret < 0) || (ret == MBEDTLS_ERR_SSL_WANT_WRITE) || (ret == MBEDTLS_ERR_SSL_WANT_READ))
@@ -151,7 +151,7 @@ void CryptoMng::readResponse(std::string& response)
 	}
 
 	response = serverResponse;
-	PRINT_DEBUG1("Received message:\n", serverResponse);
+	//PRINT_DEBUG1("Received message:\n", serverResponse);
 #endif
 }
 
@@ -172,7 +172,7 @@ void CryptoMng::configureSSL()
 
 	if (ret != ERR_OK)
 	{
-		PRINT_ERROR1("Error configuring default SSL configuration: ",-ret);
+		//PRINT_ERROR1("Error configuring default SSL configuration: ",-ret);
 		//THROW exception???
 	}
 
@@ -189,7 +189,7 @@ void CryptoMng::configureSSL()
 
 	if ((ret = mbedtls_ssl_setup( &ssl, &sslConfig)) != ERR_OK)
 	{
-		PRINT_ERROR1("Error during Secure socket layer ", -ret);
+		//PRINT_ERROR1("Error during Secure socket layer ", -ret);
 		//THROW exception
 	}
 
@@ -197,7 +197,7 @@ void CryptoMng::configureSSL()
 	{
 		if ((ret = mbedtls_ssl_set_hostname( &ssl, cryptoCfg.hostName.c_str())) != ERR_OK)
 		{
-			PRINT_DEBUG("Error assigning the server host name to the crypto layer ");
+			//PRINT_DEBUG("Error assigning the server host name to the crypto layer ");
 			//THROW exception
 		}
 	}
@@ -233,7 +233,7 @@ void CryptoMng::configureEntropy()
 	if (ret != ERR_OK)
 	{
 		//TODO check if add CryptoMng as device to throw initialization memory errors
-		PRINT_ERROR1("Error during entropy configuration ", -ret);
+		//PRINT_ERROR1("Error during entropy configuration ", -ret);
 	}
 #endif
 }
@@ -274,25 +274,25 @@ int CryptoMng::crtfVerify(void *ctx, mbedtls_x509_crt *crt, int depth,uint32_t *
 
 	if (ret < 0)
 	{
-		PRINT_DEBUG("Error getting server certificate information");
+		//PRINT_DEBUG("Error getting server certificate information");
 	}
 
-	PRINT_DEBUG1("Server certificate:\n", serverCert);
+	//PRINT_DEBUG1("Server certificate:\n", serverCert);
 
 	const mbedtls_ssl_context sslCtx = cryptoMng->getSSLContext();
 	uint32_t doubleCheck = mbedtls_ssl_get_verify_result(&sslCtx);
-	PRINT_DEBUG2("Checking the parsed certificate flags: ", *flags, "  against the previous one:  ", doubleCheck);
+	//PRINT_DEBUG2("Checking the parsed certificate flags: ", *flags, "  against the previous one:  ", doubleCheck);
 
 	if (doubleCheck != ERR_OK)
 	{
 		ret = mbedtls_x509_crt_verify_info(serverCert, sizeof(serverCert), "\r  ! ", flags);
 		if (ret < 0)
 		{
-			PRINT_DEBUG1("mbedtls_x509_crt_verify_info() returned ", -ret);
+			//PRINT_DEBUG1("mbedtls_x509_crt_verify_info() returned ", -ret);
 		}
 		else
 		{
-			PRINT_DEBUG1("Certificate verification failed -> flags: ", flags);
+			//PRINT_DEBUG1("Certificate verification failed -> flags: ", flags);
 		}
 	}
 

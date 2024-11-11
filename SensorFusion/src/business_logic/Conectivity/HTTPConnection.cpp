@@ -80,7 +80,7 @@ std::string HTTPConnection::request(const std::string& getReq)
 	}
 	catch (const FunctionalError& e)
 	{
-		PRINT_WARNE("Functional error, retry server request", e);
+		//PRINT_WARNE("Functional error, retry server request", e);
 	}
 	return response;
 }

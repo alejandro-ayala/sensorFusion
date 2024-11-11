@@ -3,7 +3,6 @@
 #include "services/Logger/LoggerMacros.h"
 #include "xenv_standalone.h"
 
-//#define I2C_POLLING
 namespace hardware_abstraction
 {
 namespace Controllers
@@ -11,41 +10,61 @@ namespace Controllers
 
 void I2CController::irqHandler(void *callBackRef, u32 event)
 {
-	/*
-	 * All of the data transfer has been finished.
-	 */
 	if (0 != (event & XIICPS_EVENT_COMPLETE_RECV))
 	{
+		//LOG_INFO("I2C RX");
+		totalErrorCount = 0;
 		recvComplete = true;
 	}
 	else if (0 != (event & XIICPS_EVENT_COMPLETE_SEND))
 	{
+		//LOG_INFO("I2C TX");
+		totalErrorCount = 0;
 		sendComplete = true;
 	}
-	else if (0 == (event & XIICPS_EVENT_SLAVE_RDY))
+	else if (0 != (event & XIICPS_EVENT_ARB_LOST))
 	{
-		/*
-		 * If it is other interrupt but not slave ready interrupt, it is
-		 * an error.
-		 * Data was received with an error.
-		 */
+		LOG_TRACE("I2C arb list");
+		//arbitritrarionLost = true;
+	}
+	else if (0 != (event & XIICPS_EVENT_TIME_OUT))
+	{
+		LOG_TRACE("I2C timeout");
+	}
+	else if (0 != (event & XIICPS_EVENT_ERROR))
+	{
+		if(totalRecvErrorCount % 10 == 0)
+			LOG_ERROR("I2C EV Error: ", totalRecvErrorCount);
+		totalRecvErrorCount++;
+		recvError = 1;
+	}
+	else if (0 != (event & XIICPS_EVENT_SLAVE_RDY))
+	{
+		LOG_TRACE("I2C ready");
+	}
+	else if (0 != (event & XIICPS_EVENT_RX_OVR))
+	{
+		LOG_TRACE("I2C rx ovr");
+	}
+	else if (0 != (event & XIICPS_EVENT_TX_OVR))
+	{
+		LOG_TRACE("I2C tx ovr");
+	}
+	else if (0 != (event & XIICPS_EVENT_RX_UNF))
+	{
+		LOG_TRACE("I2C rx unf");
+	}
+	else //if (0 == (event & XIICPS_EVENT_SLAVE_RDY))
+	{
 		totalErrorCount++;
-		totalErrorCount = 0;
 		//TODO handle error
-		LOG_ERROR("I2C Error during irqHandler");
+		LOG_ERROR("I2C unknow Error: ", totalErrorCount, " - ", event);
 	}
 }
 
 I2CController::I2CController(const I2CConfig& config) : m_config(config)
 {
-	try
-	{
-		initialize();
-	}
-	catch(...)
-	{
-		//Handle error
-	}
+
 	
 }
 
@@ -84,7 +103,6 @@ void I2CController::initialize()
 		LOG_FATAL("XIicPs_SelfTest XST_FAILURE");
 	}
 
-#ifndef I2C_POLLING
 	/*
 	 * Connect the IIC to the interrupt subsystem such that interrupts can
 	 * occur. This function is application specific.
@@ -98,14 +116,6 @@ void I2CController::initialize()
 	}
 
 	/*
-	 * Setup the handlers for the IIC that will be called from the
-	 * interrupt context when data has been sent and received, specify a
-	 * pointer to the IIC driver instance as the callback reference so
-	 * the handlers are able to access the instance data.
-	 */
-	XIicPs_SetStatusHandler(&m_config.i2cPsInstance, (void *) &m_config.i2cPsInstance, irqHandler);
-#endif
-	/*
 	 * Set the IIC serial clock rate.
 	 */
 	XIicPs_SetSClk(&m_config.i2cPsInstance, m_config.clockRate);
@@ -114,7 +124,9 @@ void I2CController::initialize()
 uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_t *buffer, uint8_t bufferSize)
 {
 	sendComplete = FALSE;
-#ifndef I2C_POLLING
+	uint8_t printed = 0;
+	//LOG_INFO("rmS");
+	XIicPs_SetOptions(&m_config.i2cPsInstance, XIICPS_REP_START_OPTION);
 	XIicPs_MasterSend(&m_config.i2cPsInstance, &registerAddr, 1, slaveAddr);
 
 	/*
@@ -128,10 +140,13 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 		if (0 != totalErrorCount)
 		{
 			//TODO handle error
-			LOG_ERROR("I2C Error during sending register address");
+			for (int Delay = 0; Delay < 0xFFFF; Delay++);
+			XIicPs_MasterSend(&m_config.i2cPsInstance, &registerAddr, 1, slaveAddr);
+			if(printed==0){printed=1;LOG_ERROR("I2C Error during sending register address");};
 		}
 	}
-
+	//LOG_TRACE("I2C sent waiting");
+	printed = 0;
 	/*
 	 * Wait bus activities to finish.
 	 */
@@ -139,23 +154,17 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		/* NOP */
 	}
-
+	//LOG_TRACE("I2C sent ready");
 	/*
 	 * Receive data from slave, errors are reported through
 	 * totalErrorCount.
 	 */
-#else
-	auto Status = XIicPs_MasterSendPolled(&m_config.i2cPsInstance, registerAddr, 1, slaveAddr);
 
-	if (Status != XST_SUCCESS)
-	{
-		return XST_FAILURE;
-	}
-#endif
-	udelay(5000);
-#ifndef I2C_POLLING
+	//LOG_INFO("rmR");
 	recvComplete = FALSE;
-	XIicPs_MasterRecv(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
+	uint8_t bufferAux[30];
+	XIicPs_ClearOptions(&m_config.i2cPsInstance, XIICPS_REP_START_OPTION);    //enable sending STOP bit after data transfer
+	XIicPs_MasterRecv(&m_config.i2cPsInstance, bufferAux, bufferSize + 16, slaveAddr);
 
 
 	while (!recvComplete)
@@ -163,10 +172,16 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 		if (0 != totalErrorCount)
 		{
 			//TODO handle error
-			LOG_ERROR("I2C Error during receiving data register");
+			for (int Delay = 0; Delay < 0xFFFF; Delay++);
+			if(printed == 0){printed=1; LOG_ERROR("I2C Error during receiving data register"); };
+		}
+		if(recvError)
+		{
+			recvError = 0;
+			XIicPs_MasterRecv(&m_config.i2cPsInstance, bufferAux, bufferSize + 16, slaveAddr);
 		}
 	}
-
+	//LOG_TRACE("I2C received");
 	/*
 	 * Wait bus activities to finish.
 	 */
@@ -174,20 +189,17 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		/* NOP */
 	}
-
-#else
-	Status = XIicPs_MasterRecvPolled(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
-
-	if (Status != XST_SUCCESS)
+	for(int i=0; i< bufferSize;i++)
 	{
-		return XST_FAILURE;
+		buffer[i] = bufferAux[i];
 	}
-#endif
+	LOG_TRACE("I2C received ready");
 }
 
 uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t bufferSize)
 {	
 #ifndef I2C_POLLING
+	//LOG_INFO("wmS");
 	XIicPs_MasterSend(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
 				  	
 	while (!sendComplete)
@@ -218,7 +230,6 @@ int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 {
 	int Status;
 	XScuGic_Config *IntcConfig; /* Instance of the interrupt controller */
-
 	Xil_ExceptionInit();
 
 	/*
@@ -232,10 +243,11 @@ int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 
 	Status = XScuGic_CfgInitialize(&m_config.InterruptController, IntcConfig,
 				       IntcConfig->CpuBaseAddress);
-	if (Status != XST_SUCCESS) {
+
+	if (Status != XST_SUCCESS)
+	{
 		return XST_FAILURE;
 	}
-
 
 	/*
 	 * Connect the interrupt controller interrupt handler to the hardware
@@ -245,6 +257,17 @@ int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 				     (Xil_ExceptionHandler)XScuGic_InterruptHandler,
 				     &m_config.InterruptController);
 
+
+//	uint8_t priority, trigger;
+//	XScuGic_GetPriorityTriggerType(&m_config.InterruptController, m_i2cIntVectorId, &priority, &trigger);
+//
+//	priority = 0;
+//	XScuGic_SetPriorityTriggerType(&m_config.InterruptController, m_i2cIntVectorId, priority, trigger);
+//
+//	priority = 0;
+//	trigger  = 0;
+//	XScuGic_GetPriorityTriggerType(&m_config.InterruptController, m_i2cIntVectorId, &priority, &trigger);
+
 	/*
 	 * Connect the device driver handler that will be called when an
 	 * interrupt for the device occurs, the handler defined above performs
@@ -253,7 +276,8 @@ int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 	Status = XScuGic_Connect(&m_config.InterruptController, m_i2cIntVectorId,
 				 (Xil_InterruptHandler)XIicPs_MasterInterruptHandler,
 				 (void *)IicPsPtr);
-	if (Status != XST_SUCCESS) {
+	if (Status != XST_SUCCESS)
+	{
 		return Status;
 	}
 
@@ -268,6 +292,13 @@ int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 	 */
 	Xil_ExceptionEnable();
 
+	/*
+	 * Setup the handlers for the IIC that will be called from the
+	 * interrupt context when data has been sent and received, specify a
+	 * pointer to the IIC driver instance as the callback reference so
+	 * the handlers are able to access the instance data.
+	 */
+	XIicPs_SetStatusHandler(&m_config.i2cPsInstance, (void *) &m_config.i2cPsInstance, irqHandler);
 	return XST_SUCCESS;
 }
 
@@ -284,5 +315,6 @@ bool I2CController::selfTest()
 
 	return true;
 }
+
 }
 }

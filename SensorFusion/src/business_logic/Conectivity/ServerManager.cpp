@@ -1,6 +1,6 @@
 
 #include <business_logic/Conectivity/ServerManager.h>
-
+#include "services/Logger/LoggerMacros.h"
 namespace business_logic
 {
 namespace Conectivity
@@ -22,13 +22,13 @@ void ServerManager::initialization()
 
 std::string ServerManager::getConfiguration()
 {
-	xil_printf("getConfiguration\r\n");
+	LOG_TRACE("getConfiguration\r\n");
 	std::string response = client->getRequest("/configuration");
 	return response;
 }
 void ServerManager::sendReport()
 {
-	xil_printf("sendReport\r\n");
+	LOG_TRACE("sendReport\r\n");
 	std::vector<std::pair<std::string,std::string>> msgContent;
 	auto p1 = std::make_pair("sensor1","value1");
 	msgContent.push_back(p1);

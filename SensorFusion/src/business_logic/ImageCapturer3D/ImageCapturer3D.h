@@ -16,6 +16,7 @@ private:
 	ImageCapturer3DConfig m_config;
 	std::array<uint16_t, IMAGE3D_SIZE> m_3DImage;
 	bool m_applyBiasCorrection = false;
+	bool m_initialized;
 
 	void sortDistanceImage(std::array<uint16_t, IMAGE3D_SAMPLES_PER_POSITION>& distancePointSamples);
 	uint16_t getDistanceMedian(std::array<uint16_t, IMAGE3D_SAMPLES_PER_POSITION>& distancePointSamples) const;

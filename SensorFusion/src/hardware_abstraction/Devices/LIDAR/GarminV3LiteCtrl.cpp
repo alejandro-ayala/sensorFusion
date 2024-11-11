@@ -7,7 +7,7 @@ namespace hardware_abstraction
 {
 namespace Devices
 {
-GarminV3LiteCtrl::GarminV3LiteCtrl(const std::shared_ptr<Controllers::I2CController>& i2cCtrl , const LidarConfiguration& cfg) : m_i2cControl(i2cCtrl), m_mode(cfg.sensorMode), m_addr(cfg.sensorAddr)
+GarminV3LiteCtrl::GarminV3LiteCtrl(std::unique_ptr<Controllers::I2CController>&& i2cCtrl , const LidarConfiguration& cfg) : m_i2cControl(std::move(i2cCtrl)), m_mode(cfg.sensorMode), m_addr(cfg.sensorAddr), m_initialized(false)
 {
 
 
@@ -15,13 +15,22 @@ GarminV3LiteCtrl::GarminV3LiteCtrl(const std::shared_ptr<Controllers::I2CControl
 
 void GarminV3LiteCtrl::initialization()
 {
-	bool initialized = selfTest();
-	if(!initialized)
+	m_i2cControl->initialize();
+
+	if(!m_initialized)
 	{
-		//TODO handle error
-		LOG_FATAL("Error during LIDAR selftest");
+		bool initialized = selfTest();
+		if(!initialized)
+		{
+			//TODO handle error
+			LOG_FATAL("Error during LIDAR selftest");
+		}
+		configuration(m_mode);
 	}
-	configuration(m_mode);
+	else
+	{
+		LOG_WARNING("GarminV3LiteCtrl already initialized");
+	}
 }
 
 void GarminV3LiteCtrl::configuration(GarminV3LiteMode mode)
@@ -135,21 +144,22 @@ uint16_t GarminV3LiteCtrl::readDistance()
 
 	txBuffer[0] = GarminV3LiteRegister::ACQ_COMMAND; // Register Addr;
 	txBuffer[1] = 0x04; // Register Value;
+	LOG_TRACE("readDistance SENDING GarminV3LiteRegister::ACQ_COMMAND");
 	m_i2cControl->sendData(m_addr, txBuffer, sizeof(txBuffer) / sizeof(txBuffer[0]));
-
+	LOG_TRACE("readDistance reading GarminV3LiteRegister::STATUS");
 	uint8_t registerAddr = GarminV3LiteRegister::STATUS;
-	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
-	while((rxBuffer[0] && 0x01) != 0)
-	{
-		m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
-
-		//TODO review it
-		for (int Delay = 0; Delay < 10000000; Delay++);
-	}
-
+//	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
+//	while((rxBuffer[0] && 0x01) != 0)
+//	{
+//		m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
+//
+//		//TODO review it
+//		for (int Delay = 0; Delay < 0x3FF; Delay++);
+//	}
+	LOG_TRACE("readDistance READED GarminV3LiteRegister::STATUS");
 	registerAddr = GarminV3LiteRegister::DISTANCE_CM;
 	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 2);
-
+	LOG_TRACE("readDistance READED GarminV3LiteRegister::DISTANCE_CM");
 	uint16_t distance = ((rxBuffer[0] << 8) | rxBuffer[1]);
 	return distance;
 }

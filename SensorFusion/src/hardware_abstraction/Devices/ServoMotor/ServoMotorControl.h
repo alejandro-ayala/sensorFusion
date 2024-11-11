@@ -10,12 +10,13 @@ namespace Devices
 class ServoMotorControl : public Controllers::IController
 {
 private:
-	std::shared_ptr<Controllers::PWMController> m_pwmController;
+	std::unique_ptr<Controllers::PWMController> m_pwmController;
 	uint8_t m_angle;
 	const uint8_t m_maxAngle = 180;
 	const uint8_t m_maxDutyCycle = 100;
+	bool m_initialized;
 public:
-	ServoMotorControl(std::shared_ptr<Controllers::PWMController> pwmCtrl);
+	ServoMotorControl(std::unique_ptr<Controllers::PWMController> pwmCtrl);
 	virtual ~ServoMotorControl() = default;
 
 	TVIRTUAL void initialize() override;

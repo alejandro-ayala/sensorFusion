@@ -1,18 +1,27 @@
 #include "ServoMotorControl.h"
-
+#include "services/Logger/LoggerMacros.h"
 namespace hardware_abstraction
 {
 namespace Devices
 {
-ServoMotorControl::ServoMotorControl(std::shared_ptr<Controllers::PWMController> pwmCtrl): IController("ServoMotorControl"), m_pwmController(pwmCtrl), m_angle(0)
+ServoMotorControl::ServoMotorControl(std::unique_ptr<Controllers::PWMController> pwmCtrl): IController("ServoMotorControl"), m_pwmController(std::move(pwmCtrl)), m_angle(0), m_initialized(false)
 {
 
 }
 
 void ServoMotorControl::initialize()
 {
-	selfTest();
-	m_pwmController->initialize();
+	if(!m_initialized)
+	{
+		selfTest();
+		m_pwmController->initialize();
+		m_initialized = true;
+	}
+	else
+	{
+		LOG_WARNING("ServoMotorControl already initialized");
+	}
+
 }
 
 void ServoMotorControl::setAngle(uint8_t angle)

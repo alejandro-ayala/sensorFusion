@@ -10,12 +10,14 @@ const uint8_t REG_COMMAND = 0x40;
 const uint8_t REG_TEST_MODE_DATA = 0xD2;
 const uint8_t REG_ACQ_SETTINGS =  0x5D;
 const uint8_t REG_DISTANCE = 0x8F;        // Registro de lectura de distancia
-
+bool debugEnabled = false;
 static const uint32_t simulatedSerialNumber = 0xABCD; // Número de serie ficticio
 volatile uint8_t lastRegisterRequested = 0x00;   // Almacena el último registro solicitado
 uint8_t testCycle = 0;
 static uint16_t testData = 0;
 static bool testMode = false;
+uint32_t distanceSample = 0;
+char buffer[50];
 
 void setup() {
   Wire.begin(LIDAR_ADDR);        // Inicializar Arduino como esclavo I2C con dirección LIDAR_ADDR
@@ -37,58 +39,60 @@ void requestEvent() {
   uint8_t acqSetting = 0xC0;
   uint8_t simulatedDistance[2];
   uint16_t distance;
-  Serial.print("requestEvent -->");
-  Serial.println(lastRegisterRequested, HEX);
+  if(debugEnabled)Serial.print("requestEvent -->");
+  if(debugEnabled)Serial.println(lastRegisterRequested, HEX);
   switch (lastRegisterRequested) {
     case REG_STATUS: 
-      Serial.println("switch --> REG_STATUS");
+      if(debugEnabled)Serial.println("switch --> REG_STATUS");
       
       Wire.write((uint8_t*)&status, 1);
     break;
     case REG_SERIAL_NUMBER: 
-      Serial.println("switch --> REG_SERIAL_NUMBER");
+      if(debugEnabled)Serial.println("switch --> REG_SERIAL_NUMBER");
       Wire.write((uint8_t*)&simulatedSerialNumber, sizeof(simulatedSerialNumber));
     break;
     case REG_ACQ_SETTINGS: 
-      Serial.println("switch --> REG_ACQ_SETTINGS");
+      if(debugEnabled)Serial.println("switch --> REG_ACQ_SETTINGS");
       
       Wire.write((uint8_t*)&acqSetting, 1);
     break;
     case REG_DISTANCE: 
-      Serial.println("switch --> REG_DISTANCE");
+      if(debugEnabled)Serial.println("switch --> REG_DISTANCE");
       
       simulatedDistance[0] = random(0, 256);
       simulatedDistance[1] = random(0, 256);
       distance = (simulatedDistance[0] << 8 | simulatedDistance[1]);
-      Serial.print("distance: ");
+      sprintf(buffer, "distance [%d]: ", distanceSample);
+      Serial.print(buffer);
       Serial.println(distance, HEX);
       Wire.write((uint8_t*)&simulatedDistance, sizeof(simulatedDistance));
+      distanceSample++;
     break;
     case REG_TEST_MODE_DATA: 
-      Serial.println("switch --> REG_TEST_MODE_DATA");
+      if(debugEnabled)Serial.println("switch --> REG_TEST_MODE_DATA");
       if(testMode) {
         Wire.write((uint8_t*)&testData, 2);
-        Serial.print("TestData: ");
-        Serial.println(testData);
+        if(debugEnabled)Serial.print("TestData: ");
+        if(debugEnabled)Serial.println(testData);
         testData++;
         if(testCycle >= 9) {
-          Serial.println("Test mode disabled");
+          if(debugEnabled)Serial.println("Test mode disabled");
           testCycle = 0;
           testMode = false;
         }
       } else {
-        Serial.println("Modo test no activado");
+        if(debugEnabled)Serial.println("Modo test no activado");
       }
     break;
     default:
-      Serial.println("switch --> default");
+      if(debugEnabled)Serial.println("switch --> default");
       Wire.write((uint8_t)0);
     break;
   }
 
 
 
-  Serial.println("switch done");
+  if(debugEnabled)Serial.println("switch done");
 }
 
 
@@ -98,33 +102,33 @@ void receiveEvent(int bytes) {
   if (bytes == 1) {
     // Leer el registro solicitado y almacenarlo
     lastRegisterRequested = Wire.read();
-    Serial.print("Registro de solicitado: ");
-    Serial.println(lastRegisterRequested, HEX);
+    if(debugEnabled)Serial.print("Registro de solicitado: ");
+    if(debugEnabled)Serial.println(lastRegisterRequested, HEX);
   } else if (bytes == 2)
   {
     uint8_t configRegister = Wire.read();
     uint8_t configValue = Wire.read();
-    Serial.print("Configurando registro: ");
-    Serial.print(configRegister, HEX);
-    Serial.print("-- Con valor: ");
-    Serial.println(configValue, HEX);
+    if(debugEnabled)Serial.print("Configurando registro: ");
+    if(debugEnabled)Serial.print(configRegister, HEX);
+    if(debugEnabled)Serial.print("-- Con valor: ");
+    if(debugEnabled)Serial.println(configValue, HEX);
 
     if(configRegister == REG_COMMAND && configValue == 0x07)
     {
-      Serial.println("Modo test activado");
+      if(debugEnabled)Serial.println("Modo test activado");
       testMode = true;
     }
     
   }
   else
   {
-    Serial.println("Recibiendo múltiples bytes:");
+    if(debugEnabled)Serial.println("Recibiendo múltiples bytes:");
     
     // Leer todos los bytes disponibles y mostrarlos
     while (Wire.available() > 0) {
       uint8_t receivedByte = Wire.read();
-      Serial.print("Byte recibido: ");
-      Serial.println(receivedByte, HEX);
+      if(debugEnabled)Serial.print("Byte recibido: ");
+      if(debugEnabled)Serial.println(receivedByte, HEX);
     }    
   }
 }

@@ -1,7 +1,4 @@
 
-#define APP
-#ifdef APP
-
 #include <hardware_abstraction/Devices/MotorControl/L298Hbridge.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,40 +41,40 @@ using namespace business_logic::ClockSyncronization;
 using namespace business_logic;
 
 
-static std::shared_ptr<PWMController> pwmVertCtrl;
-static std::shared_ptr<ServoMotorControl> verServoControl;
-static std::shared_ptr<PWMController> pwmHortCtrl;
-static std::shared_ptr<ServoMotorControl> horServoControl;
-static std::shared_ptr<ImageCapturer3D> image3dCapturer;
-static std::shared_ptr<I2CController> i2cController;
-static std::shared_ptr<GarminV3LiteCtrl> lidarDevice;
+static std::unique_ptr<PWMController> pwmVertCtrl;
+static std::unique_ptr<ServoMotorControl> verServoControl;
+static std::unique_ptr<PWMController> pwmHortCtrl;
+static std::unique_ptr<ServoMotorControl> horServoControl;
+static std::unique_ptr<ImageCapturer3D> image3dCapturer;
+static std::unique_ptr<I2CController> i2cController;
+static std::unique_ptr<GarminV3LiteCtrl> lidarDevice;
 static std::shared_ptr<CommunicationManager> commMng;
 static std::shared_ptr<SharedClockSlaveManager> globalClkMng;
-static std::shared_ptr<application::SystemTasksManager> systemTaskHandler;
+static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
 static std::shared_ptr<CanController> canController;
 static std::shared_ptr<HTTPClient> httpClient;
-
+application::TaskParams systemTaskMngParams;
 
 void createHardwareAbstractionLayerComponents()
 {
 	PWMConfig pwmCfgVer;
-	pwmVertCtrl = std::make_shared<PWMController>(pwmCfgVer);
-	verServoControl = std::make_shared<ServoMotorControl>(pwmVertCtrl);
+	pwmVertCtrl = std::make_unique<PWMController>(pwmCfgVer);
+	verServoControl = std::make_unique<ServoMotorControl>(std::move(pwmVertCtrl));
 
 	PWMConfig pwmCfgHor;
 	pwmCfgHor.pwmIndex = 0;
-	pwmHortCtrl = std::make_shared<PWMController>(pwmCfgHor);
-	horServoControl = std::make_shared<ServoMotorControl>(pwmHortCtrl);
+	pwmHortCtrl = std::make_unique<PWMController>(pwmCfgHor);
+	horServoControl = std::make_unique<ServoMotorControl>(std::move(pwmHortCtrl));
 
 	const auto garminLiteV3Addr = (0x62);
 	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
-	i2cController = std::make_shared<I2CController>();
-	lidarDevice   = std::make_shared<GarminV3LiteCtrl>(i2cController, lidarCfg);
+	i2cController = std::make_unique<I2CController>();
+	lidarDevice   = std::make_unique<GarminV3LiteCtrl>(std::move(i2cController), lidarCfg);
 
 	canController = std::make_shared<CanController>();
-	LOG_DEBUG("Created Hardware Abstraction layer components");
+	LOG_INFO("Created Hardware Abstraction layer components");
 }
 
 void createBusinessLogicLayerComponents()
@@ -86,23 +83,23 @@ void createBusinessLogicLayerComponents()
 	commMng = std::make_shared<CommunicationManager>(timecontroller, canController);
 
 	ImageCapturer3DConfig image3dConfig;
-	image3dConfig.verServoCtrl = verServoControl;
+	image3dConfig.verServoCtrl = std::move(verServoControl);
 
-	image3dConfig.horServoCtrl = horServoControl;
-	image3dConfig.lidarCtrl = lidarDevice;
-	image3dCapturer = std::make_shared<ImageCapturer3D>(image3dConfig);
+	image3dConfig.horServoCtrl = std::move(horServoControl);
+	image3dConfig.lidarCtrl = std::move(lidarDevice);
+	image3dCapturer = std::make_unique<ImageCapturer3D>(image3dConfig);
+	image3dCapturer->initialize();
 
 	globalClkMng = std::make_shared<SharedClockSlaveManager>(timecontroller, canController);
-	LOG_DEBUG("Created Business Logic layer components");
+	LOG_INFO("Created Business Logic layer components");
 }
 
 void createApplicationLayerComponents()
 {
-	application::TaskParams systemTaskMngParams;
-	systemTaskMngParams.image3dCapturer = image3dCapturer;
+	systemTaskMngParams.image3dCapturer = std::move(image3dCapturer);
 	systemTaskMngParams.globalClkMng    = globalClkMng;
 	systemTaskMngParams.commMng         = commMng;
-	systemTaskHandler = std::make_shared<application::SystemTasksManager>(systemTaskMngParams);
+	systemTaskHandler = std::make_unique<application::SystemTasksManager>(std::move(systemTaskMngParams));
 	systemTaskHandler->createPoolTasks();
 	LOG_DEBUG("Created Application layer components");
 }
@@ -119,456 +116,3 @@ int main()
 	while(1);
 	return 0;
 }
-
-#else
-
-int distance;
-
-
-/******************************************************************************
-* Copyright (C) 2010 - 2021 Xilinx, Inc.  All rights reserved.
-* Copyright (C) 2022 - 2023 Advanced Micro Devices, Inc. All Rights Reserved.
-* SPDX-License-Identifier: MIT
-******************************************************************************/
-
-/*****************************************************************************/
-/**
- * @file xiicps_intr_master_example.c
- *
- * This example can run on zynqmp / versal platform evaluation board and
- * IIC controller configured master in interrupt-driven mode and Aardvark
- * Analyzer used as slave.
- *
- * It sends 18 buffers of data to slave and expects to receive the
- * same data through the IIC using the Aardvark test hardware.
- *
- * <pre> MODIFICATION HISTORY:
- *
- * Ver   Who Date     Changes
- * ----- --- -------- -----------------------------------------------
- * 1.00a jz  01/30/10 First release
- * 3.18  gm  07/14/23 Added SDT support.
- *
- * </pre>
- *
- ****************************************************************************/
-
-/***************************** Include Files **********************************/
-#include "xparameters.h"
-#include "xiicps.h"
-#include "xscugic.h"
-#include "xil_exception.h"
-#include "xil_printf.h"
-#ifdef SDT
-#include "xinterrupt_wrap.h"
-#endif
-
-/************************** Constant Definitions ******************************/
-
-/*
- * The following constants map to the XPAR parameters created in the
- * xparameters.h file. They are defined here such that a user can easily
- * change all the needed parameters in one place.
- */
-#ifndef SDT
-#define IIC_DEVICE_ID		XPAR_XIICPS_0_DEVICE_ID
-#define INTC_DEVICE_ID		XPAR_SCUGIC_SINGLE_DEVICE_ID
-#define IIC_INT_VEC_ID		XPAR_XIICPS_0_INTR
-#else
-#define XIICPS_BASEADDRESS	XPAR_XIICPS_0_BASEADDR
-#endif
-
-/*
- * The slave address to send to and receive from.
- */
-#define IIC_SLAVE_ADDR		0x8//(0x62)//<<1)//0x55
-#define IIC_SCLK_RATE		100000
-
-#include <iostream>
-/*
- * The following constant controls the length of the buffers to be sent
- * and received with the IIC.
- */
-#define TEST_BUFFER_SIZE   	250
-#define NUMBER_OF_SIZES		18
-
-/**************************** Type Definitions ********************************/
-
-/************************** Function Prototypes *******************************/
-
-#ifndef SDT
-int IicPsMasterIntrExample(u16 DeviceId);
-static int SetupInterruptSystem(XIicPs *IicPsPtr);
-#else
-int IicPsMasterIntrExample(UINTPTR BaseAddress);
-#endif
-
-void Handler(void *CallBackRef, u32 Event);
-
-/************************** Variable Definitions ******************************/
-
-XIicPs Iic;			/* Instance of the IIC Device */
-#ifndef SDT
-XScuGic InterruptController;	/* Instance of the Interrupt Controller */
-#endif
-
-/*
- * The following buffers are used in this example to send and receive data
- * with the IIC. They are defined as global so that they are not on the stack.
- */
-u8 SendBuffer[TEST_BUFFER_SIZE];    /* Buffer for Transmitting Data */
-u8 RecvBuffer[TEST_BUFFER_SIZE];    /* Buffer for Receiving Data */
-
-/*
- * The following counters are used to determine when the entire buffer has
- * been sent and received.
- */
-volatile u32 SendComplete;
-volatile u32 RecvComplete;
-volatile u32 TotalErrorCount;
-
-/******************************************************************************/
-/**
-*
-* Main function to call the example.
-*
-*
-* @return	XST_SUCCESS if successful, XST_FAILURE if unsuccessful.
-*
-* @note		None.
-*
-*******************************************************************************/
-
-void readSN()
-{
-	uint8_t cmd[1];
-	while (XIicPs_BusIsBusy(&Iic)) {}
-	SendComplete = FALSE;
-	cmd[0] = 0x16;
-	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
-	//while (!SendComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-
-	uint8_t sn[2];
-	RecvComplete = FALSE;
-	XIicPs_MasterRecvPolled(&Iic, sn, 2, IIC_SLAVE_ADDR);
-
-
-	//while (!RecvComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-	if(sn[0] != 0)
-	{
-		std::cout << "SN: " ;
-	}
-}
-
-void lidarInit()
-{
-
-	uint8_t cmd[1];
-	while (XIicPs_BusIsBusy(&Iic)) {}
-	SendComplete = FALSE;
-	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
-	//while (!SendComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-
-	/*----------CONFIGURATION LIDAR----------*/
-	cmd[0]=0xff;
-	SendComplete = FALSE;
-	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
-	//while (!SendComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-	cmd[0]=0x08;
-	SendComplete = FALSE;
-	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
-	//while (!SendComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-	cmd[0]=0x00;
-	SendComplete = FALSE;
-	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
-	//while (!SendComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-}
-
-void lidarRead()
-{
-	uint8_t cmd[1];
-	uint8_t data[2];
-  	cmd[0] = 0x00;
-  	cmd[1] = 0x04;
-	SendComplete = FALSE;
-	XIicPs_MasterSendPolled(&Iic, cmd, 2, IIC_SLAVE_ADDR);
-	//while (!SendComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-
-  	cmd[0] = 0x01;
-	data[0] = 0x1;
-	SendComplete = FALSE;
-	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
-	while (XIicPs_BusIsBusy(&Iic)) {}
-	auto res = XIicPs_MasterRecvPolled(&Iic, data, 1, IIC_SLAVE_ADDR);
-	while(!(data && 0x01))
-	{
-		auto res = XIicPs_MasterRecvPolled(&Iic, data, 1, IIC_SLAVE_ADDR);
-	}
-
-	cmd[0] = 0x0f;
-	SendComplete = FALSE;
-	XIicPs_MasterSendPolled(&Iic, cmd, 1, IIC_SLAVE_ADDR);
-	//while (!SendComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-
-	RecvComplete = FALSE;
-	res = XIicPs_MasterRecvPolled(&Iic, data, 2, IIC_SLAVE_ADDR);
-
-
-	//while (!RecvComplete) {}
-	while (XIicPs_BusIsBusy(&Iic)) {}
-
-
-  	distance =(data[0]<<8)|(data[1]);
-
-
-
-}
-
-int main(void)
-{
-	int Status;
-
-	xil_printf("IIC Master Interrupt Example Test \r\n");
-
-	/*
-	 * Run the Iic Master Interrupt example , specify the Device ID that is
-	 * generated in xparameters.h
-	 */
-#ifndef SDT
-	Status = IicPsMasterIntrExample(IIC_DEVICE_ID);
-#else
-	Status = IicPsMasterIntrExample(XIICPS_BASEADDRESS);
-#endif
-	if (Status != XST_SUCCESS) {
-		xil_printf("IIC Master Interrupt Example Test Failed\r\n");
-		return XST_FAILURE;
-	}
-
-	xil_printf("Successfully ran IIC Master Interrupt Example Test\r\n");
-	return XST_SUCCESS;
-}
-
-/*****************************************************************************/
-/**
-*
-* This function does a minimal test on the Iic device and driver as a
-* design example. The purpose of this function is to illustrate
-* how to use the XIicPs driver.
-*
-* This function sends data and expects to receive the same data through the IIC
-* using the Aardvark test hardware.
-*
-* This function uses interrupt driver mode of the IIC.
-*
-* @param	DeviceId is the Device ID of the IicPs Device and is the
-*		XPAR_<IICPS_instance>_DEVICE_ID value from xparameters.h
-*
-* @return	XST_SUCCESS if successful, otherwise XST_FAILURE.
-*
-* @note
-*
-* This function contains an infinite loop such that if interrupts are not
-* working it may never return.
-*
-*******************************************************************************/
-#ifndef SDT
-int IicPsMasterIntrExample(u16 DeviceId)
-#else
-int IicPsMasterIntrExample(UINTPTR BaseAddress)
-#endif
-{
-	int Status;
-	XIicPs_Config *Config;
-
-	/*
-	 * Initialize the IIC driver so that it's ready to use
-	 * Look up the configuration in the config table, then initialize it.
-	 */
-#ifndef SDT
-	Config = XIicPs_LookupConfig(DeviceId);
-#else
-	Config = XIicPs_LookupConfig(BaseAddress);
-#endif
-	if (NULL == Config) {
-		return XST_FAILURE;
-	}
-
-	Status = XIicPs_CfgInitialize(&Iic, Config, Config->BaseAddress);
-	if (Status != XST_SUCCESS) {
-		return XST_FAILURE;
-	}
-
-	/*
-	 * Perform a self-test to ensure that the hardware was built correctly.
-	 */
-	Status = XIicPs_SelfTest(&Iic);
-	if (Status != XST_SUCCESS) {
-		return XST_FAILURE;
-	}
-
-	/*
-	 * Connect the IIC to the interrupt subsystem such that interrupts can
-	 * occur. This function is application specific.
-	 */
-	Status = SetupInterruptSystem(&Iic);
-	if (Status != XST_SUCCESS) {
-		return XST_FAILURE;
-	}
-
-	/*
-	 * Setup the handlers for the IIC that will be called from the
-	 * interrupt context when data has been sent and received, specify a
-	 * pointer to the IIC driver instance as the callback reference so
-	 * the handlers are able to access the instance data.
-	 */
-//	XIicPs_SetStatusHandler(&Iic, (void *) &Iic, Handler);
-
-	/*
-	 * Set the IIC serial clock rate.
-	 */
-	XIicPs_SetSClk(&Iic, IIC_SCLK_RATE);
-
-
-	lidarInit();
-
-	readSN();
-	while(1){
-		lidarRead();
-		if(distance != 0)
-		{
-			std::cout << "distance !!!" << std::endl;
-		}
-
-		else
-		{
-			std::cout << "Error !!!" << std::endl;
-
-		}
-
-	}
-	return XST_SUCCESS;
-}
-
-/*****************************************************************************/
-/**
-*
-* This function is the handler which performs processing to handle data events
-* from the IIC.  It is called from an interrupt context such that the amount
-* of processing performed should be minimized.
-*
-* This handler provides an example of how to handle data for the IIC and
-* is application specific.
-*
-* @param	CallBackRef contains a callback reference from the driver, in
-*		this case it is the instance pointer for the IIC driver.
-* @param	Event contains the specific kind of event that has occurred.
-*
-* @return	None.
-*
-* @note		None.
-*
-*******************************************************************************/
-void Handler(void *CallBackRef, u32 Event)
-{
-	/*
-	 * All of the data transfer has been finished.
-	 */
-	if (0 != (Event & XIICPS_EVENT_COMPLETE_RECV)) {
-		RecvComplete = TRUE;
-	} else if (0 != (Event & XIICPS_EVENT_COMPLETE_SEND)) {
-		SendComplete = TRUE;
-	} else if (0 == (Event & XIICPS_EVENT_SLAVE_RDY)) {
-		/*
-		 * If it is other interrupt but not slave ready interrupt, it is
-		 * an error.
-		 * Data was received with an error.
-		 */
-		TotalErrorCount++;
-	}
-}
-
-#ifndef SDT
-/******************************************************************************/
-/**
-*
-* This function setups the interrupt system such that interrupts can occur
-* for the IIC.  This function is application specific since the actual
-* system may or may not have an interrupt controller.  The IIC could be
-* directly connected to a processor without an interrupt controller.  The
-* user should modify this function to fit the application.
-*
-* @param	IicPsPtr contains a pointer to the instance of the Iic
-*		which is going to be connected to the interrupt controller.
-*
-* @return	XST_SUCCESS if successful, otherwise XST_FAILURE.
-*
-* @note		None.
-*
-*******************************************************************************/
-static int SetupInterruptSystem(XIicPs *IicPsPtr)
-{
-	int Status;
-	XScuGic_Config *IntcConfig; /* Instance of the interrupt controller */
-
-	Xil_ExceptionInit();
-
-	/*
-	 * Initialize the interrupt controller driver so that it is ready to
-	 * use.
-	 */
-	IntcConfig = XScuGic_LookupConfig(INTC_DEVICE_ID);
-	if (NULL == IntcConfig) {
-		return XST_FAILURE;
-	}
-
-	Status = XScuGic_CfgInitialize(&InterruptController, IntcConfig,
-				       IntcConfig->CpuBaseAddress);
-	if (Status != XST_SUCCESS) {
-		return XST_FAILURE;
-	}
-
-
-	/*
-	 * Connect the interrupt controller interrupt handler to the hardware
-	 * interrupt handling logic in the processor.
-	 */
-	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_IRQ_INT,
-				     (Xil_ExceptionHandler)XScuGic_InterruptHandler,
-				     &InterruptController);
-
-	/*
-	 * Connect the device driver handler that will be called when an
-	 * interrupt for the device occurs, the handler defined above performs
-	 * the specific interrupt processing for the device.
-	 */
-	Status = XScuGic_Connect(&InterruptController, IIC_INT_VEC_ID,
-				 (Xil_InterruptHandler)XIicPs_MasterInterruptHandler,
-				 (void *)IicPsPtr);
-	if (Status != XST_SUCCESS) {
-		return Status;
-	}
-
-	/*
-	 * Enable the interrupt for the Iic device.
-	 */
-	XScuGic_Enable(&InterruptController, IIC_INT_VEC_ID);
-
-
-	/*
-	 * Enable interrupts in the Processor.
-	 */
-	Xil_ExceptionEnable();
-
-	return XST_SUCCESS;
-}
-#endif
-
-#endif

@@ -3,8 +3,9 @@
 
 namespace application
 {
-SystemTasksManager::SystemTasksManager(const TaskParams& systemTaskMngParams) : m_image3DCapturer(systemTaskMngParams.image3dCapturer),	m_globalClkMng(systemTaskMngParams.globalClkMng), m_commMng(systemTaskMngParams.commMng)
+SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) :  m_globalClkMng(systemTaskMngParams.globalClkMng), m_commMng(systemTaskMngParams.commMng)
 {
+	m_image3DCapturer = std::move(systemTaskMngParams.image3dCapturer);
 	//TODO check not NULL pointers
 }
 
@@ -13,59 +14,58 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 	business_logic::ClockSyncronization::SharedClockSlaveManager* timeBaseMng = reinterpret_cast<business_logic::ClockSyncronization::SharedClockSlaveManager*>(argument);
 	LOG_INFO("Starting globalClockSyncronization");
 
-	timeBaseMng->initialization();
-	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
-	uint16_t taskSleep = 1000;
+	//timeBaseMng->initialization();
+	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
 
 	while(1)
 	{
-		LOG_INFO("Updating global master time");
+		LOG_DEBUG("Updating global master time");
 		//timeBaseMng->sendGlobalTime();
-		LOG_INFO("Updated global master time");
-		vTaskDelayUntil(&xLastWakeTime,taskSleep / portTICK_RATE_MS);
+		for(int i=0;i<0xFFFFF;i++);
+		LOG_DEBUG("Updated global master time");
+		vTaskDelay( taskSleep );
 	}
 }
 
 void SystemTasksManager::communicationTask(void* argument)
 {
 	LOG_INFO("Starting communicationTask");
-	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
-	TickType_t xLastWakeTime;
+	const TickType_t taskSleep = pdMS_TO_TICKS( 1000 );
 
-	xLastWakeTime = xTaskGetTickCount();
-	uint16_t taskSleep = 5000;
+	//business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 
   /* Infinite loop */
 	while(1)
 	{
-		LOG_INFO("Receiving data from external nodes");
+		LOG_DEBUG("Receiving data from external nodes");
 		//commMng->receiveData();
-		LOG_INFO("Received data from external nodes");
-		vTaskDelayUntil(&xLastWakeTime,taskSleep / portTICK_RATE_MS);
+		for(int i=0;i<0xFFFFF;i++);
+		LOG_DEBUG("Received data from external nodes");
+		vTaskDelay( taskSleep );
 	}
 }
 	
 void SystemTasksManager::image3dMappingTask(void* argument)
 {
 	LOG_INFO("Starting image3dCapturerTask");
-	business_logic::ImageCapturer3D* image3dCapturer = reinterpret_cast<business_logic::ImageCapturer3D*>(argument);
+	//business_logic::ImageCapturer3D* image3dCapturer = reinterpret_cast<business_logic::ImageCapturer3D*>(argument);
 
-	TickType_t xLastWakeTime;
-    image3dCapturer->initialize();
-	xLastWakeTime = xTaskGetTickCount();
-	uint16_t taskSleep = 20000;
-
-
+	const TickType_t taskSleep = pdMS_TO_TICKS( 2000 );
+	m_image3DCapturer->initialize();
   /* Infinite loop */
 	while(1)
 	{
-		LOG_INFO("Capturing 3D image");
-		image3dCapturer->captureImage();
-		LOG_INFO("Capturing 3D image done");
-		//vTaskDelayUntil(xLastWakeTime,5000 / portTICK_RATE_MS);
-		vTaskDelayUntil(&xLastWakeTime,taskSleep / portTICK_RATE_MS);
-		//vTaskDelay(5 / portTICK_RATE_MS);
+		try
+		{
+			LOG_DEBUG("Capturing 3D image");
+			m_image3DCapturer->captureImage();
+			LOG_DEBUG("Capturing 3D image done");
+			vTaskDelay( taskSleep );
+		}
+		catch (std::exception e)
+		{
+			LOG_ERROR("Exception while captureImage: ", e.what());
+		}
 	}  
 }
 
@@ -73,7 +73,7 @@ void SystemTasksManager::createPoolTasks()
 {
 	LOG_INFO("Creating pool tasks");
 	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()));
-	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dMappingTask, "image3dMappingTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get()), 4096);
+	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dMappingTask, "image3dMappingTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
 	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 4096);
 	LOG_INFO("Created pool tasks");
 }
