@@ -1,11 +1,16 @@
 #include "SystemTasksManager/SystemTasksManager.h"
 #include "Logger/LoggerMacros.h"
-
+#include "business_logic/DataSerializer/Image3DSnapshot.h"
 namespace application
 {
 SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) :  m_globalClkMng(systemTaskMngParams.globalClkMng), m_commMng(systemTaskMngParams.commMng)
 {
 	m_image3DCapturer = std::move(systemTaskMngParams.image3dCapturer);
+
+	uint32_t queueItemSize   = sizeof(business_logic::Image3DSnapshot);
+	uint32_t queueLength     = 10;
+	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
+
 	//TODO check not NULL pointers
 }
 
@@ -37,11 +42,17 @@ void SystemTasksManager::communicationTask(void* argument)
   /* Infinite loop */
 	while(1)
 	{
-		LOG_DEBUG("Receiving data from external nodes");
-		//commMng->receiveData();
-		for(int i=0;i<0xFFFFF;i++);
-		LOG_DEBUG("Received data from external nodes");
-		vTaskDelay( taskSleep );
+		if(isPendingData())
+		{
+			LOG_DEBUG("Sending last capture to master node");
+			business_logic::Image3DSnapshot lastCapture;
+			getNextImage(lastCapture);
+			//commMng->receiveData();
+			for(int i=0;i<0xFFFFF;i++);
+			LOG_DEBUG("Received data from external nodes");
+			vTaskDelay( taskSleep );
+		}
+
 	}
 }
 	
@@ -59,6 +70,10 @@ void SystemTasksManager::image3dMappingTask(void* argument)
 		{
 			LOG_DEBUG("Capturing 3D image");
 			m_image3DCapturer->captureImage();
+
+			auto lastCapture = m_image3DCapturer->getLastCapture();
+			m_capturesQueue->sendToBack(( void * ) &lastCapture);
+
 			LOG_DEBUG("Capturing 3D image done");
 			vTaskDelay( taskSleep );
 		}
@@ -67,6 +82,16 @@ void SystemTasksManager::image3dMappingTask(void* argument)
 			LOG_ERROR("Exception while captureImage: ", e.what());
 		}
 	}  
+}
+
+bool SystemTasksManager::isPendingData()
+{
+	return (m_capturesQueue->getStoredMsg() > 0);
+}
+
+void SystemTasksManager::getNextImage(business_logic::Image3DSnapshot& lastCapture)
+{
+	m_capturesQueue->receive(&lastCapture);
 }
 
 void SystemTasksManager::createPoolTasks()

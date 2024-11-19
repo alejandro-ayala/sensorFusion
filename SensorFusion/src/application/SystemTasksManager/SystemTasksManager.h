@@ -3,10 +3,16 @@
 #include "business_logic/Communication/CommunicationManager.h"
 #include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
 #include "business_logic/ClockSyncronization/TimeBaseManager.h"
+
 #include "TaskParams.h"
 
 #include <memory>
 #include <vector>
+
+namespace business_logic
+{
+class Image3DSnapshot;
+}
 
 namespace application
 {
@@ -33,6 +39,8 @@ public:
 	static void globalClockSyncronization(void* argument);
 	static void communicationTask(void* argument);
 	static void image3dMappingTask(void* argument);
+    static void getNextImage(business_logic::Image3DSnapshot& lastCapture);
+    static bool isPendingData();
     void createPoolTasks();
 };
 
