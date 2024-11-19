@@ -12,7 +12,8 @@ enum BusinessLogicErrorId
 	QueueIsFull,
 	CameraTimeout,
 	MemoryAllocationFailed,
-	InvalidArgument
+	InvalidArgument,
+	SerializationError
 };
 
 class BusinessLogicException : public BaseException

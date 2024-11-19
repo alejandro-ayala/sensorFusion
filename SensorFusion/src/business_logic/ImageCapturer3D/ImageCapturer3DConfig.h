@@ -5,7 +5,7 @@
 #include "Devices/ServoMotor/ServoMotorControl.h"
 #include <stdint.h>
 
-static const uint8_t IMAGE3D_SIZE = 2048;
+static const uint16_t IMAGE3D_SIZE = 2048;
 static const uint8_t IMAGE3D_SAMPLES_PER_POSITION = 1;
 
 namespace business_logic
