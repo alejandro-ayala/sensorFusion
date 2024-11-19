@@ -8,13 +8,7 @@ namespace services
 
 enum DevicesErrorId
 {
-    Esp32InitializationError = ErrorIdOffset::DevicesLayer,
-	Esp32ParsingMacError,
-	Esp32SwResetError,
-	Esp32AdvertisingError,
-	Esp32WaitingConnectionError,
-	Esp32ConfigureSppError,
-	ElectrodeInitializationError
+    LidarInitializationError = ErrorIdOffset::DevicesLayer,
 };
 
 class DevicesException : public BaseException

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <business_logic/ImageCapturer3D/LidarPoint.h>
 #include "ImageCapturer3DConfig.h"
 #include "business_logic/Osal/QueueHandler.h"
 #include <array>
@@ -14,7 +15,7 @@ private:
 	std::shared_ptr<hardware_abstraction::Devices::ServoMotorControl> m_verServoCtrl;
 	std::shared_ptr<hardware_abstraction::Devices::GarminV3LiteCtrl>  m_lidarCtrl;
 	ImageCapturer3DConfig m_config;
-	std::array<uint16_t, IMAGE3D_SIZE> m_3DImage;
+	std::array<LidarPoint, IMAGE3D_SIZE> m_3DImage;
 	bool m_applyBiasCorrection = false;
 	bool m_initialized;
 

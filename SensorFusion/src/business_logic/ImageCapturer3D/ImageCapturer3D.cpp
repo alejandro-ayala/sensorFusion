@@ -52,7 +52,8 @@ void ImageCapturer3D::captureImage()
 		for(int hAngle = m_config.initHorizontalAngle; hAngle <= m_config.maxHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
-			m_3DImage[image3dSize] = getPointDistance();
+			const auto lidarPoint = getPointDistance();
+			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
 		}
 
@@ -62,7 +63,8 @@ void ImageCapturer3D::captureImage()
 		for(int hAngle = m_config.maxHorizontalAngle; hAngle >= m_config.initHorizontalAngle; hAngle -= m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
-			m_3DImage[image3dSize] = getPointDistance();
+			const auto lidarPoint = getPointDistance();
+			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
 		}
 
