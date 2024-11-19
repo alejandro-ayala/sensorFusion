@@ -1,4 +1,5 @@
 #include <hardware_abstraction/Controllers/SPI/SPIController.h>
+#include "services/Exception/SystemExceptions.h"
 
 namespace hardware_abstraction
 {
@@ -25,9 +26,7 @@ void SPIController::initialize()
 	Status = XSpi_CfgInitialize(xspi, &xspiConfig, xspiConfig.BaseAddress);
 	if (Status != XST_SUCCESS)
 	{
-
-		//return XST_FAILURE;
-		//THROW_EXP
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::SpiInitializationError, "Exception during XSpi_CfgInitialize");
 	}
 
 	/*
@@ -38,17 +37,13 @@ void SPIController::initialize()
 
 	if (Status != XST_SUCCESS)
 	{
-
-		//return XST_FAILURE;
-		//THROW_EXP
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::SpiInitializationError, "Exception during XSpi_SetOptions");
 	}
 
 	Status = XSpi_SetSlaveSelect(xspi, 1);
 	if (Status != XST_SUCCESS)
 	{
-
-		//return XST_FAILURE;
-		//THROW_EXP
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::SpiInitializationError, "Exception during XSpi_SetSlaveSelect");
 	}
 
 	// Start the SPI driver so that the device is enabled.

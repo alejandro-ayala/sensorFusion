@@ -1,4 +1,6 @@
 #include <hardware_abstraction/Controllers/Timer/ZynqTimer.h>
+#include "services/Exception/SystemExceptions.h"
+
 #include "xscutimer.h"
 #include "xscugic.h"
 
@@ -31,9 +33,7 @@ static void timerInterruptHandler(void *CallBackRef)
 
 ZynqTimer::ZynqTimer() : ITimer() {}
 
-ZynqTimer::~ZynqTimer(){}
-
-void ZynqTimer::configure()
+void ZynqTimer::initialize()
 {
 	int Status;
 
@@ -45,13 +45,13 @@ void ZynqTimer::configure()
 	Status = XScuTimer_CfgInitialize(&TimerInstance, ConfigPtr,ConfigPtr->BaseAddr);
 	if (Status != XST_SUCCESS)
 	{
-		//Throw exception
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::TimerInitializationError, "Exception during XScuTimer_CfgInitialize");
 	}
 
 	Status = XScuTimer_SelfTest(&TimerInstance);
 	if (Status != XST_SUCCESS)
 	{
-		//Throw exception
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::TimerInitializationError, "Exception during XScuTimer_SelfTest");
 	}
 
 	XScuGic_Config *IntcConfig;
@@ -59,13 +59,13 @@ void ZynqTimer::configure()
 	IntcConfig = XScuGic_LookupConfig(INTC_DEVICE_ID);
 	if (NULL == IntcConfig)
 	{
-		//Throw exception
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::TimerInitializationError, "Exception during XScuGic_LookupConfig");
 	}
 
 	Status = XScuGic_CfgInitialize(&IntcInstance, IntcConfig,	IntcConfig->CpuBaseAddress);
 	if (Status != XST_SUCCESS)
 	{
-		//Throw exception
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::TimerInitializationError, "Exception during XScuGic_CfgInitialize");
 	}
 
 	Xil_ExceptionInit();
@@ -80,7 +80,7 @@ void ZynqTimer::startTimer()
 	int Status = XScuGic_Connect(&IntcInstance, TIMER_IRPT_INTR,(Xil_ExceptionHandler)timerInterruptHandler,(void *)&TimerInstance);
 	if (Status != XST_SUCCESS)
 	{
-		//Throw exception
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::TimerStartError, "Exception during XScuGic_Connect");
 	}
 
 	XScuGic_Enable(&IntcInstance, TIMER_IRPT_INTR);

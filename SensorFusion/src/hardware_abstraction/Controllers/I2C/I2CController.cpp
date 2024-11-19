@@ -1,4 +1,6 @@
 #include <hardware_abstraction/Controllers/I2C/I2CController.h>
+#include "services/Exception/SystemExceptions.h"
+
 #include <iostream>
 #include "services/Logger/LoggerMacros.h"
 #include "xenv_standalone.h"
@@ -82,15 +84,13 @@ void I2CController::initialize()
 
 	if (NULL == Config)
 	{
-		//TODO handle error
-		LOG_FATAL("XIicPs_LookupConfig XST_FAILURE");
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::I2cInitializationError, "XIicPs_LookupConfig XST_FAILURE");
 	}
 
 	Status = XIicPs_CfgInitialize(&m_config.i2cPsInstance, Config, Config->BaseAddress);
 	if (Status != XST_SUCCESS)
 	{
-		//TODO handle error
-		LOG_FATAL("XIicPs_CfgInitialize XST_FAILURE");
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::I2cInitializationError, "XIicPs_CfgInitialize XST_FAILURE");
 	}
 
 	/*
@@ -99,8 +99,7 @@ void I2CController::initialize()
 	Status = XIicPs_SelfTest(&m_config.i2cPsInstance);
 	if (Status != XST_SUCCESS)
 	{
-		//TODO handle error
-		LOG_FATAL("XIicPs_SelfTest XST_FAILURE");
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::I2cInitializationError, "XIicPs_SelfTest XST_FAILURE");
 	}
 
 	/*
@@ -111,8 +110,7 @@ void I2CController::initialize()
 
 	if (Status != XST_SUCCESS)
 	{
-		//TODO handle error
-		LOG_FATAL("SetupInterruptSystem XST_FAILURE");
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::I2cInitializationError, "SetupInterruptSystem XST_FAILURE");
 	}
 
 	/*
@@ -237,12 +235,12 @@ int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 	 * use.
 	 */
 	IntcConfig = XScuGic_LookupConfig(m_intCtrlDeviceId);
-	if (NULL == IntcConfig) {
+	if (NULL == IntcConfig)
+	{
 		return XST_FAILURE;
 	}
 
-	Status = XScuGic_CfgInitialize(&m_config.InterruptController, IntcConfig,
-				       IntcConfig->CpuBaseAddress);
+	Status = XScuGic_CfgInitialize(&m_config.InterruptController, IntcConfig, IntcConfig->CpuBaseAddress);
 
 	if (Status != XST_SUCCESS)
 	{
