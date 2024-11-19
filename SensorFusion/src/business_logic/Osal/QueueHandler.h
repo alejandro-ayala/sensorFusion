@@ -12,9 +12,12 @@ class QueueHandler
 {
 private:
 	QueueHandle_t queue;
+	uint32_t m_queueLength;
+	uint32_t m_itemSize;
+
 public:
 
-	QueueHandler();
+	QueueHandler(uint32_t queuelength, uint32_t itemSize);
 	virtual ~QueueHandler();
 
 	void createQueue();

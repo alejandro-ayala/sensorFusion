@@ -112,4 +112,9 @@ uint16_t ImageCapturer3D::getDistanceMedian(std::array<uint16_t, IMAGE3D_SAMPLES
 
 }
 
+std::array<LidarPoint, IMAGE3D_SIZE>& ImageCapturer3D::getLastCapture()
+{
+	return m_3DImage;
+}
+
 }

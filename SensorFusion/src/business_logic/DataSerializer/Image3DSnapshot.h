@@ -5,11 +5,12 @@
 #include "business_logic/ImageCapturer3D/LidarPoint.h"
 #include "business_logic/ImageCapturer3D/ImageCapturer3DConfig.h"
 #include "services/Exception/SystemExceptions.h"
+#include "json/include/nlohmann/json.hpp"
 
 namespace business_logic
 {
 
-void to_json(nlohmann::json& j, const LidarPoint& point)
+inline void to_json(nlohmann::json& j, const LidarPoint& point)
 {
 	    j = nlohmann::json{
 	        {"pointDistance", point.m_pointDistance},
@@ -18,7 +19,7 @@ void to_json(nlohmann::json& j, const LidarPoint& point)
 	    };
 }
 
-void from_json(const nlohmann::json& j, LidarPoint& point)
+inline void from_json(const nlohmann::json& j, LidarPoint& point)
 {
 	    j.at("pointDistance").get_to(point.m_pointDistance);
 	    j.at("angleServoH").get_to(point.m_angleServoH);

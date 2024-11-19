@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <vector>
-#include "json/include/nlohmann/json.hpp"
 
 namespace business_logic
 {

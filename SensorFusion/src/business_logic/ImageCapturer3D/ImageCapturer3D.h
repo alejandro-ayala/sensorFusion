@@ -31,5 +31,6 @@ public:
     void initialize();
     void stop();
     void captureImage();
+    std::array<LidarPoint, IMAGE3D_SIZE>& getLastCapture();
 };
 }

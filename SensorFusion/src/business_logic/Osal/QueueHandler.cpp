@@ -1,10 +1,10 @@
 #include <business_logic/Osal/QueueHandler.h>
-
+#include "services/Exception/SystemExceptions.h"
 namespace business_logic
 {
 namespace Osal
 {
-QueueHandler::QueueHandler()
+QueueHandler::QueueHandler(uint32_t queuelength, uint32_t itemSize) : m_queueLength(queuelength), m_itemSize(itemSize)
 {
 
 }
@@ -16,11 +16,11 @@ QueueHandler::~QueueHandler()
 
 void QueueHandler::createQueue()
 {
-    queue = xQueueCreate( 10, sizeof( struct AMessage * ) );
+    queue = xQueueCreate( m_queueLength, m_itemSize );
 
     if( queue == NULL )
     {
-        /* Queue was not created and must not be used. */
+    	THROW_BUSINESS_LOGIC_EXCEPTION(services::BusinessLogicErrorId::QueueAllocationError, "Error creating queue for Image3D captures");
     }
 }
 
@@ -49,7 +49,7 @@ void QueueHandler::sendToBack(const void * itemToQueue)
 {
 	if( xQueueSendToBack( queue, itemToQueue, static_cast<TickType_t>(0) ) != pdPASS )
 	{
-		/* Failed to post the message, even after 10 ticks. */
+		THROW_BUSINESS_LOGIC_EXCEPTION(services::BusinessLogicErrorId::QueueIsFull, "Failed to insert capture in queue");
 	}
 }
 
