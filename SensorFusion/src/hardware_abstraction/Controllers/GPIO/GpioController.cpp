@@ -1,5 +1,6 @@
 
 #include <hardware_abstraction/Controllers/GPIO/GpioController.h>
+#include "services/Exception/SystemExceptions.h"
 #include "xil_io.h"
 #include "xil_types.h"
 #include "xparameters.h"
@@ -26,13 +27,13 @@ void  GpioController::initialize()
 	int status = XGpio_Initialize(gpioIntefaces.axiGpio0.gpioDriver, XPAR_GPIO_0_DEVICE_ID);
 	if(status != XST_SUCCESS)
 	{
-		//Throw exception
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::GpioInitializationError, "Exception during GPIO0 initialization");
 	}
 
 	status = XGpio_Initialize(gpioIntefaces.axiGpio1.gpioDriver, XPAR_GPIO_1_DEVICE_ID);
 	if(status != XST_SUCCESS)
 	{
-		//Throw exception
+		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::GpioInitializationError, "Exception during GPIO1 initialization");
 	}
 
 	configGPIO(gpioIntefaces.axiGpio0.gpioDriver, gpioIntefaces.axiGpio0.chOutput, gpioIntefaces.axiGpio0.directionOutput);

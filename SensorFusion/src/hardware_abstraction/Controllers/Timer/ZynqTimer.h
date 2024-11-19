@@ -14,9 +14,9 @@ private:
 	static constexpr uint64_t countPerNanoSeconds = 0;
 public:
 	ZynqTimer();
-	virtual ~ZynqTimer();
+	virtual ~ZynqTimer() = default;
 
-	void configure();
+	void initialize();
 	void startTimer() override;
 	void stopTimer()  override;
 	void restartTimer() override;
