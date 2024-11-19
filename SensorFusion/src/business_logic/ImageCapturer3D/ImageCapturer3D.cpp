@@ -4,10 +4,10 @@
 #include <numeric>
 #include "services/Logger/LoggerMacros.h"
 
-#define FAKE_VALUES
+//#define FAKE_VALUES
 namespace business_logic
 {
-ImageCapturer3D::ImageCapturer3D(const ImageCapturer3DConfig& config):  m_horServoCtrl(config.horServoCtrl), m_verServoCtrl(config.verServoCtrl), m_lidarCtrl(config.lidarCtrl), m_config(config)
+ImageCapturer3D::ImageCapturer3D(const ImageCapturer3DConfig& config):  m_horServoCtrl(config.horServoCtrl), m_verServoCtrl(config.verServoCtrl), m_lidarCtrl(config.lidarCtrl), m_config(config), m_initialized(false)
 {
 
 }
@@ -20,7 +20,9 @@ void ImageCapturer3D::initialize()
 
 	m_lidarCtrl->initialization();
 #endif
+
 }
+
 
 void ImageCapturer3D::stop()
 {
@@ -30,7 +32,7 @@ void ImageCapturer3D::stop()
 void ImageCapturer3D::captureImage()
 {
 	uint32_t image3dSize = 0;
-	uint8_t delayServo = 1;
+	uint16_t delayServo = 1;
 	if(m_config.applyBiasCorrection && m_applyBiasCorrection)
 	{
 		//Apply bias correction. Check when!!
@@ -45,12 +47,13 @@ void ImageCapturer3D::captureImage()
 	xLastWakeTime = xTaskGetTickCount();
 	for(int vAngle = m_config.initVerticalAngle; vAngle <= m_config.maxVerticalAngle; )
 	{
+		static int a = 0;
+		a++;
 		for(int hAngle = m_config.initHorizontalAngle; hAngle <= m_config.maxHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			m_3DImage[image3dSize] = getPointDistance();
 			image3dSize++;
-			vTaskDelayUntil(&xLastWakeTime,delayServo);
 		}
 
 		vAngle += m_config.verticalAngleResolution;
@@ -61,7 +64,6 @@ void ImageCapturer3D::captureImage()
 			m_horServoCtrl->setAngle(hAngle);
 			m_3DImage[image3dSize] = getPointDistance();
 			image3dSize++;
-			vTaskDelayUntil(&xLastWakeTime,delayServo);
 		}
 
 		vAngle += m_config.verticalAngleResolution;
@@ -73,7 +75,7 @@ void ImageCapturer3D::captureImage()
 uint16_t ImageCapturer3D::getPointDistance() const
 {
 #ifdef FAKE_VALUES
-
+	for(int i=0;i<0xFFFFF;i++);
 	return 0x3f;
 #else
 	std::array<uint16_t, IMAGE3D_SAMPLES_PER_POSITION> distance;

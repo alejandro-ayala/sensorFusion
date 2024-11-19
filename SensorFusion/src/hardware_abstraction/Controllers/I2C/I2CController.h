@@ -12,11 +12,13 @@ class I2CController
 private:
 	I2CConfig m_config;
 	uint8_t m_i2cDeviceId = 0;
-	uint8_t m_intCtrlDeviceId = 0;
+	uint8_t m_intCtrlDeviceId = XPAR_SCUGIC_SINGLE_DEVICE_ID;
 	uint8_t m_i2cIntVectorId = XPS_I2C0_INT_ID;
-	static inline uint32_t sendComplete;
-	static inline uint32_t recvComplete;
-	static inline uint32_t totalErrorCount;
+	static volatile inline uint32_t sendComplete;
+	static volatile inline uint32_t recvComplete;
+	static volatile inline uint32_t totalErrorCount;
+	static volatile inline uint32_t recvError;
+	static volatile inline uint32_t totalRecvErrorCount;
 public:
 	I2CController(const I2CConfig& config = I2CConfig());
 	virtual ~I2CController() = default;

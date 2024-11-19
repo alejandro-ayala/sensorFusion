@@ -17,7 +17,7 @@ class SystemTasksManager
 private:
 
 	TaskParams m_taskParam;
-	std::shared_ptr<business_logic::ImageCapturer3D> m_image3DCapturer;
+	static inline std::unique_ptr<business_logic::ImageCapturer3D> m_image3DCapturer;
 
 	std::shared_ptr<business_logic::ClockSyncronization::SharedClockSlaveManager> m_globalClkMng;
 	std::shared_ptr<business_logic::Communication::CommunicationManager> m_commMng;
@@ -28,7 +28,7 @@ private:
 	static inline std::shared_ptr<business_logic::Osal::QueueHandler> m_capturesQueue;
 
 public:
-	SystemTasksManager(const TaskParams& systemTaskMngParams);
+	SystemTasksManager(TaskParams&& systemTaskMngParams);
 	virtual ~SystemTasksManager() = default;
 	static void globalClockSyncronization(void* argument);
 	static void communicationTask(void* argument);

@@ -11,7 +11,7 @@ namespace Devices
 class GarminV3LiteCtrl
 {
 public:
-	GarminV3LiteCtrl(const std::shared_ptr<Controllers::I2CController>& i2cCtrl , const LidarConfiguration& cfg);
+	GarminV3LiteCtrl(std::unique_ptr<Controllers::I2CController>&& i2cCtrl , const LidarConfiguration& cfg);
 	virtual ~GarminV3LiteCtrl() = default;
 
     void initialization();
@@ -23,9 +23,10 @@ public:
 private:
 	bool enableTestMode();
 	bool runTestMode();
-	std::shared_ptr<Controllers::I2CController> m_i2cControl;
+	std::unique_ptr<Controllers::I2CController> m_i2cControl;
 	GarminV3LiteMode m_mode;
 	uint8_t m_addr;
+	bool m_initialized;
 };
 }
 }
