@@ -1,17 +1,27 @@
 #include <business_logic/Osal/QueueHandler.h>
 #include "services/Exception/SystemExceptions.h"
+#include "services/Logger/LoggerMacros.h"
+#include "business_logic/ImageCapturer3D/LidarPoint.h"
 namespace business_logic
 {
 namespace Osal
 {
 QueueHandler::QueueHandler(uint32_t queuelength, uint32_t itemSize) : m_queueLength(queuelength), m_itemSize(itemSize)
 {
+	try
+	{
+		createQueue();
+	}
+	catch (const services::BaseException& e)
+	{
+		THROW_BUSINESS_LOGIC_EXCEPTION( services::BusinessLogicErrorId::QueueAllocationError,  e.what());
+	}
 
 }
 
 QueueHandler::~QueueHandler()
 {
-
+	deleteQueue();
 }
 
 void QueueHandler::createQueue()
@@ -47,6 +57,7 @@ cstring QueueHandler::getName() const
 
 void QueueHandler::sendToBack(const void * itemToQueue)
 {
+	LOG_DEBUG("Sending pointer to queue: %p", itemToQueue);
 	if( xQueueSendToBack( queue, itemToQueue, static_cast<TickType_t>(0) ) != pdPASS )
 	{
 		THROW_BUSINESS_LOGIC_EXCEPTION(services::BusinessLogicErrorId::QueueIsFull, "Failed to insert capture in queue");
@@ -76,12 +87,20 @@ void QueueHandler::sendToFront(const void * itemToQueue, uint32_t timeout)
 	xQueueSendToFront( queue, itemToQueue, static_cast<TickType_t>(timeout));
 }
 	
-void QueueHandler::receive(void *rxBuffer)	
+void QueueHandler::receive(void *rxBuffer)
 {
-	if(xQueueReceive( queue, rxBuffer,static_cast<TickType_t>(0) ) == pdPASS )
-	{
-		/* xRxedStructure now contains a copy of xMessage. */
-	}
+
+	business_logic::LidarArray* lastCapture2;
+	LOG_DEBUG("Receiving from queue into buffer: %p", lastCapture2);
+	xQueueReceive( queue, &( lastCapture2 ), ( TickType_t ) 10 );
+	LOG_DEBUG("Receiving from queue into buffer: %p", lastCapture2);
+	return;
+    LOG_DEBUG("Receiving from queue into buffer: %p", rxBuffer);
+    void* rawBuffer = static_cast<void*>(rxBuffer);
+    if(xQueueReceive( queue, rawBuffer,static_cast<TickType_t>(portMAX_DELAY) ) == pdPASS )
+    {
+        LOG_DEBUG("Received pointer from queue: %p", rxBuffer);
+    }
 }
 
 void QueueHandler::receive(void *rxBuffer, uint32_t timeout)	

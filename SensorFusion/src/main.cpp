@@ -33,6 +33,7 @@
 #include "services/Logger/LoggerMacros.h"
 #include "SW_VERSION.h"
 
+
 using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
 using namespace business_logic::Conectivity;
@@ -92,6 +93,8 @@ void createBusinessLogicLayerComponents()
 
 	globalClkMng = std::make_shared<SharedClockSlaveManager>(timecontroller, canController);
 	LOG_INFO("Created Business Logic layer components");
+
+
 }
 
 void createApplicationLayerComponents()
