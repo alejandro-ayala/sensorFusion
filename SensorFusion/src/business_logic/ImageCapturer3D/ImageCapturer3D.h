@@ -8,6 +8,7 @@
 
 namespace business_logic
 {
+
 class ImageCapturer3D
 {
 private:
@@ -15,7 +16,7 @@ private:
 	std::shared_ptr<hardware_abstraction::Devices::ServoMotorControl> m_verServoCtrl;
 	std::shared_ptr<hardware_abstraction::Devices::GarminV3LiteCtrl>  m_lidarCtrl;
 	ImageCapturer3DConfig m_config;
-	std::array<LidarPoint, IMAGE3D_SIZE> m_3DImage;
+	static inline std::array<LidarPoint, IMAGE3D_SIZE> m_3DImage;
 	bool m_applyBiasCorrection = false;
 	bool m_initialized;
 
@@ -31,6 +32,6 @@ public:
     void initialize();
     void stop();
     void captureImage();
-    std::array<LidarPoint, IMAGE3D_SIZE>& getLastCapture();
+    LidarArray getLastCapture();
 };
 }

@@ -3,7 +3,7 @@
 #include <FreeRTOS.h>
 #include "semphr.h"
 #include "Definitions.h"
-
+#include "business_logic/ImageCapturer3D/LidarPoint.h"
 namespace business_logic
 {
 namespace Osal

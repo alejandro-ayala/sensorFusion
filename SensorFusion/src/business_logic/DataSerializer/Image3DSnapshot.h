@@ -30,7 +30,7 @@ class Image3DSnapshot : public ISerializableMessage
 {
 public:
 	Image3DSnapshot() = default;
-	Image3DSnapshot(uint8_t msgId, uint8_t m_msgIndex, const std::array<LidarPoint, IMAGE3D_SIZE>& image3d, uint16_t image3dSize, uint32_t timestamp);
+	Image3DSnapshot(uint8_t msgId, uint8_t m_msgIndex, const std::shared_ptr<std::array<LidarPoint, IMAGE3D_SIZE>> image3d, uint16_t image3dSize, uint32_t timestamp);
 	~Image3DSnapshot() = default;
 
     void serialize(std::vector<uint8_t>& serializedData) const override;
@@ -43,10 +43,11 @@ public:
 				m_image3dSize == other.m_image3dSize &&
 				m_image3d     == other.m_image3d);
 	}
-private:
+//private:
+public:
     uint8_t  m_msgId;
     uint8_t  m_msgIndex;
-    std::array<LidarPoint, IMAGE3D_SIZE> m_image3d;
+    std::shared_ptr<std::array<LidarPoint, IMAGE3D_SIZE>> m_image3d;
     uint16_t m_image3dSize;
     uint32_t m_timestamp;
 
@@ -55,7 +56,7 @@ private:
 		try
 		{
 			j = nlohmann::json{{"msgId", image.m_msgId}, {"imgSize", image.m_image3dSize},
-							   {"m_image3d", image.m_image3d}, {"timestamp", image.m_timestamp}};
+							   {"m_image3d", *image.m_image3d}, {"timestamp", image.m_timestamp}};
 		}
 		catch (const std::exception& e)
 		{
@@ -67,7 +68,7 @@ private:
     {
     	image.m_msgId = j.at("msgId").get<uint8_t>();
     	image.m_image3dSize = j.at("imgSize").get<size_t>();
-        image.m_image3d = j.template get<std::array<LidarPoint, IMAGE3D_SIZE>>();
+        *image.m_image3d = j.template get<std::array<LidarPoint, IMAGE3D_SIZE>>();
     	image.m_timestamp = j.at("timestamp").get<uint32_t>();
     }
 };

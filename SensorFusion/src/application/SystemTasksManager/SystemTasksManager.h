@@ -39,7 +39,7 @@ public:
 	static void globalClockSyncronization(void* argument);
 	static void communicationTask(void* argument);
 	static void image3dMappingTask(void* argument);
-    static void getNextImage(business_logic::Image3DSnapshot& lastCapture);
+    static void getNextImage(std::array<business_logic::LidarPoint, business_logic::IMAGE3D_SIZE>& lastCapture);
     static bool isPendingData();
     void createPoolTasks();
 };
