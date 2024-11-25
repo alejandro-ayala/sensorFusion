@@ -3,9 +3,8 @@
 #include "business_logic/Communication/CommunicationManager.h"
 #include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
 #include "business_logic/ClockSyncronization/TimeBaseManager.h"
-
 #include "TaskParams.h"
-
+#include "business_logic/Communication/CanMsg.h"
 #include <memory>
 #include <vector>
 
@@ -41,6 +40,7 @@ public:
 	static void image3dMappingTask(void* argument);
     static void getNextImage(std::array<business_logic::LidarPoint, business_logic::IMAGE3D_SIZE>& lastCapture);
     static bool isPendingData();
+    static void splitCborToCanMsgs(uint8_t canMsgId, const std::vector<uint8_t>& cborSerializedChunk, std::vector<business_logic::Communication::CanMsg>& canMsgChunks);
     void createPoolTasks();
 };
 
