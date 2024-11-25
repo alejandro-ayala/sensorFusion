@@ -38,6 +38,30 @@ void CommunicationManager::sendData(IData msg)
 
 }
 
+void CommunicationManager::sendData(const std::vector<business_logic::Communication::CanMsg>& dataToSend)
+{
+    const uint8_t msgToSend = dataToSend.size();
+
+    for(int currentMsgIndex = 0; currentMsgIndex < msgToSend; currentMsgIndex++)
+    {
+    	const auto& frame = dataToSend.at(currentMsgIndex);
+        uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0};
+        data[0] = frame.canMsgId;
+        data[1] = frame.canMsgIndex;
+        uint8_t dataSize = ID_FIELD_SIZE + frame.payloadSize;
+        for (uint8_t i = ID_FIELD_SIZE; i < MAXIMUM_CAN_MSG_SIZE; i++)
+        {
+            data[i] = frame.payload[i - ID_FIELD_SIZE];
+        }
+
+        //canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::LIDAR_3D_IMAGE), data, dataSize);
+        //TODO check and remove the delay
+        const uint8_t delayBetweenFrames = 2;
+        LOG_DEBUG("Send CAN msgId: ", frame.canMsgId, " msgIndex: " , frame.canMsgIndex);
+        for (int Delay = 0; Delay < 0xFFFF; Delay++);
+    }
+}
+
 IData CommunicationManager::receiveData()
 {
 	uint8_t lenght = 800;
@@ -46,8 +70,6 @@ IData CommunicationManager::receiveData()
 	IData parsedMsg;
 	if(rxMsg.dlc > 0)
 	{
-		//xil_printf("\n\rReceived data: %d bytes", msgSize);
-
 		parsedMsg.deSerialize(data);
 		LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
 	}
