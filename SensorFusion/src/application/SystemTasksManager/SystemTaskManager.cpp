@@ -5,7 +5,6 @@
 #include "business_logic/Communication/CanMsg.h"
 namespace application
 {
-//#define USE_ABSTRACTION
 QueueHandle_t xPointerQueue = NULL;
 
 SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) :  m_globalClkMng(systemTaskMngParams.globalClkMng), m_commMng(systemTaskMngParams.commMng)
@@ -14,11 +13,8 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) :  m_gl
 
 	uint32_t queueItemSize   = sizeof(business_logic::LidarArray*); //sizeof(business_logic::Image3DSnapshot*);
 	uint32_t queueLength     = 10;
-#ifdef USE_ABSTRACTION
 	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
-#else
-	xPointerQueue = xQueueCreate(queueLength, queueItemSize );
-#endif
+
 	//TODO check not NULL pointers
 }
 
@@ -55,15 +51,9 @@ void SystemTasksManager::communicationTask(void* argument)
 		{
 			LOG_DEBUG("Sending last capture to master node");
 			business_logic::LidarArray* lastCapture;
-#ifdef USE_ABSTRACTION
 
 			//getNextImage(lastCapture);
-			m_capturesQueue->receive(&lastCapture);
-#else
-			LOG_DEBUG("Receiving from queue into buffer: %p", lastCapture);
-			xQueueReceive( xPointerQueue, &( lastCapture ), ( TickType_t ) 10 );
-			LOG_DEBUG("Received pointer from queue: %p", lastCapture);
-#endif
+			m_capturesQueue->receive((void*&)lastCapture);
 			auto imageSnapshot = std::make_unique<business_logic::Image3DSnapshot>(0x01, 0x00, std::make_shared<business_logic::LidarArray>(*lastCapture), lastCapture->size(), 0x34567811);
 			std::vector<uint8_t> serializedImageSnapshot;
 			imageSnapshot->serialize(serializedImageSnapshot);
@@ -95,21 +85,11 @@ void SystemTasksManager::image3dMappingTask(void* argument)
 			LOG_DEBUG("Capturing 3D image");
 			m_image3DCapturer->captureImage();
 
-			//auto last3dSample = std::make_shared<std::array<business_logic::LidarPoint, IMAGE3D_SIZE>>(m_image3DCapturer->getLastCapture());
 			auto last3dSample = m_image3DCapturer->getLastCapture();
 
-			//LOG_DEBUG("Address of m_3DImage: %p", &last3dSample);
-
-#ifdef USE_ABSTRACTION
-			m_capturesQueue->sendToBack(( void * ) &last3dSample);
-#else
 			business_logic::LidarArray* pxPointerToxMessage;
 			pxPointerToxMessage = &last3dSample;
-			LOG_DEBUG("Sending pointer to queue: %p", pxPointerToxMessage);
-		    xQueueSend(xPointerQueue, ( void * ) &pxPointerToxMessage,  ( TickType_t ) 0 );
-#endif
-
-			//LOG_DEBUG("Sending pointer to queue: %p", last3dSample);
+			m_capturesQueue->sendToBack(( void * ) &pxPointerToxMessage);
 			captureId++;
 			LOG_DEBUG("Capturing 3D image done");
 

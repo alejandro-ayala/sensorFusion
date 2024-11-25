@@ -87,20 +87,11 @@ void QueueHandler::sendToFront(const void * itemToQueue, uint32_t timeout)
 	xQueueSendToFront( queue, itemToQueue, static_cast<TickType_t>(timeout));
 }
 	
-void QueueHandler::receive(void *rxBuffer)
+void QueueHandler::receive(void*& rxBuffer)
 {
-
-	business_logic::LidarArray* lastCapture2;
-	LOG_DEBUG("Receiving from queue into buffer: %p", lastCapture2);
-	xQueueReceive( queue, &( lastCapture2 ), ( TickType_t ) 10 );
-	LOG_DEBUG("Receiving from queue into buffer: %p", lastCapture2);
-	return;
+    xQueueReceive(queue, &rxBuffer, (TickType_t)10);
     LOG_DEBUG("Receiving from queue into buffer: %p", rxBuffer);
-    void* rawBuffer = static_cast<void*>(rxBuffer);
-    if(xQueueReceive( queue, rawBuffer,static_cast<TickType_t>(portMAX_DELAY) ) == pdPASS )
-    {
-        LOG_DEBUG("Received pointer from queue: %p", rxBuffer);
-    }
+    return;
 }
 
 void QueueHandler::receive(void *rxBuffer, uint32_t timeout)	
