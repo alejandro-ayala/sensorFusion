@@ -1,0 +1,49 @@
+name: Check Version Increment
+
+on:
+  pull_request:
+    branches:
+      - create-platform
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Fetch remote branch
+        run: git fetch origin create-platform
+
+      - name: Compare version
+        run: |
+          FILE="version.txt"
+          REMOTE_VERSION=$(git show origin/create-platform:$FILE || echo "0.0.0")
+          LOCAL_VERSION=$(cat $FILE)
+
+          if [ "$(printf '%s\n' "$REMOTE_VERSION" "$LOCAL_VERSION" | sort -V | head -n1)" = "$LOCAL_VERSION" ]; then
+            echo "Error: Remote version is ($REMOTE_VERSION) and current version is ($LOCAL_VERSION), please increase it according the MR changes."
+            exit 1
+          fi
+
+          echo "Software version has increased from ($REMOTE_VERSION) to ($LOCAL_VERSION)."
+  release-notes-check:
+    runs-on: ubuntu-latest
+    needs: version-check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check if release notes have been updated
+        run: |
+          RELEASE_NOTES_FILE="release-notes.md"
+          VERSION=$(cat version.txt)
+          
+          if ! grep -q "$VERSION" "$RELEASE_NOTES_FILE"; then
+            echo "Error: $RELEASE_NOTES_FILE does not include the changes for $VERSION version."
+            exit 1
+          fi
+
+          echo "$RELEASE_NOTES_FILE includes the changes for ($VERSION) version."          

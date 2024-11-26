@@ -1,26 +1,36 @@
 #include <business_logic/Osal/QueueHandler.h>
-
+#include "services/Exception/SystemExceptions.h"
+#include "services/Logger/LoggerMacros.h"
+#include "business_logic/ImageCapturer3D/LidarPoint.h"
 namespace business_logic
 {
 namespace Osal
 {
-QueueHandler::QueueHandler()
+QueueHandler::QueueHandler(uint32_t queuelength, uint32_t itemSize) : m_queueLength(queuelength), m_itemSize(itemSize)
 {
+	try
+	{
+		createQueue();
+	}
+	catch (const services::BaseException& e)
+	{
+		THROW_BUSINESS_LOGIC_EXCEPTION( services::BusinessLogicErrorId::QueueAllocationError,  e.what());
+	}
 
 }
 
 QueueHandler::~QueueHandler()
 {
-
+	deleteQueue();
 }
 
 void QueueHandler::createQueue()
 {
-    queue = xQueueCreate( 10, sizeof( struct AMessage * ) );
+    queue = xQueueCreate( m_queueLength, m_itemSize );
 
     if( queue == NULL )
     {
-        /* Queue was not created and must not be used. */
+    	THROW_BUSINESS_LOGIC_EXCEPTION(services::BusinessLogicErrorId::QueueAllocationError, "Error creating queue for Image3D captures");
     }
 }
 
@@ -47,9 +57,10 @@ cstring QueueHandler::getName() const
 
 void QueueHandler::sendToBack(const void * itemToQueue)
 {
+	LOG_DEBUG("Sending pointer to queue: %p", itemToQueue);
 	if( xQueueSendToBack( queue, itemToQueue, static_cast<TickType_t>(0) ) != pdPASS )
 	{
-		/* Failed to post the message, even after 10 ticks. */
+		THROW_BUSINESS_LOGIC_EXCEPTION(services::BusinessLogicErrorId::QueueIsFull, "Failed to insert capture in queue");
 	}
 }
 
@@ -76,12 +87,11 @@ void QueueHandler::sendToFront(const void * itemToQueue, uint32_t timeout)
 	xQueueSendToFront( queue, itemToQueue, static_cast<TickType_t>(timeout));
 }
 	
-void QueueHandler::receive(void *rxBuffer)	
+void QueueHandler::receive(void*& rxBuffer)
 {
-	if(xQueueReceive( queue, rxBuffer,static_cast<TickType_t>(0) ) == pdPASS )
-	{
-		/* xRxedStructure now contains a copy of xMessage. */
-	}
+    xQueueReceive(queue, &rxBuffer, (TickType_t)10);
+    LOG_DEBUG("Receiving from queue into buffer: %p", rxBuffer);
+    return;
 }
 
 void QueueHandler::receive(void *rxBuffer, uint32_t timeout)	

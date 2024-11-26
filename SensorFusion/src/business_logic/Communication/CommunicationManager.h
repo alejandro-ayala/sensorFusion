@@ -4,6 +4,8 @@
 #include <business_logic/Communication/IData.h>
 #include <hardware_abstraction/Controllers/CAN/CanController.h>
 #include <memory>
+#include <vector>
+#include "CanMsg.h"
 
 namespace business_logic
 {
@@ -21,6 +23,7 @@ public:
 
 	void initialization();
 	void sendData(IData msg);
+	void sendData(const std::vector<business_logic::Communication::CanMsg>& dataToSend);
 	IData receiveData(void);
 	bool selfTest();
 

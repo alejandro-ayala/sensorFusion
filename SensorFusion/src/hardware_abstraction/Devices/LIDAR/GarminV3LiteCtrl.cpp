@@ -1,6 +1,8 @@
 #include <Devices/LIDAR/GarminV3LiteCtrl.h>
 #include "Devices/LIDAR/GarminV3LiteRegisterMap.h"
 #include "services/Logger/LoggerMacros.h"
+#include "services/Exception/SystemExceptions.h"
+
 #include <iostream>
 
 namespace hardware_abstraction
@@ -22,8 +24,7 @@ void GarminV3LiteCtrl::initialization()
 		bool initialized = selfTest();
 		if(!initialized)
 		{
-			//TODO handle error
-			LOG_FATAL("Error during LIDAR selftest");
+			THROW_CONTROLLERS_EXCEPTION(services::DevicesErrorId::LidarInitializationError, "Exception during LIDAR selftest");
 		}
 		configuration(m_mode);
 	}
