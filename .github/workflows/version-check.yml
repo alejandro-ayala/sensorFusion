@@ -1,13 +1,31 @@
-check_version:
-  stage: test
-  script:
-    - git fetch origin create-platform
-    - REMOTE_VERSION=$(git show origin/create-platform:version.txt || echo "0.0.0")
-    - LOCAL_VERSION=$(cat version.txt)
-    - |
-      if [ "$(printf '%s\n' "$REMOTE_VERSION" "$LOCAL_VERSION" | sort -V | head -n1)" = "$LOCAL_VERSION" ]; then
-        echo "Error: Current version is ($REMOTE_VERSION), please increase it according the MR changes."
-        exit 1
-      fi
-    - echo "Software version has increased from ($REMOTE_VERSION) to ($LOCAL_VERSION)."
+name: Check Version Increment
 
+on:
+  pull_request:
+    branches:
+      - create-platform
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Fetch remote branch
+        run: git fetch origin create-platform
+
+      - name: Compare version
+        run: |
+          FILE="version.txt"
+          REMOTE_VERSION=$(git show origin/create-platform:$FILE || echo "0.0.0")
+          LOCAL_VERSION=$(cat $FILE)
+
+          if [ "$(printf '%s\n' "$REMOTE_VERSION" "$LOCAL_VERSION" | sort -V | head -n1)" = "$LOCAL_VERSION" ]; then
+            echo "Error: Remote version is ($REMOTE_VERSION) and current version is ($LOCAL_VERSION), please increase it according the MR changes."
+            exit 1
+          fi
+
+          echo "Software version has increased from ($REMOTE_VERSION) to ($LOCAL_VERSION)."
+    
