@@ -28,4 +28,22 @@ jobs:
           fi
 
           echo "Software version has increased from ($REMOTE_VERSION) to ($LOCAL_VERSION)."
-    
+  release-notes-check:
+    runs-on: ubuntu-latest
+    needs: version-check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check if release notes have been updated
+        run: |
+          RELEASE_NOTES_FILE="release-notes.md"
+          VERSION=$(cat version.txt)
+          
+          if ! grep -q "$VERSION" "$RELEASE_NOTES_FILE"; then
+            echo "Error: $RELEASE_NOTES_FILE does not include the changes for $VERSION version."
+            exit 1
+          fi
+
+          echo "$RELEASE_NOTES_FILE includes the changes for ($VERSION) version."          
