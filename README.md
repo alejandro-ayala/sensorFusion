@@ -37,8 +37,9 @@ Sigue los pasos a continuación para generar el proyecto completo, incluyendo la
    - Selecciona la opción de **Eclipse workspace**.
    - Desmarca la opción **"Copy projects into workspace"**.
    - Importa los siguientes proyectos:
-     - `SensorFusion_System` (incluye el software del sistema embebido).
-     - `zyboProject` (Plataforma HW compilada en el paso anterior).
+     - `SensorFusion_System` .Incluye el proyecto del sistema, donde estarán integrados cada uno de los proyectos para los procesadores.
+     - `SensorFusion` Incluye el código de la aplicación, en este caso para el procesador PS0 del zynq7000. 
+     - `zyboProject` Plataforma HW compilada en el paso anterior.
 
 ## Compilación
 
