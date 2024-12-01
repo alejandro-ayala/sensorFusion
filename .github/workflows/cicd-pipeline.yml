@@ -1,4 +1,4 @@
-name: Check Version Increment
+name: Check Version Increment and Generate Tag
 
 env:
   MAIN_BRANCH: "create-platform"
@@ -7,10 +7,15 @@ on:
   pull_request:
     branches:
       - create-platform
-  
+
+  push:
+    branches:
+      - create-platform
+
 jobs:
   version-check:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -31,9 +36,11 @@ jobs:
           fi
 
           echo "Software version has increased from ($REMOTE_VERSION) to ($LOCAL_VERSION)."
+
   release-notes-check:
     runs-on: ubuntu-latest
     needs: version-check
+    if: github.event_name == 'pull_request'
 
     steps:
       - name: Checkout code
@@ -49,4 +56,27 @@ jobs:
             exit 1
           fi
 
-          echo "$RELEASE_NOTES_FILE includes the changes for ($VERSION) version."          
+          echo "$RELEASE_NOTES_FILE includes the changes for ($VERSION) version."
+
+  generate-tag:
+    runs-on: ubuntu-latest
+    needs: [version-check, release-notes-check]
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Read version from version.txt
+        id: read_version
+        run: |
+          VERSION=$(cat version.txt)
+          echo "version=$VERSION" >> $GITHUB_ENV
+
+      - name: Generate tag
+        run: |
+          echo "Generating tag: v${{ env.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ env.version }}"
+          git push origin "v${{ env.version }}"
