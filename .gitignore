@@ -33,5 +33,11 @@
 *.app
 #Vitis temporary files
 SensorFusion_system/_ide
-#BSP HW
 zyboProject/
+RemoteSystemsTempFiles
+.analytics
+HWFILE/*
+!HWFile/ZyboZ7_design_wrapper.xsa
+!HWFile/ZyboZ7_design_wrapper.bit
+
+

@@ -31,8 +31,6 @@
 #include <business_logic/ClockSyncronization/TimeBaseManager.h>
 #include "application/SystemTasksManager/SystemTasksManager.h"
 #include "services/Logger/LoggerMacros.h"
-#include "SW_VERSION.h"
-
 
 using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
@@ -109,7 +107,7 @@ void createApplicationLayerComponents()
 
 int main()
 {
-	LOG_INFO("*********************Starting Lidar Node Zybo Z7 -- SW_version: ", SW_VERSION ,"*********************");
+	LOG_INFO("*********************Starting Lidar Node Zybo Z7*********************");
 
 	createHardwareAbstractionLayerComponents();
 	createBusinessLogicLayerComponents();
