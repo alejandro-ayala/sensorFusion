@@ -23,7 +23,7 @@ CommunicationManager::~CommunicationManager()
 
 void CommunicationManager::initialization()
 {
-	//canController->initialize();
+	canController->initialize();
 }
 
 void CommunicationManager::sendData(IData msg)
@@ -54,7 +54,7 @@ void CommunicationManager::sendData(const std::vector<business_logic::Communicat
             data[i] = frame.payload[i - ID_FIELD_SIZE];
         }
 
-        //canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::LIDAR_3D_IMAGE), data, dataSize);
+        canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::LIDAR_3D_IMAGE), data, dataSize);
         //TODO check and remove the delay
         const uint8_t delayBetweenFrames = 2;
         LOG_DEBUG("Send CAN msgId: ", frame.canMsgId, " msgIndex: " , frame.canMsgIndex);

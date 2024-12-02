@@ -11,7 +11,7 @@
 set currentDir [pwd]
 set hwFileDir ${currentDir}9876
 platform create -name {zyboProject}\
--hw $currentDir/../HWFile/design_1_wrapper.xsa\
+-hw $currentDir/../HWFile/ZyboZ7_design_wrapper.xsa\
 -proc {ps7_cortexa9_0} -os {freertos10_xilinx} -out $currentDir/..
 
 platform write
