@@ -57,7 +57,7 @@ cstring QueueHandler::getName() const
 
 void QueueHandler::sendToBack(const void * itemToQueue)
 {
-	LOG_DEBUG("Sending pointer to queue: %p", itemToQueue);
+	LOG_TRACE("Sending pointer to queue: %p", itemToQueue);
 	if( xQueueSendToBack( queue, itemToQueue, static_cast<TickType_t>(0) ) != pdPASS )
 	{
 		THROW_BUSINESS_LOGIC_EXCEPTION(services::BusinessLogicErrorId::QueueIsFull, "Failed to insert capture in queue");
@@ -90,7 +90,7 @@ void QueueHandler::sendToFront(const void * itemToQueue, uint32_t timeout)
 void QueueHandler::receive(void*& rxBuffer)
 {
     xQueueReceive(queue, &rxBuffer, (TickType_t)10);
-    LOG_DEBUG("Receiving from queue into buffer: %p", rxBuffer);
+    LOG_TRACE("Receiving from queue into buffer: %p", rxBuffer);
     return;
 }
 

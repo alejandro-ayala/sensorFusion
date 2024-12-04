@@ -35,7 +35,7 @@ void I2CController::irqHandler(void *callBackRef, u32 event)
 	}
 	else if (0 != (event & XIICPS_EVENT_ERROR))
 	{
-		if(totalRecvErrorCount % 10 == 0)
+		if(totalRecvErrorCount % 100 == 0)
 			LOG_ERROR("I2C EV Error: ", totalRecvErrorCount);
 		totalRecvErrorCount++;
 		recvError = 1;
@@ -60,7 +60,7 @@ void I2CController::irqHandler(void *callBackRef, u32 event)
 	{
 		totalErrorCount++;
 		//TODO handle error
-		LOG_ERROR("I2C unknow Error: ", totalErrorCount, " - ", event);
+		LOG_TRACE("I2C unknow Error: ", totalErrorCount, " - ", event);
 	}
 }
 

@@ -14,8 +14,8 @@ struct ImageCapturer3DConfig
 	std::shared_ptr<hardware_abstraction::Devices::ServoMotorControl> verServoCtrl;
 	std::shared_ptr<hardware_abstraction::Devices::ServoMotorControl> horServoCtrl;
 	std::shared_ptr<hardware_abstraction::Devices::GarminV3LiteCtrl>  lidarCtrl;
-	uint8_t initVerticalAngle = 140;
-	uint8_t initHorizontalAngle = 120;
+	uint8_t initVerticalAngle = 140;//60;
+	uint8_t initHorizontalAngle = 120;//20;
 	uint8_t maxVerticalAngle = 150;
 	uint8_t maxHorizontalAngle = 180;
 	uint8_t horizontalAngleResolution = 2;

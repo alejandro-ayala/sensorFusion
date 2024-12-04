@@ -1,12 +1,13 @@
 #include <hardware_abstraction/Controllers/CAN/CanCommandsRegisters.h>
 #include <hardware_abstraction/Controllers/CAN/CanController.h>
+#include "services/Logger/LoggerMacros.h"
 
 namespace hardware_abstraction
 {
 namespace Controllers
 {
 
-CanController::CanController()
+CanController::CanController() : m_initialized(false)
 {
 	xspiConfig.spiConfiguration = {0,0,1,0,1,8,0,0,0,0,0};
 	xspiConfig.gpioAddress      = XPAR_PMODCAN_0_AXI_LITE_GPIO_BASEADDR;
@@ -21,14 +22,21 @@ CanController::~CanController()
 
 void CanController::initialize()
 {
+	if(!m_initialized)
+	{
+	   // 0b1111 for input 0b0000 for output, 0b0001 for pin1 in pin 2 out etc.
+	   Xil_Out32(xspiConfig.gpioAddress + 4, 0b1111);
+	   //CAN_SPIInit(&InstancePtr->CANSpi);
+	   spiControl->initialize();
 
-   // 0b1111 for input 0b0000 for output, 0b0001 for pin1 in pin 2 out etc.
-   Xil_Out32(xspiConfig.gpioAddress + 4, 0b1111);
-   //CAN_SPIInit(&InstancePtr->CANSpi);
-   spiControl->initialize();
 
-
-   configureTransceiver(CAN_ModeNormalOperation);
+	   configureTransceiver(CAN_ModeNormalOperation);
+	   m_initialized = true;
+	}
+	else
+	{
+		LOG_WARNING("CanController already initialized");
+	}
 }
 
 void CanController::configureTransceiver(uint8_t mode)
