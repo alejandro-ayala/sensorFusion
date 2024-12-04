@@ -23,15 +23,18 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 	business_logic::ClockSyncronization::SharedClockSlaveManager* timeBaseMng = reinterpret_cast<business_logic::ClockSyncronization::SharedClockSlaveManager*>(argument);
 	LOG_INFO("Starting globalClockSyncronization");
 
-	//timeBaseMng->initialization();
-	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
+	timeBaseMng->initialization();
+	const TickType_t taskSleep = pdMS_TO_TICKS( 100 );
 
 	while(1)
 	{
-		LOG_DEBUG("Updating global master time");
-		//timeBaseMng->sendGlobalTime();
-		for(int i=0;i<0xFFFFF;i++);
-		LOG_DEBUG("Updated global master time");
+		LOG_TRACE("Updating global master time");
+		const bool isTimeUpdated = timeBaseMng->getGlobalTime();
+		if(isTimeUpdated)
+		{
+			const auto updatedTime = timeBaseMng->getTimeReference().toNs();
+			LOG_INFO("Updated global master time: ", updatedTime);
+		}
 		vTaskDelay( taskSleep );
 	}
 }
@@ -39,7 +42,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 void SystemTasksManager::communicationTask(void* argument)
 {
 	LOG_INFO("Starting communicationTask");
-	const TickType_t taskSleep = pdMS_TO_TICKS( 1000 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 30000 );
 
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 	commMng->initialization();
@@ -59,9 +62,9 @@ void SystemTasksManager::communicationTask(void* argument)
 			imageSnapshot->serialize(serializedImageSnapshot);
 			std::vector<business_logic::Communication::CanMsg> canMsgChunks;
 			splitCborToCanMsgs(static_cast<uint8_t>(business_logic::Communication::CAN_IDs::LIDAR_3D_IMAGE), serializedImageSnapshot, canMsgChunks);
-			LOG_DEBUG("Sending snapshot to external nodes");
+			LOG_TRACE("Sending snapshot to external nodes");
 			commMng->sendData(canMsgChunks);
-			LOG_DEBUG("Snapshot sent to external nodes");
+			LOG_TRACE("Snapshot sent to external nodes");
 
 		}
 		vTaskDelay( taskSleep );
@@ -73,7 +76,7 @@ void SystemTasksManager::image3dMappingTask(void* argument)
 	LOG_INFO("Starting image3dCapturerTask");
 	//business_logic::ImageCapturer3D* image3dCapturer = reinterpret_cast<business_logic::ImageCapturer3D*>(argument);
 
-	const TickType_t taskSleep = pdMS_TO_TICKS( 2000 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 20000 );
 	m_image3DCapturer->initialize();
   /* Infinite loop */
 
@@ -91,7 +94,7 @@ void SystemTasksManager::image3dMappingTask(void* argument)
 			pxPointerToxMessage = &last3dSample;
 			m_capturesQueue->sendToBack(( void * ) &pxPointerToxMessage);
 			captureId++;
-			LOG_DEBUG("Capturing 3D image done");
+			LOG_TRACE("Capturing 3D image done");
 
 			vTaskDelay( taskSleep );
 		}
@@ -139,7 +142,7 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
 void SystemTasksManager::createPoolTasks()
 {
 	LOG_INFO("Creating pool tasks");
-	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()));
+	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 4096);
 	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dMappingTask, "image3dMappingTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
 	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 4096);
 	LOG_INFO("Created pool tasks");
