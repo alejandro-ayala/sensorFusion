@@ -60,8 +60,9 @@ jobs:
 
   generate-tag:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.base.ref, 'release/')
-
+  if: >
+    github.event.pull_request.merged == true &&
+    (startsWith(github.event.pull_request.base.ref, 'release/'))
     steps:
         - run: |
             echo The PR was merged
