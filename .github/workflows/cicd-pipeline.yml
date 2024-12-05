@@ -4,17 +4,17 @@ env:
   MAIN_BRANCH: "testing-github-workflow"
 
 on:
-  #pull_request:
-  #  types:
-  #    - opened
-  #    - closed
-  #    - synchronize
-  #  branches:
-  #    - testing-github-workflow
-
-  push:
+  pull_request:
+    types:
+      - opened
+      - closed
+      - synchronize
     branches:
       - testing-github-workflow
+
+  #push:
+    #branches:
+      #- testing-github-workflow
 
 jobs:
   version-check:
