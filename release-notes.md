@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version 0.1.6 - 2024-12-05
+
+###  New features
+- ** release
+
 ## Version 0.1.5 - 2024-12-05
 
 ###  New features
