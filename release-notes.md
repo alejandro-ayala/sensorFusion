@@ -4,6 +4,7 @@
 
 ###  New features
 - ** xxxxxxxsdasdas
+- ** xxxxxxxsdasdas
 
 ## Version 0.1.3 - 2024-12-05
 
