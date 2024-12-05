@@ -8,10 +8,7 @@ on:
     types:
       - opened
       - closed
-    branches:
-      - testing-github-workflow
-
-  push:
+      - synchronize
     branches:
       - testing-github-workflow
 
