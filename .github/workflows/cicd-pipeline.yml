@@ -64,4 +64,4 @@ jobs:
 
     steps:
         - run: |
-        echo The PR was merged
+            echo The PR was merged
