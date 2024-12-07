@@ -1,6 +1,6 @@
 # Release Notes
 
-## Version 0.1.3 - 2024-12-07
+## Version 0.1.2 - 2024-12-07
 
 ###  New features
 - **CI/CD pipeline: Release Fix generate tag release job
