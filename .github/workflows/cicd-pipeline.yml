@@ -1,7 +1,7 @@
 name: Check Version Increment and Generate Tag
 
 env:
-  MAIN_BRANCH: "testing-github-workflow"
+  MAIN_BRANCH: "create-platform-2"
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
       - closed
       - synchronize
     branches:
-      - testing-github-workflow
+      - create-platform-2
 
 jobs:
   version-check:
