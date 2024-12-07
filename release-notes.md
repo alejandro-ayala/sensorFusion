@@ -1,5 +1,10 @@
 # Release Notes
 
+## Version 0.1.1 - 2024-12-07
+
+###  Fix
+- **CI/CD pipeline: Fix generate tag release job when merged is done
+
 ## Version 0.1.0 - 2024-12-01
 
 ###  New features
