@@ -40,14 +40,15 @@ void CommunicationManager::sendData(IData msg)
 
 void CommunicationManager::sendData(const std::vector<business_logic::Communication::CanMsg>& dataToSend)
 {
-    const uint8_t msgToSend = dataToSend.size();
+    const size_t msgToSend = dataToSend.size();
 
-    for(int currentMsgIndex = 0; currentMsgIndex < msgToSend; currentMsgIndex++)
+    for(size_t currentMsgIndex = 0; currentMsgIndex < msgToSend; currentMsgIndex++)
     {
     	const auto& frame = dataToSend.at(currentMsgIndex);
         uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0};
         data[0] = frame.canMsgId;
-        data[1] = frame.canMsgIndex;
+        data[1] = frame.lsbCanMsgIndex;
+        data[2] = frame.msbCanMsgIndex;
         uint8_t dataSize = ID_FIELD_SIZE + frame.payloadSize;
         for (uint8_t i = ID_FIELD_SIZE; i < MAXIMUM_CAN_MSG_SIZE; i++)
         {
@@ -57,7 +58,8 @@ void CommunicationManager::sendData(const std::vector<business_logic::Communicat
         canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::LIDAR_3D_IMAGE), data, dataSize);
         //TODO check and remove the delay
         const uint8_t delayBetweenFrames = 2;
-        //LOG_DEBUG("Send CAN msgId: ", frame.canMsgId, " msgIndex: " , frame.canMsgIndex);
+        const size_t msgIndex = ((frame.msbCanMsgIndex << 8) | frame.lsbCanMsgIndex);
+        LOG_TRACE("Send CAN msgId: ", frame.canMsgId, " msgIndex: " , std::to_string(msgIndex), " -- currentMsgIndex: ", std::to_string(currentMsgIndex));
         for (int Delay = 0; Delay < 0xFFFF; Delay++);
     }
 }

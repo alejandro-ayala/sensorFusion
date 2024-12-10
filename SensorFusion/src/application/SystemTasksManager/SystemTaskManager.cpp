@@ -50,21 +50,23 @@ void SystemTasksManager::communicationTask(void* argument)
 
 	while(1)
 	{
+		static uint8_t msgId = 0;
 		if(isPendingData())
 		{
-			LOG_DEBUG("Sending last capture to master node");
+
 			business_logic::LidarArray* lastCapture;
 
 			//getNextImage(lastCapture);
 			m_capturesQueue->receive((void*&)lastCapture);
-			auto imageSnapshot = std::make_unique<business_logic::Image3DSnapshot>(0x01, 0x00, std::make_shared<business_logic::LidarArray>(*lastCapture), lastCapture->size(), 0x34567811);
+			auto imageSnapshot = std::make_unique<business_logic::Image3DSnapshot>(msgId, 0x00, std::make_shared<business_logic::LidarArray>(*lastCapture), lastCapture->size(), 0x34567811);
 			std::vector<uint8_t> serializedImageSnapshot;
 			imageSnapshot->serialize(serializedImageSnapshot);
 			std::vector<business_logic::Communication::CanMsg> canMsgChunks;
-			splitCborToCanMsgs(static_cast<uint8_t>(business_logic::Communication::CAN_IDs::LIDAR_3D_IMAGE), serializedImageSnapshot, canMsgChunks);
-			LOG_TRACE("Sending snapshot to external nodes");
+			splitCborToCanMsgs(msgId, serializedImageSnapshot, canMsgChunks);
+			LOG_DEBUG("Sending last capture to master node with: ", std::to_string(canMsgChunks.size()), " CAN messages");
 			commMng->sendData(canMsgChunks);
 			LOG_TRACE("Snapshot sent to external nodes");
+			msgId++;
 
 		}
 		vTaskDelay( taskSleep );
@@ -118,15 +120,26 @@ void SystemTasksManager::getNextImage(std::array<business_logic::LidarPoint, bus
 void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<uint8_t>& cborSerializedChunk, std::vector<business_logic::Communication::CanMsg>& canMsgChunks)
 {
     size_t totalBytes = cborSerializedChunk.size();
-    size_t payloadSize = MAXIMUM_CAN_MSG_SIZE - 2;
+    size_t payloadSize = MAXIMUM_CAN_MSG_SIZE - ID_FIELD_SIZE;
     size_t numberOfMsgs = (totalBytes + payloadSize - 1) / payloadSize;
 
     for (size_t i = 0; i < numberOfMsgs; ++i)
     {
         business_logic::Communication::CanMsg canMsg;
 
-        canMsg.canMsgId =canMsgId;
-        canMsg.canMsgIndex = static_cast<uint8_t>(i);
+        canMsg.canMsgId = canMsgId;
+        if(i == (numberOfMsgs - 1))
+        {
+            canMsg.lsbCanMsgIndex = 0xFF;
+            canMsg.msbCanMsgIndex = 0xFF;
+        }
+        else
+        {
+            canMsg.lsbCanMsgIndex = static_cast<uint8_t>(i & 0xFF);
+            canMsg.msbCanMsgIndex = static_cast<uint8_t>((i & 0xFF00) >> 8);
+        }
+
+
         size_t startIdx = i * payloadSize;
         size_t endIdx = std::min(startIdx + payloadSize, totalBytes);
         canMsg.payloadSize = endIdx - startIdx;

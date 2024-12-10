@@ -29,7 +29,7 @@ def send_periodic_messages():
         current_time_ns = time.time_ns()
         seconds = current_time_ns // 1_000_000_000  # Segundos actuales
         nanoseconds = current_time_ns % 1_000_000_000  # Porción de nanosegundos
-        print(f"Segundos: {seconds}, Nanosegundos: {nanoseconds}")
+        #print(f"Segundos: {seconds}, Nanosegundos: {nanoseconds}")
 
         # Serializa segundos y nanosegundos en 4 bytes (big-endian)
         sec_bytes = struct.pack('>I', seconds)  # 4 bytes para los segundos
@@ -47,10 +47,10 @@ def send_periodic_messages():
         )       
         try:
             bus.send(syncMessage)
-            print("syncMessage")
+            #print("syncMessage")
             time.sleep(0.1)  # Pequeño retraso entre mensajes consecutivos
             bus.send(followUpMessage)
-            print("followUpMessage")
+            #print("followUpMessage")
             time.sleep(updateGlobalClkPeriod)  # Tiempo entre envíos periódicos (ajústalo según sea necesario)
         except can.CanError as e:
             print(f"Error enviando mensaje: {e}")
