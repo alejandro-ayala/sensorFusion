@@ -18,6 +18,7 @@ private:
 	Controllers::SPIController* spiControl;
 	SPIConfig xspiConfig;
 	int deviceId;
+	bool m_initialized;
 
 	void modifyRegister(uint8_t reg, uint8_t mask, uint8_t value);
 	void writeRegister(uint8_t reg, uint8_t *data, uint32_t nData);

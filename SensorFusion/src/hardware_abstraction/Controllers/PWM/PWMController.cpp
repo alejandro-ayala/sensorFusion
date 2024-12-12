@@ -13,7 +13,7 @@ namespace Controllers
 #define PWM_CLK_INPUT 50000000
 #define PWM_CHANNELS 4
 
-PWMController::PWMController(const PWMConfig& config) : IController("PWMController"), m_pwmBaseAddr(XPAR_PWM_SERVOS_PWM_AXI_BASEADDR), m_pwmFreq_Hz(config.pwmFreq), m_pwmIndex(config.pwmIndex)
+PWMController::PWMController(const PWMConfig& config) : IController("PWMController"), m_pwmBaseAddr(XPAR_PWM_MOTOR_PWM_AXI_BASEADDR), m_pwmFreq_Hz(config.pwmFreq), m_pwmIndex(config.pwmIndex)
 {
 
 }
