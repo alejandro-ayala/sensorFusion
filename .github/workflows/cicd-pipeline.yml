@@ -1,7 +1,7 @@
 name: Check Version Increment and Generate Tag
 
 env:
-  MAIN_BRANCH: "create-platform"
+  MAIN_BRANCH: "master"
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
       - closed
       - synchronize
     branches:
-      - create-platform
+      - master
 
 jobs:
   version-check:
