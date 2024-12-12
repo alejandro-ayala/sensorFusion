@@ -90,5 +90,11 @@ TimeStamp SharedClockSlaveManager::getTimeReference() const
 {
 	return globalTimeStamp;
 }
+
+uint64_t SharedClockSlaveManager::getLocalTime() const
+{
+	return timeController->getLocalTime();
+}
+
 }
 }

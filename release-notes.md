@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 0.1.2 - 2024-12-12
+
+###  Feature
+- **Communication task: 
+        ***Send data over standard CAN.
+        ***Add timestamp to 3dImage snapshot.
+        ***Add 2 bytes for identify CAN frame (LSB and MSB) and pattern to identify EOF. 
+- **Scripts: Added master node simulator with Image3D reception and send global time
+###  Fix
+- **Global time sync task: fix issues with CAN frame index 
+
 ## Version 0.1.1 - 2024-12-07
 
 ###  Fix

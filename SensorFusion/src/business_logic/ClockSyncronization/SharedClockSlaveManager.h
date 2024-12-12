@@ -22,6 +22,7 @@ public:
 	void initialization();
 	bool getGlobalTime();
 	TimeStamp getTimeReference() const;
+	uint64_t getLocalTime() const;
 };
 }
 }

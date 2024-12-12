@@ -7,10 +7,10 @@ namespace application
 {
 QueueHandle_t xPointerQueue = NULL;
 
-SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) :  m_globalClkMng(systemTaskMngParams.globalClkMng), m_commMng(systemTaskMngParams.commMng)
+SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_commMng(systemTaskMngParams.commMng)
 {
 	m_image3DCapturer = std::move(systemTaskMngParams.image3dCapturer);
-
+	m_globalClkMng    = std::move(systemTaskMngParams.globalClkMng);
 	uint32_t queueItemSize   = sizeof(business_logic::LidarArray*); //sizeof(business_logic::Image3DSnapshot*);
 	uint32_t queueLength     = 10;
 	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
@@ -20,19 +20,18 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) :  m_gl
 
 void SystemTasksManager::globalClockSyncronization(void* argument)
 {
-	business_logic::ClockSyncronization::SharedClockSlaveManager* timeBaseMng = reinterpret_cast<business_logic::ClockSyncronization::SharedClockSlaveManager*>(argument);
 	LOG_INFO("Starting globalClockSyncronization");
 
-	timeBaseMng->initialization();
+	m_globalClkMng->initialization();
 	const TickType_t taskSleep = pdMS_TO_TICKS( 100 );
 
 	while(1)
 	{
 		LOG_TRACE("Updating global master time");
-		const bool isTimeUpdated = timeBaseMng->getGlobalTime();
+		const bool isTimeUpdated = m_globalClkMng->getGlobalTime();
 		if(isTimeUpdated)
 		{
-			const auto updatedTime = timeBaseMng->getTimeReference().toNs();
+			const auto updatedTime = m_globalClkMng->getTimeReference().toNs();
 			LOG_INFO("Updated global master time: ", updatedTime);
 		}
 		vTaskDelay( taskSleep );
@@ -58,7 +57,8 @@ void SystemTasksManager::communicationTask(void* argument)
 
 			//getNextImage(lastCapture);
 			m_capturesQueue->receive((void*&)lastCapture);
-			auto imageSnapshot = std::make_unique<business_logic::Image3DSnapshot>(msgId, 0x00, std::make_shared<business_logic::LidarArray>(*lastCapture), lastCapture->size(), 0x34567811);
+			auto imageSnapshot = std::make_unique<business_logic::Image3DSnapshot>(msgId, 0x00, std::make_shared<business_logic::LidarArray>(*lastCapture), lastCapture->size(), m_lastCaptureTimestampStart, m_lastCaptureTimestampEnd);
+			LOG_DEBUG("3D image ID: " , std::to_string(msgId), " -- size: ", std::to_string(lastCapture->size()));
 			std::vector<uint8_t> serializedImageSnapshot;
 			imageSnapshot->serialize(serializedImageSnapshot);
 			std::vector<business_logic::Communication::CanMsg> canMsgChunks;
@@ -88,10 +88,16 @@ void SystemTasksManager::image3dMappingTask(void* argument)
 		try
 		{
 			LOG_DEBUG("Capturing 3D image");
+			m_lastCaptureTimestampStart = m_globalClkMng->getLocalTime();
 			m_image3DCapturer->captureImage();
 
 			auto last3dSample = m_image3DCapturer->getLastCapture();
+			m_lastCaptureTimestampEnd = m_globalClkMng->getLocalTime();
+			const auto captureDeltaTime = m_lastCaptureTimestampEnd - m_lastCaptureTimestampStart;
+			LOG_DEBUG("Start capture at ", std::to_string(m_lastCaptureTimestampStart));
+			LOG_DEBUG("End capture at ", std::to_string(m_lastCaptureTimestampEnd));
 
+			LOG_DEBUG("3D image captured in ", std::to_string(captureDeltaTime), " ns");
 			business_logic::LidarArray* pxPointerToxMessage;
 			pxPointerToxMessage = &last3dSample;
 			m_capturesQueue->sendToBack(( void * ) &pxPointerToxMessage);

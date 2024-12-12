@@ -37,6 +37,7 @@ class Image3DSnapshot:
             self.img_size = self.deserialized_data.get('imgSize', None)
             self.img_buffer = self.deserialized_data.get('m_image3d', None)
             self.timestamp = self.deserialized_data.get('timestamp', None)
+            self.captureDeltaTime = self.deserialized_data.get('captureDeltaTime', None)
 
         except Exception as e:
             print(f"Error deserializando la secuencia de bytes: {e}")
@@ -47,6 +48,7 @@ class Image3DSnapshot:
             print(f"msgId: {self.msg_id}")
             print(f"imgSize: {self.img_size}")
             print(f"timestamp: {self.timestamp}")
+            print(f"captureDeltaTime: {self.captureDeltaTime}")
 
             if self.img_buffer:
                 # Mostrar algunos bytes del buffer de imagen para verificar
@@ -69,10 +71,17 @@ class Image3DSnapshot:
                 file.write(f"msgId: {self.msg_id}\n")
                 file.write(f"imgSize: {self.img_size}\n")
                 file.write(f"timestamp: {self.timestamp}\n")
+                file.write(f"captureDeltaTime: {self.captureDeltaTime}\n")
 
-            if self.img_buffer:
-             
-                file.write(f"imgBuffer (dict): {str(self.img_buffer)}\n")
+                if self.img_buffer:
+                    for index, entry in enumerate(self.img_buffer):
+                        # Extraer los valores del diccionario
+                        angle_servo_h = entry.get('angleServoH', 'N/A')
+                        angle_servo_v = entry.get('angleServoV', 'N/A')
+                        point_distance = entry.get('pointDistance', 'N/A')
+                        # Escribir el índice junto con los valores extraídos
+                        #file.write(f"Índice: {index}, angleServoH: {angle_servo_h}, angleServoV: {angle_servo_v}, pointDistance: {point_distance}\n")
+                        file.write(f"{angle_servo_h} , {angle_servo_v} , {point_distance} \n")
             #    else:
             #        # Si img_buffer no es un diccionario, manejarlo como en el ejemplo anterior
             #        img_buffer_bytes = bytearray(self.img_buffer)  # Convertir lista a bytearray
@@ -161,7 +170,7 @@ def receive_can_messages():
                     assembledData = assembler.assemble_data(msg.data[0])
                     snapshot = Image3DSnapshot(assembledData.hex())
                     snapshot.deserialize()
-                    snapshot.print_fields()
+                    #snapshot.print_fields()
                     snapshot.write_to_file(os.path.join(".", f"image_{msg.data[0]}.txt"))
 # Función para enviar mensajes periódicos en formato estándar
 def send_periodic_messages():
