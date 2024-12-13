@@ -53,7 +53,7 @@ void ImageCapturer3D::captureImage()
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
-			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
+			m_3DImage[image3dSize] = CartesianLidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
 		}
 
@@ -64,7 +64,7 @@ void ImageCapturer3D::captureImage()
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
-			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
+			m_3DImage[image3dSize] = CartesianLidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
 		}
 
@@ -112,7 +112,7 @@ uint16_t ImageCapturer3D::getDistanceMedian(std::array<uint16_t, IMAGE3D_SAMPLES
 
 }
 
-LidarArray ImageCapturer3D::getLastCapture()
+CartesianLidarArray ImageCapturer3D::getLastCapture()
 {
 	return m_3DImage;
 }

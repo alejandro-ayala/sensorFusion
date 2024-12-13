@@ -5,6 +5,7 @@
 #include "business_logic/ClockSyncronization/TimeBaseManager.h"
 #include "TaskParams.h"
 #include "business_logic/Communication/CanMsg.h"
+#include "Definitions.h"
 #include <memory>
 #include <vector>
 

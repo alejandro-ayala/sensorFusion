@@ -76,12 +76,12 @@ class Image3DSnapshot:
                 if self.img_buffer:
                     for index, entry in enumerate(self.img_buffer):
                         # Extraer los valores del diccionario
-                        angle_servo_h = entry.get('angleServoH', 'N/A')
-                        angle_servo_v = entry.get('angleServoV', 'N/A')
-                        point_distance = entry.get('pointDistance', 'N/A')
+                        xCoord = entry.get('xCoord', 'N/A')
+                        yCoord = entry.get('yCoord', 'N/A')
+                        zCoord = entry.get('zCoord', 'N/A')
                         # Escribir el índice junto con los valores extraídos
                         #file.write(f"Índice: {index}, angleServoH: {angle_servo_h}, angleServoV: {angle_servo_v}, pointDistance: {point_distance}\n")
-                        file.write(f"{angle_servo_h} , {angle_servo_v} , {point_distance} \n")
+                        file.write(f"{xCoord} , {yCoord} , {zCoord} \n")
             #    else:
             #        # Si img_buffer no es un diccionario, manejarlo como en el ejemplo anterior
             #        img_buffer_bytes = bytearray(self.img_buffer)  # Convertir lista a bytearray

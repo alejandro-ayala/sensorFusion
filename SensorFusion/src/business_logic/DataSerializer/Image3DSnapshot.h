@@ -2,7 +2,7 @@
 
 #include "ISerializableMessage.h"
 #include <iostream>
-#include "business_logic/ImageCapturer3D/LidarPoint.h"
+#include "business_logic/ImageCapturer3D/CartesianLidarPoint.h"
 #include "business_logic/ImageCapturer3D/ImageCapturer3DConfig.h"
 #include "services/Exception/SystemExceptions.h"
 #include "json/include/nlohmann/json.hpp"
@@ -10,27 +10,27 @@
 namespace business_logic
 {
 
-inline void to_json(nlohmann::json& j, const LidarPoint& point)
+inline void to_json(nlohmann::json& j, const CartesianLidarPoint& point)
 {
 	    j = nlohmann::json{
-	        {"pointDistance", point.m_pointDistance},
-	        {"angleServoH", point.m_angleServoH},
-	        {"angleServoV", point.m_angleServoV}
+	        {"xCoord", point.xCoord},
+	        {"yCoord", point.yCoord},
+	        {"zCoord", point.zCoord}
 	    };
 }
 
-inline void from_json(const nlohmann::json& j, LidarPoint& point)
+inline void from_json(const nlohmann::json& j, CartesianLidarPoint& point)
 {
-	    j.at("pointDistance").get_to(point.m_pointDistance);
-	    j.at("angleServoH").get_to(point.m_angleServoH);
-	    j.at("angleServoV").get_to(point.m_angleServoV);
+	    j.at("xCoord").get_to(point.xCoord);
+	    j.at("yCoord").get_to(point.yCoord);
+	    j.at("zCoord").get_to(point.zCoord);
 }
 
 class Image3DSnapshot : public ISerializableMessage
 {
 public:
 	Image3DSnapshot() = default;
-	Image3DSnapshot(uint8_t msgId, uint8_t m_msgIndex, const std::shared_ptr<std::array<LidarPoint, IMAGE3D_SIZE>> image3d, uint16_t image3dSize, uint64_t timestamp, uint64_t captureDeltaTime);
+	Image3DSnapshot(uint8_t msgId, uint8_t m_msgIndex, const std::shared_ptr<std::array<CartesianLidarPoint, IMAGE3D_SIZE>> image3d, uint16_t image3dSize, uint64_t timestamp, uint64_t captureDeltaTime);
 	~Image3DSnapshot() = default;
 
     void serialize(std::vector<uint8_t>& serializedData) const override;
@@ -48,7 +48,7 @@ public:
 public:
     uint8_t  m_msgId;
     uint8_t  m_msgIndex;
-    std::shared_ptr<std::array<LidarPoint, IMAGE3D_SIZE>> m_image3d;
+    std::shared_ptr<std::array<CartesianLidarPoint, IMAGE3D_SIZE>> m_image3d;
     uint16_t m_image3dSize;
     uint64_t m_timestamp;
     uint64_t m_captureDeltaTime;
@@ -69,7 +69,7 @@ public:
     {
     	image.m_msgId = j.at("msgId").get<uint8_t>();
     	image.m_image3dSize = j.at("imgSize").get<size_t>();
-        *image.m_image3d = j.template get<std::array<LidarPoint, IMAGE3D_SIZE>>();
+        *image.m_image3d = j.template get<std::array<CartesianLidarPoint, IMAGE3D_SIZE>>();
     	image.m_timestamp = j.at("timestamp").get<uint64_t>();
     	image.m_captureDeltaTime = j.at("captureDeltaTime").get<uint64_t>();
 

@@ -1,9 +1,9 @@
 #pragma once
+#include "Definitions.h"
 #include <stdint.h>
 #include <array>
 namespace business_logic
 {
-static const uint16_t IMAGE3D_SIZE = 2048;
 struct LidarPoint
 {
 	LidarPoint() = default;

@@ -11,7 +11,7 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 {
 	m_image3DCapturer = std::move(systemTaskMngParams.image3dCapturer);
 	m_globalClkMng    = std::move(systemTaskMngParams.globalClkMng);
-	uint32_t queueItemSize   = sizeof(business_logic::LidarArray*); //sizeof(business_logic::Image3DSnapshot*);
+	uint32_t queueItemSize   = sizeof(business_logic::CartesianLidarArray*);
 	uint32_t queueLength     = 10;
 	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 
@@ -53,11 +53,11 @@ void SystemTasksManager::communicationTask(void* argument)
 		if(isPendingData())
 		{
 
-			business_logic::LidarArray* lastCapture;
+			business_logic::CartesianLidarArray* lastCapture;
 
 			//getNextImage(lastCapture);
 			m_capturesQueue->receive((void*&)lastCapture);
-			auto imageSnapshot = std::make_unique<business_logic::Image3DSnapshot>(msgId, 0x00, std::make_shared<business_logic::LidarArray>(*lastCapture), lastCapture->size(), m_lastCaptureTimestampStart, m_lastCaptureTimestampEnd);
+			auto imageSnapshot = std::make_unique<business_logic::Image3DSnapshot>(msgId, 0x00, std::make_shared<business_logic::CartesianLidarArray>(*lastCapture), lastCapture->size(), m_lastCaptureTimestampStart, m_lastCaptureTimestampEnd);
 			LOG_DEBUG("3D image ID: " , std::to_string(msgId), " -- size: ", std::to_string(lastCapture->size()));
 			std::vector<uint8_t> serializedImageSnapshot;
 			imageSnapshot->serialize(serializedImageSnapshot);
@@ -98,7 +98,7 @@ void SystemTasksManager::image3dMappingTask(void* argument)
 			LOG_DEBUG("End capture at ", std::to_string(m_lastCaptureTimestampEnd));
 
 			LOG_DEBUG("3D image captured in ", std::to_string(captureDeltaTime), " ns");
-			business_logic::LidarArray* pxPointerToxMessage;
+			business_logic::CartesianLidarArray* pxPointerToxMessage;
 			pxPointerToxMessage = &last3dSample;
 			m_capturesQueue->sendToBack(( void * ) &pxPointerToxMessage);
 			captureId++;
@@ -161,9 +161,18 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
 void SystemTasksManager::createPoolTasks()
 {
 	LOG_INFO("Creating pool tasks");
-	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 4096);
-	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dMappingTask, "image3dMappingTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
-	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 4096);
+	try
+	{
+		m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 512);
+		m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dMappingTask, "image3dMappingTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096 * 2);
+		m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 4096);
+
+	}
+	catch (const services::BaseException& e)
+	{
+		THROW_SERVICES_EXCEPTION( services::ServicesErrorId::RtosTaskCreationError,  e.what());
+	}
+
 	LOG_INFO("Created pool tasks");
 }
 

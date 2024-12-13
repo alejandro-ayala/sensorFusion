@@ -6,7 +6,7 @@
 namespace business_logic
 {
 
-Image3DSnapshot::Image3DSnapshot(uint8_t msgId, uint8_t msgIndex, const std::shared_ptr<std::array<LidarPoint, IMAGE3D_SIZE>> image3d, uint16_t image3dSize, uint64_t timestamp, uint64_t captureDeltaTime) : m_msgId(msgId), m_msgIndex(msgIndex), m_image3d(image3d), m_image3dSize(image3dSize), m_timestamp(timestamp), m_captureDeltaTime(captureDeltaTime)
+Image3DSnapshot::Image3DSnapshot(uint8_t msgId, uint8_t msgIndex, const std::shared_ptr<std::array<CartesianLidarPoint, IMAGE3D_SIZE>> image3d, uint16_t image3dSize, uint64_t timestamp, uint64_t captureDeltaTime) : m_msgId(msgId), m_msgIndex(msgIndex), m_image3d(image3d), m_image3dSize(image3dSize), m_timestamp(timestamp), m_captureDeltaTime(captureDeltaTime)
 {
 
 }
