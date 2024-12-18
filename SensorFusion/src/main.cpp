@@ -32,6 +32,7 @@
 #include "application/SystemTasksManager/SystemTasksManager.h"
 #include "services/Logger/LoggerMacros.h"
 
+#include "business_logic/ImageCapturer3D/Image3DProjector.h"
 using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
 using namespace business_logic::Conectivity;
@@ -105,9 +106,67 @@ void createApplicationLayerComponents()
 	LOG_DEBUG("Created Application layer components");
 }
 
+void testPointProjector(std::vector<std::vector<float>> matrixA, std::vector<std::vector<float>> matrixB)
+{
+	auto image3dProjector = Image3DProjector();
+
+    try {
+        std::vector<std::vector<float>> result = image3dProjector.multiplyMatrix(matrixA, matrixB);
+
+        std::cout << "Resultado de A x B:\n";
+        for (const auto& row : result) {
+            for (float value : row) {
+                std::cout << value << " ";
+            }
+            std::cout << "\n";
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+}
+
 int main()
 {
+
 	LOG_INFO("*********************Starting Lidar Node Zybo Z7*********************");
+
+//    std::vector<std::vector<float>> matrixA = {
+//        {1.0f, 2.0f},
+//        {3.0f, 4.0F}
+//    };
+//    std::vector<std::vector<float>> matrixB = {
+//            {2.0f, 0.0f},
+//            {1.0f, 3.0F}
+//        };
+//    testPointProjector(matrixA, matrixB);
+//
+//    std::vector<std::vector<float>> matrixC = {
+//        {1.0f, 2.0f, 3.0},
+//        {4.0f, 5.0f, 6.0},
+//    };
+//    std::vector<std::vector<float>> matrixD = {
+//        {7.0f, 8.0f},
+//        {9.0f, 10.0f},
+//        {11.0f, 12.0f}
+//    };
+//    testPointProjector(matrixC, matrixD);
+//
+//    std::vector<std::vector<float>> matrixE = {
+//        {1.0f, 2.0f, 3.0},
+//        {4.0f, 5.0f, 6.0},
+//        {7.0f, 8.0f, 9.0}
+//    };
+//    std::vector<std::vector<float>> matrixF = {
+//        {9.0f, 8.0f, 7.0f},
+//        {6.0f, 5.0f, 4.0f},
+//        {3.0f, 2.0f, 1.0f}
+//    };
+//    testPointProjector(matrixE, matrixF);
+
+	auto image3dProjector = Image3DProjector();
+	CartesianLidarPoint lidarPoint(14,56,77);
+	image3dProjector.project3DPointTo2D(lidarPoint);
 
 	createHardwareAbstractionLayerComponents();
 	createBusinessLogicLayerComponents();

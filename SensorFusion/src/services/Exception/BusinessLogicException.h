@@ -14,7 +14,8 @@ enum BusinessLogicErrorId
 	CameraTimeout,
 	MemoryAllocationFailed,
 	InvalidArgument,
-	SerializationError
+	SerializationError,
+	MatrixDimensionError
 };
 
 class BusinessLogicException : public BaseException
