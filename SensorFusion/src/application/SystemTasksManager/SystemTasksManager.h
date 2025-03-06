@@ -23,7 +23,7 @@ private:
 
 	TaskParams m_taskParam;
 	static inline std::unique_ptr<business_logic::ImageCapturer3D> m_image3DCapturer;
-	static inline std::shared_ptr<business_logic::ClockSyncronization::SharedClockSlaveManager> m_globalClkMng;
+	static inline std::shared_ptr<business_logic::ClockSyncronization::TimeBaseManager> m_globalClkMng;
 	std::shared_ptr<business_logic::Communication::CommunicationManager> m_commMng;
 	static inline uint64_t m_lastCaptureTimestampStart = 0;
 	static inline uint64_t m_lastCaptureTimestampEnd = 0;

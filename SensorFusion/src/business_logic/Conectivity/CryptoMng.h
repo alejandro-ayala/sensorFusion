@@ -9,7 +9,6 @@ extern "C" {
 }
 #endif
 #include <business_logic/Conectivity/HTTPConnectionTypes.h>
-#include "TestInclude.h"
 #include <business_logic/Conectivity/SocketController.h>
 
 

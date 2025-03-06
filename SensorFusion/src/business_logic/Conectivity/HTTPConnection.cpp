@@ -11,7 +11,6 @@
 
 #include <business_logic/Conectivity/HTTPConnection.h>
 #include <business_logic/Conectivity/CryptoMng.h>
-#include "Tools/Logger.h"
 #include "ProjectExceptions.h"
 
 using namespace std;

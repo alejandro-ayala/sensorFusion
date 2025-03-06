@@ -1,7 +1,9 @@
 #include <business_logic/ClockSyncronization/CanSyncMessages.h>
 #include <business_logic/ClockSyncronization/TimeBaseManager.h>
 #include <business_logic/Communication/CanIDs.h>
-
+#include "Logger/LoggerMacros.h"
+#include <ctime>
+#include <cstdio>
 
 namespace business_logic
 {
@@ -10,11 +12,9 @@ using namespace hardware_abstraction::Controllers;
 using namespace Communication;
 namespace ClockSyncronization
 {
-TimeBaseManager::TimeBaseManager(TimeController* timecontroller,
-		CanController* icomm,
-		Conectivity::HTTPClient* httpclient) :
-		timeController(timecontroller), canController(icomm), httpClient(
-				httpclient), seqCounter(0) {
+TimeBaseManager::TimeBaseManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& icomm/*, const std::shared_ptr<Conectivity::HTTPClient>& httpclient*/) :
+		timeController(timecontroller), canController(icomm), /*httpClient(
+				httpclient),*/ seqCounter(0) {
 
 }
 
@@ -41,30 +41,34 @@ void TimeBaseManager::syncTimeReference()
 {
 	//static const cstring url = "http://worldtimeapi.org/api/timezone/Europe/Madrid";
 	//auto response = httpClient->getRequest(url);
-	cstring response2 = "Wed Jul 15 09:15:00 2020";
-	globalTimeReference = getReferenceTime(response2);
+	cstring response2 = "Thu Mar 06 22:34:41 2025";
+	globalTimeReference = parseReferenceTime(response2);
+}
+
+uint64_t TimeBaseManager::getAbsotuleTime() const
+{
+	return globalTimeReference.toNs() + timeController->getCurrentNsecTime();
 }
 
 void TimeBaseManager::sendSyncMessage()
 {
 	CanSyncMessage syncMsg;
 
-	globalTimeStamp.t_0_c   = timeController->getCurrentNsecTime();
+	globalTimeStamp.t_0_c = getAbsotuleTime();
 	globalTimeStamp.seconds = globalTimeStamp.t_0_c/1000000000; // Get second portion
 	globalTimeStamp.nanoseconds = globalTimeStamp.t_0_c - globalTimeStamp.seconds * 1000000000;  //Get ns portion
 	//syncMsg.crc = 0;//TODO add CRC calculation
 	syncMsg.secCounter = seqCounter;
 	//syncMsg.userByte = 0;//TODO check why it is needed
 	syncMsg.syncTimeSec = globalTimeStamp.seconds;
-	uint8_t* serializedMsg;
+	uint8_t serializedMsg[8];
+
 	uint8_t frameSize = syncMsg.serialize(serializedMsg);
-	xil_printf(
-			"SYNC -- type: %02x, crc: %02x, cnt: %02x, uByte: %02x, sec: %d \n\r",
-			syncMsg.type, syncMsg.crc,
-			syncMsg.secCounter, syncMsg.userByte,
-			syncMsg.syncTimeSec);
+
 	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
 	globalTimeStamp.tx_stamp = timeController->getCurrentNsecTime();
+	LOG_TRACE("SYNC -- sec:",  std::to_string(syncMsg.syncTimeSec) );
+	return;
 }
 
 void TimeBaseManager::sendFollowUpMessage()
@@ -80,39 +84,63 @@ void TimeBaseManager::sendFollowUpMessage()
 
 	fupMsg.syncTimeNSec = t_tx;
 
-	uint8_t* serializedMsg;
+	uint8_t serializedMsg[8];
 	uint8_t frameSize = fupMsg.serialize(serializedMsg);
-	xil_printf(
-			"FUP -- type: %02x, crc: %02x, cnt: %02x, ovf: %02x, nsec: %d \n\r",
-			fupMsg.type, fupMsg.crc,
-			fupMsg.secCounter, fupMsg.overflowSeconds,
-			fupMsg.syncTimeNSec);
 
 	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
+	LOG_TRACE("FUP -- nsec:", std::to_string(fupMsg.syncTimeNSec));
 }
 
 void TimeBaseManager::sendGlobalTime()
 {
 	sendSyncMessage();
-
 	sendFollowUpMessage();
 	seqCounter++;
 }
 
-TimeBaseRef TimeBaseManager::getReferenceTime(cstring response)
-{
-	//TODO parse response to TimeBaseRef
-	TimeBaseRef timeRef;
-	timeRef.unixTime = 1673181202; //seconds
-	timeRef.utcDateTime = "2023-01-08T12:33:22+00:00";
-	timeRef.year = 2023;
-	timeRef.month = 1;
-	timeRef.day = 8;
-	timeRef.hour = 12;
-	timeRef.min = 33;
-	timeRef.sec = 22;
-	return timeRef;
-}
 
+TimeBaseRef TimeBaseManager::parseReferenceTime(const std::string& response) {
+    struct std::tm tm = {};
+    char weekDay[4], month[4];
+
+    // Parsea la fecha con sscanf (formato: "Wed Jul 15 09:15:00 2020")
+    if (sscanf(response.c_str(), "%3s %3s %d %d:%d:%d %d",
+               weekDay, month, &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec, &tm.tm_year) != 7) {
+        throw std::runtime_error("Error parsing date");
+    }
+
+    // Convertir el mes de texto a número
+    const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    for (int i = 0; i < 12; ++i) {
+        if (std::string(month) == months[i]) {
+            tm.tm_mon = i;
+            break;
+        }
+    }
+
+    // Ajustar año para tm struct (años desde 1900)
+    tm.tm_year -= 1900;
+    tm.tm_isdst = -1;  // Dejar que el sistema determine si hay horario de verano
+
+    // Convertir a tiempo UNIX
+    time_t unixTime = std::mktime(&tm);
+
+    // Formatear la fecha en formato ISO 8601
+    char isoDate[30];
+    std::strftime(isoDate, sizeof(isoDate), "%Y-%m-%dT%H:%M:%S%z", &tm);
+
+    // Construir el objeto TimeBaseRef
+    TimeBaseRef timeRef;
+    timeRef.unixTime = unixTime;
+    timeRef.utcDateTime = isoDate;
+    timeRef.year = tm.tm_year + 1900;
+    timeRef.month = tm.tm_mon + 1;
+    timeRef.day = tm.tm_mday;
+    timeRef.hour = tm.tm_hour;
+    timeRef.min = tm.tm_min;
+    timeRef.sec = tm.tm_sec;
+
+    return timeRef;
+}
 }
 }

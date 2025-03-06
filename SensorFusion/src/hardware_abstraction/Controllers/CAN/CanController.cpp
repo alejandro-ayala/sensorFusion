@@ -9,6 +9,7 @@ namespace Controllers
 
 CanController::CanController() : m_initialized(false)
 {
+	canMutex = std::make_shared<business_logic::Osal::MutexHandler>();
 	xspiConfig.spiConfiguration = {0,0,1,0,1,8,0,0,0,0,0};
 	xspiConfig.gpioAddress      = XPAR_PMODCAN_0_AXI_LITE_GPIO_BASEADDR;
 	xspiConfig.spiBaseAddress   = XPAR_PMODCAN_0_AXI_LITE_SPI_BASEADDR;
@@ -56,7 +57,6 @@ void CanController::configureTransceiver(uint8_t mode)
    clearRegister(0x40, 14);
    clearRegister(0x50, 14);
 
-   // Set the CAN mode for any message type
    modifyRegister(CAN_RXB0CTRL_REG_ADDR, 0x64, 0x60);
 
    // Set CAN control mode to selected mode (exit configuration)
@@ -104,19 +104,19 @@ int CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
 		message.data[i] = txMsg[i];
 	}
 
-	//xil_printf("Waiting to send\r\n");
+	canMutex->lock();
 	do
 	{
 	  status = spiControl->readRegister(CAN_READSTATUS_CMD);
 	} while ((status & CAN_STATUS_TX0REQ_MASK) != 0); // Wait for buffer 0 to be clear
 
 
-	//xil_printf("sending ");
+	//LOG_TRACE("sending ");
 
 
 	modifyRegister(CAN_CANINTF_REG_ADDR, CAN_CANINTF_TX0IF_MASK, 0);
 
-	//xil_printf("requesting to transmit message through transmit buffer 0 \\r\n");
+	//LOG_TRACE("requesting to transmit message through transmit buffer 0 \\r\n");
 
 
 	transmit(message);
@@ -126,8 +126,9 @@ int CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
 	do
 	{
 	 status = spiControl->readRegister(CAN_READSTATUS_CMD);//CAN_ReadStatus(&myDevice);
-	 //xil_printf("Waiting to complete transmission\r\n");
+	 //LOG_TRACE("Waiting to complete transmission\r\n");
 	} while ((status & CAN_STATUS_TX0IF_MASK) != 0); // Wait for message to transmit successfully
+	canMutex->unlock();
 	return 1;
 }
 
@@ -186,9 +187,9 @@ void CanController::transmit(CanFrame msg)
 	for (uint8_t i = 0; i < msg.dlc; i++)
 	  data[i + 5] = msg.data[i];
 
-//	//xil_printf("CAN_SendMessage msg.dlc: %02x\r\n", msg.dlc);
+//	LOG_TRACE("CAN_SendMessage msg.dlc: %02x\r\n", msg.dlc);
 //	for (uint8_t i = 0; i < 5 + msg.dlc; i++)
-//	  //xil_printf("CAN_SendMessage: %02x\r\n", data[i]);
+//	  LOG_TRACE("CAN_SendMessage: %02x\r\n", data[i]);
 
 	//CAN_LoadTxBuffer(InstancePtr, load_start_addr, data, message.dlc + 5);
 	loadTxBuffer(load_start_addr, data, msg.dlc + 5);
@@ -204,6 +205,7 @@ void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
 	switch (target)
 	{
 	case CAN_Rx0:
+		//LOG_INFO("CAN_Rx0 received");
 		read_start_addr = CAN_READBUF_RXB0SIDH;
 		break;
 	case CAN_Rx1:
@@ -244,32 +246,34 @@ CanFrame CanController::receiveMsg()
 	uint8_t status;
 	uint8_t rx_int_mask;
 	CanFrame rxMsg;
+	canMutex->lock();
 	do {
 	 status = spiControl->readRegister(CAN_READSTATUS_CMD);
-	 ////xil_printf("\r\nWaiting to receive\r\n");
+	 //LOG_TRACE("\r\nWaiting to receive\r\n");
 	} while ((status & CAN_STATUS_RX0IF_MASK) != 0 && (status & CAN_STATUS_RX1IF_MASK) != 0);
 
 	switch (status & 0x03) {
 	case 0b01:
 	case 0b11:
-	 //xil_printf("fetching message from receive buffer 0\r\n");
+		//LOG_TRACE("fetching message from receive buffer 0\r\n");
 	 target = CAN_Rx0;
 	 rx_int_mask = CAN_CANINTF_RX0IF_MASK;
 	 break;
 	case 0b10:
-	 //xil_printf("fetching message from receive buffer 1\r\n");
+		//LOG_TRACE("fetching message from receive buffer 1\r\n");
 	 target = CAN_Rx1;
 	 rx_int_mask = CAN_CANINTF_RX1IF_MASK;
 	 break;
 	default:
-	 ////xil_printf("Error, message not received\r\n");
+	 //LOG_TRACE("Error, message not received\r\n");
 		rxMsg.dlc = 0;
+		canMutex->unlock();
 		return rxMsg;
 	}
 
 	receive(&rxMsg, target);
 	modifyRegister(CAN_CANINTF_REG_ADDR, rx_int_mask, 0);
-
+	canMutex->unlock();
 	return rxMsg;
 }
 

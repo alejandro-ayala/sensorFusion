@@ -10,7 +10,6 @@
 #endif
 #include <business_logic/Conectivity/HTTPConnectionTypes.h>
 #include <business_logic/Conectivity/CryptoMng.h>
-#include "TestInclude.h"
 #include "Definitions.h"
 
 namespace business_logic

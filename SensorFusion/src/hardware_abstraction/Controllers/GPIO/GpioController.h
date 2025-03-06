@@ -2,7 +2,6 @@
 
 #include <hardware_abstraction/Controllers/GPIO/GpioInterface.h>
 #include <hardware_abstraction/Controllers/IController.h>
-#include "TestInclude.h"
 
 namespace hardware_abstraction
 {
@@ -16,7 +15,7 @@ public:
 	GpioController(AxiGpioInterface& gpioIntefaces);
 	virtual ~GpioController();
 
-	TVIRTUAL void initialize() override;
+	void initialize() override;
 
 	void writeGPIO(XGpio *InstancePtr, uint8_t channel, uint32_t mask);
 	uint32_t readGPIO(XGpio *InstancePtr, uint8_t channel);

@@ -1,7 +1,8 @@
 #pragma once
 #include <business_logic/ClockSyncronization/TimeStamp.h>
 #include <hardware_abstraction/Controllers/IController.h>
-#include <hardware_abstraction/Controllers/Timer/ITimer.h>
+#include <hardware_abstraction/Controllers/Timer/ZynqGT.h>
+#include <memory>
 
 namespace business_logic
 {
@@ -10,7 +11,7 @@ namespace ClockSyncronization
 class TimeController : public hardware_abstraction::Controllers::IController
 {
 private:
-	hardware_abstraction::Controllers::ITimer* internalTimer;
+	std::shared_ptr<hardware_abstraction::Controllers::ZynqGT> internalTimer;
 	TimeStamp globalTimeStamp;
 public:
 	TimeController();

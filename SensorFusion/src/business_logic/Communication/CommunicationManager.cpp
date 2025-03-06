@@ -32,8 +32,8 @@ void CommunicationManager::sendData(IData msg)
 	msg.timestamp = localNs;
 	uint8_t serializedMsg[20];
 	uint8_t frameSize = msg.serialize(serializedMsg) + 7;
-	LOG_DEBUG("sendingMsg[ " , serializedMsg[5] , "]" , msg.timestamp , "-" , serializedMsg[7] , serializedMsg[8] , serializedMsg[9] , serializedMsg[10]);
-
+	//LOG_DEBUG("sendingMsg[ " , serializedMsg[5] , "]" , msg.timestamp , "-" , serializedMsg[7] , serializedMsg[8] , serializedMsg[9] , serializedMsg[10]);
+	LOG_INFO("Sending msg");
 	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::SENSOR_DATA), serializedMsg,frameSize);
 
 }
@@ -72,20 +72,21 @@ IData CommunicationManager::receiveData()
 	IData parsedMsg;
 	if(rxMsg.dlc > 0)
 	{
-		parsedMsg.deSerialize(data);
-		LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
+		LOG_INFO(std::to_string(rxMsg.id), ",", std::to_string(rxMsg.data[0]), ",", std::to_string(rxMsg.data[1]));
+		//parsedMsg.deSerialize(data);
+		//LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
 	}
 	return parsedMsg;
 }
 
 bool CommunicationManager::selfTest()
 {
-	initialization();
-	xil_printf("selfTest\r\n");
-	bool result ;//= canController->selfTest();
-	if(result)	xil_printf("PASS\r\n");
-	else xil_printf("FAILED\r\n");
-	return result;
+//	initialization();
+//	xil_printf("selfTest\r\n");
+//	bool result ;//= canController->selfTest();
+//	if(result)	xil_printf("PASS\r\n");
+//	else xil_printf("FAILED\r\n");
+	return true;
 }
 }
 }

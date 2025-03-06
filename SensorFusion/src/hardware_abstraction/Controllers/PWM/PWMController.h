@@ -1,7 +1,6 @@
 #pragma once
 #include <hardware_abstraction/Controllers/IController.h>
 #include "PWMConfig.h"
-#include "TestInclude.h"
 
 namespace hardware_abstraction
 {
@@ -17,15 +16,15 @@ private:
 
 public:
 	PWMController(const PWMConfig& config);
-	TVIRTUAL ~PWMController();
+	~PWMController();
 
-	TVIRTUAL void initialize() override;
-	TVIRTUAL void enable();
-	TVIRTUAL void disable();
-	TVIRTUAL void setDutyCicle(float dutyCycle);
-	TVIRTUAL void setFrequency(uint32_t freq);
-	TVIRTUAL uint32_t getDutyCicle();
-	TVIRTUAL uint32_t getPeriod();
+	void initialize() override;
+	void enable();
+	void disable();
+	void setDutyCicle(float dutyCycle);
+	void setFrequency(uint32_t freq);
+	uint32_t getDutyCicle();
+	uint32_t getPeriod();
 	void setTicksDutyCicle(uint32_t dutyCycle);
 	bool selfTest() override;
 };

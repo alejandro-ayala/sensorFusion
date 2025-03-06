@@ -6,7 +6,6 @@
 #include "../../../external/mbedtls/include/mbedtls/x509.h"
 #endif
 #include <business_logic/Conectivity/CryptoMng.h>
-#include "Tools/Logger.h"
 #include "ProjectExceptions.h"
 #include <business_logic/Conectivity/SocketController.h>
 

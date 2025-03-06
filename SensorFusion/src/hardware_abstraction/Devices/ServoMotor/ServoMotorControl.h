@@ -19,7 +19,7 @@ public:
 	ServoMotorControl(std::unique_ptr<Controllers::PWMController> pwmCtrl);
 	virtual ~ServoMotorControl() = default;
 
-	TVIRTUAL void initialize() override;
+	void initialize() override;
 
 	void setAngle(uint8_t angle);
 	uint8_t getAngle() const;

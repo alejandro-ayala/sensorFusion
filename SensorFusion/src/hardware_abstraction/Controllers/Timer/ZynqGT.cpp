@@ -1,6 +1,7 @@
 #include <hardware_abstraction/Controllers/Timer/ZynqGT.h>
 #include "xtime_l.h"
 #include "xil_io.h"
+#include "services/Logger/LoggerMacros.h"
 
 namespace hardware_abstraction
 {
@@ -9,7 +10,10 @@ namespace Controllers
 
 ZynqGT::ZynqGT() : ITimer() {}
 
-ZynqGT::~ZynqGT(){}
+ZynqGT::~ZynqGT()
+{
+	LOG_DEBUG("TimeController::~TimeController");
+}
 
 void ZynqGT::startTimer()
 {

@@ -1,5 +1,3 @@
-
-#include <hardware_abstraction/Devices/MotorControl/L298Hbridge.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -7,10 +5,10 @@
 #include "xparameters.h"
 #include "netif/xadapter.h"
 #include <platform_config.h>
-#include "xil_printf.h"
 #include <business_logic/Conectivity/ConnectionSettings.h>
 #include <business_logic/Conectivity/CryptoMng.h>
 #include <business_logic/Conectivity/HTTPConnectionTypes.h>
+#include <business_logic/Image3DProjector/Image3DProjector.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -18,10 +16,7 @@
 #include <business_logic/Conectivity/ServerManager.h>
 #include <business_logic/Communication/CommunicationManager.h>
 #include <hardware_abstraction/Controllers/CAN/CanController.h>
-#include <hardware_abstraction/Controllers/I2C/I2CController.h>
-#include <hardware_abstraction/Devices/ServoMotor/ServoMotorControl.h>
 
-#include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
@@ -29,6 +24,7 @@
 
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <business_logic/ClockSyncronization/TimeBaseManager.h>
+#include <business_logic/Conectivity/HTTPClient.h>
 #include "application/SystemTasksManager/SystemTasksManager.h"
 #include "services/Logger/LoggerMacros.h"
 
@@ -40,38 +36,19 @@ using namespace business_logic::ClockSyncronization;
 using namespace business_logic;
 
 
-static std::unique_ptr<PWMController> pwmVertCtrl;
-static std::unique_ptr<ServoMotorControl> verServoControl;
-static std::unique_ptr<PWMController> pwmHortCtrl;
-static std::unique_ptr<ServoMotorControl> horServoControl;
+
 static std::unique_ptr<ImageCapturer3D> image3dCapturer;
-static std::unique_ptr<I2CController> i2cController;
-static std::unique_ptr<GarminV3LiteCtrl> lidarDevice;
 static std::shared_ptr<CommunicationManager> commMng;
-static std::shared_ptr<SharedClockSlaveManager> globalClkMng;
+static std::shared_ptr<TimeBaseManager> globalClkMng;
+static std::shared_ptr<HTTPClient> httpClient;
 static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
 static std::shared_ptr<CanController> canController;
-static std::shared_ptr<HTTPClient> httpClient;
 application::TaskParams systemTaskMngParams;
 
 void createHardwareAbstractionLayerComponents()
 {
-	PWMConfig pwmCfgVer;
-	pwmVertCtrl = std::make_unique<PWMController>(pwmCfgVer);
-	verServoControl = std::make_unique<ServoMotorControl>(std::move(pwmVertCtrl));
-
-	PWMConfig pwmCfgHor;
-	pwmCfgHor.pwmIndex = 0;
-	pwmHortCtrl = std::make_unique<PWMController>(pwmCfgHor);
-	horServoControl = std::make_unique<ServoMotorControl>(std::move(pwmHortCtrl));
-
-	const auto garminLiteV3Addr = (0x62);
-	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
-	i2cController = std::make_unique<I2CController>();
-	lidarDevice   = std::make_unique<GarminV3LiteCtrl>(std::move(i2cController), lidarCfg);
-
 	canController = std::make_shared<CanController>();
 	LOG_INFO("Created Hardware Abstraction layer components");
 }
@@ -80,24 +57,13 @@ void createBusinessLogicLayerComponents()
 {
 	timecontroller = std::make_shared<TimeController>();
 	commMng = std::make_shared<CommunicationManager>(timecontroller, canController);
-
-	ImageCapturer3DConfig image3dConfig;
-	image3dConfig.verServoCtrl = std::move(verServoControl);
-
-	image3dConfig.horServoCtrl = std::move(horServoControl);
-	image3dConfig.lidarCtrl = std::move(lidarDevice);
-	image3dCapturer = std::make_unique<ImageCapturer3D>(image3dConfig);
-	image3dCapturer->initialize();
-
-	globalClkMng = std::make_shared<SharedClockSlaveManager>(timecontroller, canController);
+	//httpClient = std::make_shared<HTTPClient>();
+	globalClkMng = std::make_shared<TimeBaseManager>(timecontroller, canController);//, httpClient);
 	LOG_INFO("Created Business Logic layer components");
-
-
 }
 
 void createApplicationLayerComponents()
 {
-	systemTaskMngParams.image3dCapturer = std::move(image3dCapturer);
 	systemTaskMngParams.globalClkMng    = globalClkMng;
 	systemTaskMngParams.commMng         = commMng;
 	systemTaskHandler = std::make_unique<application::SystemTasksManager>(std::move(systemTaskMngParams));
@@ -107,8 +73,35 @@ void createApplicationLayerComponents()
 
 int main()
 {
-	LOG_INFO("*********************Starting Lidar Node Zybo Z7*********************");
+/************************
+	std::cout << "Starting the program" << std::endl;
 
+	const std::vector<std::vector<float>> lidarData;// = ImageReader().readLidarData();
+
+	auto image3dProjector = Image3DProjector();
+	const auto projectedPoints = image3dProjector.project3DImageTo2D(lidarData);
+
+	uint16_t width = 1240, height = 380;
+	//ImageWriter(width, height, "output.bmp").createBMPImage(projectedPoints);
+	std::cout << "createBMPImage done" << std::endl;
+
+
+	std::vector<std::vector<float>> projectedImg;
+	for(const auto& point : lidarData)
+	{
+
+		Coordinate3DPoint lidarPoint(point[0], point[1], point[2]);
+		const auto projectedPoint = image3dProjector.project3DPointTo2D(lidarPoint);
+		std::vector<float> projectedPointVector{projectedPoint.x, projectedPoint.y, projectedPoint.z};
+		projectedImg.push_back(projectedPointVector);
+	}
+	//ImageWriter(width, height, "output2.bmp").createBMPImage(projectedPoints);
+    return 0;
+
+************************/
+
+
+	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
 	createHardwareAbstractionLayerComponents();
 	createBusinessLogicLayerComponents();
 	createApplicationLayerComponents();

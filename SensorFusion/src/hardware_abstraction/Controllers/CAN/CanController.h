@@ -6,6 +6,8 @@
 #include "sleep.h"
 #include "xil_cache.h"
 #include "xparameters.h"
+#include "business_logic/Osal/MutexHandler.h"
+#include <memory>
 
 
 namespace hardware_abstraction
@@ -19,6 +21,7 @@ private:
 	SPIConfig xspiConfig;
 	int deviceId;
 	bool m_initialized;
+	std::shared_ptr<business_logic::Osal::MutexHandler> canMutex;
 
 	void modifyRegister(uint8_t reg, uint8_t mask, uint8_t value);
 	void writeRegister(uint8_t reg, uint8_t *data, uint32_t nData);
