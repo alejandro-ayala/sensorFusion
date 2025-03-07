@@ -22,8 +22,8 @@ public:
 	virtual ~CommunicationManager();
 
 	void initialization();
-	void sendData(IData msg);
-	void sendData(const std::vector<business_logic::Communication::CanMsg>& dataToSend);
+	bool sendData(IData msg);
+	bool sendData(const std::vector<business_logic::Communication::CanMsg>& dataToSend);
 	IData receiveData(void);
 	bool selfTest();
 

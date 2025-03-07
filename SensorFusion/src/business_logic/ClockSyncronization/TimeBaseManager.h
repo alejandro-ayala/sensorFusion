@@ -18,8 +18,8 @@ private:
 	TimeStamp                      globalTimeStamp;
 	TimeBaseRef                    globalTimeReference;
 	uint8_t                        seqCounter;
-	void sendSyncMessage();
-	void sendFollowUpMessage();
+	bool sendSyncMessage();
+	bool sendFollowUpMessage();
 	void syncTimeReference();
 public:
 	TimeBaseManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& icomm);//, const std::shared_ptr<Conectivity::HTTPClient>& httpclient);

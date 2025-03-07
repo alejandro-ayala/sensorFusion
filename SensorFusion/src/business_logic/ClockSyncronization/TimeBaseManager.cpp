@@ -50,7 +50,7 @@ uint64_t TimeBaseManager::getAbsotuleTime() const
 	return globalTimeReference.toNs() + timeController->getCurrentNsecTime();
 }
 
-void TimeBaseManager::sendSyncMessage()
+bool TimeBaseManager::sendSyncMessage()
 {
 	CanSyncMessage syncMsg;
 
@@ -65,13 +65,17 @@ void TimeBaseManager::sendSyncMessage()
 
 	uint8_t frameSize = syncMsg.serialize(serializedMsg);
 
-	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
-	globalTimeStamp.tx_stamp = timeController->getCurrentNsecTime();
-	LOG_TRACE("SYNC -- sec:",  std::to_string(syncMsg.syncTimeSec) );
-	return;
+	auto result = canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
+	if(result)
+	{
+		globalTimeStamp.tx_stamp = timeController->getCurrentNsecTime();
+		LOG_TRACE("SYNC -- sec:",  std::to_string(syncMsg.syncTimeSec) );
+	}
+
+	return result;
 }
 
-void TimeBaseManager::sendFollowUpMessage()
+bool TimeBaseManager::sendFollowUpMessage()
 {
 	CanFUPMessage fupMsg;
 	uint32_t t_tx  = globalTimeStamp.nanoseconds + (globalTimeStamp.tx_stamp - globalTimeStamp.t_0_c);
@@ -87,8 +91,10 @@ void TimeBaseManager::sendFollowUpMessage()
 	uint8_t serializedMsg[8];
 	uint8_t frameSize = fupMsg.serialize(serializedMsg);
 
-	canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
-	LOG_TRACE("FUP -- nsec:", std::to_string(fupMsg.syncTimeNSec));
+	auto result = canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
+	if(result)
+		LOG_TRACE("FUP -- nsec:", std::to_string(fupMsg.syncTimeNSec));
+	return result;
 }
 
 void TimeBaseManager::sendGlobalTime()

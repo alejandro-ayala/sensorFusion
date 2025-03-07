@@ -4,23 +4,24 @@ namespace hardware_abstraction
 {
 namespace Controllers
 {
-typedef enum CAN_RxBuffer {
-   CAN_Rx0 = 0, CAN_Rx1
-} CAN_RxBuffer;
+enum class CanRxBuffer {
+   CanRx0 = 0, CanRx1, None
+};
 
-typedef enum CAN_TxBuffer {
-   CAN_Tx0 = 0, CAN_Tx1, CAN_Tx2
-} CAN_TxBuffer;
+enum class CanTxBuffer {
+   CanTx0 = 0, CanTx1, CanTx2
+};
 
-typedef enum CAN_Mode {
-   CAN_ModeNormalOperation = 0,
-   CAN_ModeSleep,
-   CAN_ModeLoopback,
-   CAN_ModeListenOnly,
-   CAN_ModeConfiguration = 0x80
-} CAN_Mode;
+enum class CanMode {
+   NormalOperation = 0,
+   Sleep,
+   Loopback,
+   ListenOnly,
+   Configuration = 0x80
+};
 
-typedef struct CanFrame {
+struct CanFrame
+{
    uint16_t id;     // 11 bit id
    uint32_t eid;    // 18 bit extended id
    uint8_t ide;     // 1 to enable sending extended id
@@ -30,7 +31,7 @@ typedef struct CanFrame {
    uint8_t data[8]; // Data buffer
    // Some additional information has not yet been encapsulated here
    // (ex:priority bits), primarily, no TXBxCTRL bits
-} CanFrame;
+};
 
 }
 }

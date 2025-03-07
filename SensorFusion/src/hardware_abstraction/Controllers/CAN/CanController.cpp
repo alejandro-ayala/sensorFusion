@@ -7,18 +7,19 @@ namespace hardware_abstraction
 namespace Controllers
 {
 
+constexpr uint8_t READ_STATUS_REG_RETRIES = 10;
+
 CanController::CanController() : m_initialized(false)
 {
 	canMutex = std::make_shared<business_logic::Osal::MutexHandler>();
 	xspiConfig.spiConfiguration = {0,0,1,0,1,8,0,0,0,0,0};
 	xspiConfig.gpioAddress      = XPAR_PMODCAN_0_AXI_LITE_GPIO_BASEADDR;
 	xspiConfig.spiBaseAddress   = XPAR_PMODCAN_0_AXI_LITE_SPI_BASEADDR;
-	spiControl = new SPIController(xspiConfig);
+	spiControl = std::make_shared<SPIController>(xspiConfig);
 }
 
 CanController::~CanController()
 {
-	delete spiControl;
 }
 
 void CanController::initialize()
@@ -31,7 +32,7 @@ void CanController::initialize()
 	   spiControl->initialize();
 
 
-	   configureTransceiver(CAN_ModeNormalOperation);
+	   configureTransceiver(static_cast<uint8_t>(CanMode::NormalOperation));
 	   m_initialized = true;
 	}
 	else
@@ -45,7 +46,7 @@ void CanController::configureTransceiver(uint8_t mode)
 	uint8_t CNF[3] = {0x86, 0xFB, 0x41};
 
    // Set CAN control mode to configuration
-   modifyRegister(CAN_CANCTRL_REG_ADDR, CAN_CAN_CANCTRL_MODE_MASK, CAN_ModeConfiguration);
+   modifyRegister(CAN_CANCTRL_REG_ADDR, CAN_CAN_CANCTRL_MODE_MASK, static_cast<uint8_t>(CanMode::Configuration));
 
    // Set config rate and clock for CAN
    writeRegister(CAN_CNF3_REG_ADDR, CNF, 3);
@@ -90,7 +91,7 @@ void CanController::clearRegister(uint8_t reg, uint32_t nData)
 	spiControl->writeData(buf, nData + 2, NULL, 0);
 }
 
-int CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
+bool CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
 {
 	CanFrame message;
 	uint8_t status;
@@ -105,31 +106,41 @@ int CanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLength)
 	}
 
 	canMutex->lock();
-	do
+
+	uint8_t waitStatusRegisterRetries = 0;
+	while (status = spiControl->readRegister(CAN_READSTATUS_CMD), (status & CAN_STATUS_TX0REQ_MASK) != 0)
 	{
-	  status = spiControl->readRegister(CAN_READSTATUS_CMD);
-	} while ((status & CAN_STATUS_TX0REQ_MASK) != 0); // Wait for buffer 0 to be clear
-
-
-	//LOG_TRACE("sending ");
-
+		waitStatusRegisterRetries++;
+		if(waitStatusRegisterRetries > READ_STATUS_REG_RETRIES)
+		{
+			LOG_WARNING("Spi status register is not ready");
+			canMutex->unlock();
+			return false;
+		}
+		usleep(100);
+	}
 
 	modifyRegister(CAN_CANINTF_REG_ADDR, CAN_CANINTF_TX0IF_MASK, 0);
-
-	//LOG_TRACE("requesting to transmit message through transmit buffer 0 \\r\n");
-
 
 	transmit(message);
 
 	modifyRegister(CAN_CANINTF_REG_ADDR, CAN_CANINTF_TX0IF_MASK, 0);
 
-	do
+	waitStatusRegisterRetries = 0;
+	while (status = spiControl->readRegister(CAN_READSTATUS_CMD), (status & CAN_STATUS_TX0IF_MASK) != 0)
 	{
-	 status = spiControl->readRegister(CAN_READSTATUS_CMD);//CAN_ReadStatus(&myDevice);
-	 //LOG_TRACE("Waiting to complete transmission\r\n");
-	} while ((status & CAN_STATUS_TX0IF_MASK) != 0); // Wait for message to transmit successfully
+		waitStatusRegisterRetries++;
+		if(waitStatusRegisterRetries > READ_STATUS_REG_RETRIES)
+		{
+			LOG_WARNING("Spi status register is not ready after transmission");
+			canMutex->unlock();
+			return false;
+		}
+		usleep(100);
+	}
+
 	canMutex->unlock();
-	return 1;
+	return true;
 }
 
 void CanController::loadTxBuffer(uint8_t start_addr, uint8_t *data, uint32_t nData)
@@ -153,18 +164,18 @@ void CanController::transmit(CanFrame msg)
 	uint8_t data[13];
 	uint8_t rts_mask;
 	uint8_t load_start_addr;
-	CAN_TxBuffer target = CAN_Tx0;
+	CanTxBuffer target = hardware_abstraction::Controllers::CanTxBuffer::CanTx0;
 	switch (target)
 	{
-	case CAN_Tx0:
+	case hardware_abstraction::Controllers::CanTxBuffer::CanTx0:
 	  rts_mask = CAN_RTS_TXB0_MASK;
 	  load_start_addr = CAN_LOADBUF_TXB0SIDH;
 	  break;
-	case CAN_Tx1:
+	case hardware_abstraction::Controllers::CanTxBuffer::CanTx1:
 	  rts_mask = CAN_RTS_TXB1_MASK;
 	  load_start_addr = CAN_LOADBUF_TXB1SIDH;
 	  break;
-	case CAN_Tx2:
+	case hardware_abstraction::Controllers::CanTxBuffer::CanTx2:
 	  rts_mask = CAN_RTS_TXB2_MASK;
 	  load_start_addr = CAN_LOADBUF_TXB2SIDH;
 	  break;
@@ -187,28 +198,22 @@ void CanController::transmit(CanFrame msg)
 	for (uint8_t i = 0; i < msg.dlc; i++)
 	  data[i + 5] = msg.data[i];
 
-//	LOG_TRACE("CAN_SendMessage msg.dlc: %02x\r\n", msg.dlc);
-//	for (uint8_t i = 0; i < 5 + msg.dlc; i++)
-//	  LOG_TRACE("CAN_SendMessage: %02x\r\n", data[i]);
-
-	//CAN_LoadTxBuffer(InstancePtr, load_start_addr, data, message.dlc + 5);
 	loadTxBuffer(load_start_addr, data, msg.dlc + 5);
-	//CAN_RequestToSend(InstancePtr, rts_mask);
 	requestToSend(rts_mask);
 }
 
-void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
+void CanController::receive(CanFrame *receiveMsg, CanRxBuffer target)
 {
 	uint8_t data[13];
 	uint8_t read_start_addr;
 
 	switch (target)
 	{
-	case CAN_Rx0:
+	case CanRxBuffer::CanRx0:
 		//LOG_INFO("CAN_Rx0 received");
 		read_start_addr = CAN_READBUF_RXB0SIDH;
 		break;
-	case CAN_Rx1:
+	case CanRxBuffer::CanRx1:
 		read_start_addr = CAN_READBUF_RXB1SIDH;
 		break;
 	default:
@@ -232,9 +237,6 @@ void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
 
 	receiveMsg->dlc = data[4] & 0x0F;
 
-	// Read only relevant data bytes
-	//spiControl->readData(CAN_READBUF_CMD | read_start_addr, data, receiveMsg->dlc);
-
 	for (uint8_t i = 0; i < receiveMsg->dlc; i++)
 		receiveMsg->data[i] = data[i + 5];
 }
@@ -242,37 +244,48 @@ void CanController::receive(CanFrame *receiveMsg, CAN_RxBuffer target)
 CanFrame CanController::receiveMsg()
 {
 
-	CAN_RxBuffer target;
+	CanRxBuffer target;
 	uint8_t status;
 	uint8_t rx_int_mask;
 	CanFrame rxMsg;
 	canMutex->lock();
-	do {
-	 status = spiControl->readRegister(CAN_READSTATUS_CMD);
-	 //LOG_TRACE("\r\nWaiting to receive\r\n");
-	} while ((status & CAN_STATUS_RX0IF_MASK) != 0 && (status & CAN_STATUS_RX1IF_MASK) != 0);
-
-	switch (status & 0x03) {
-	case 0b01:
-	case 0b11:
-		//LOG_TRACE("fetching message from receive buffer 0\r\n");
-	 target = CAN_Rx0;
-	 rx_int_mask = CAN_CANINTF_RX0IF_MASK;
-	 break;
-	case 0b10:
-		//LOG_TRACE("fetching message from receive buffer 1\r\n");
-	 target = CAN_Rx1;
-	 rx_int_mask = CAN_CANINTF_RX1IF_MASK;
-	 break;
-	default:
-	 //LOG_TRACE("Error, message not received\r\n");
-		rxMsg.dlc = 0;
-		canMutex->unlock();
-		return rxMsg;
+	uint8_t waitStatusRegisterRetries = 0;
+	while (status = spiControl->readRegister(CAN_READSTATUS_CMD), (status & CAN_STATUS_RX0IF_MASK) != 0 && (status & CAN_STATUS_RX1IF_MASK) != 0)
+	{
+		waitStatusRegisterRetries++;
+		if(waitStatusRegisterRetries > READ_STATUS_REG_RETRIES)
+		{
+			LOG_WARNING("Spi status register is not ready to receive");
+			canMutex->unlock();
+			status = 0;
+			break;
+		}
+		usleep(100);
 	}
 
-	receive(&rxMsg, target);
-	modifyRegister(CAN_CANINTF_REG_ADDR, rx_int_mask, 0);
+	switch (status & 0x03)
+	{
+	case 0b01:
+	case 0b11:
+		 target = CanRxBuffer::CanRx0;
+		 rx_int_mask = CAN_CANINTF_RX0IF_MASK;
+		 break;
+	case 0b10:
+		 target = CanRxBuffer::CanRx1;
+		 rx_int_mask = CAN_CANINTF_RX1IF_MASK;
+		 break;
+	default:
+		target = CanRxBuffer::None;
+		rxMsg.dlc = 0;
+		break;
+	}
+
+	if(target != CanRxBuffer::None)
+	{
+		receive(&rxMsg, target);
+		modifyRegister(CAN_CANINTF_REG_ADDR, rx_int_mask, 0);
+	}
+
 	canMutex->unlock();
 	return rxMsg;
 }
