@@ -7,6 +7,7 @@ namespace business_logic
 {
 namespace Communication
 {
+
 class MsgGateway
 {
 private:
@@ -17,7 +18,7 @@ public:
 	virtual ~MsgGateway() = default;
 
 	void initialization();
-	void storeMsg(const hardware_abstraction::Controllers::CanFrame& frame);
+	void storeMsg(const uint8_t frameId, const std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>& frame);
 	void completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex);
 };
 }

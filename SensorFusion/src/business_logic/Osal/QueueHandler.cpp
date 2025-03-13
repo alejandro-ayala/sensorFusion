@@ -87,9 +87,9 @@ void QueueHandler::sendToFront(const void * itemToQueue, uint32_t timeout)
 	xQueueSendToFront( queue, itemToQueue, static_cast<TickType_t>(timeout));
 }
 	
-void QueueHandler::receive(void*& rxBuffer)
+void QueueHandler::receive(void* rxBuffer)
 {
-    xQueueReceive(queue, &rxBuffer, (TickType_t)10);
+    xQueueReceive(queue, rxBuffer, (TickType_t)10);
     LOG_TRACE("Receiving from queue into buffer: %p", rxBuffer);
     return;
 }

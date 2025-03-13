@@ -80,7 +80,7 @@ void CommunicationManager::receiveData()
 		{
 			msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex);
 		}
-		msgGateway->storeMsg(rxMsg);
+		msgGateway->storeMsg(rxMsg.id, rxMsg.data);
 		lastFrameIndex = rxMsg.data[0];
 		lastCborIndex  = rxMsg.data[1];
 

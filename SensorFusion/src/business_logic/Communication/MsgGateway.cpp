@@ -1,6 +1,8 @@
 
 #include "MsgGateway.h"
 #include "services/Logger/LoggerMacros.h"
+#include <string>
+#include <vector>
 
 namespace business_logic
 {
@@ -15,7 +17,7 @@ enum class CAN_MSG_TYPES
 
 MsgGateway::MsgGateway()
 {
-	uint32_t queueItemSize   = sizeof(hardware_abstraction::Controllers::CanFrame*);
+	uint32_t queueItemSize   = sizeof(std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>);
 	uint32_t queueLength     = 200;
 	m_cameraFramesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 	m_lidarFramesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
@@ -25,17 +27,17 @@ void MsgGateway::initialization()
 
 }
 
-void MsgGateway::storeMsg(const hardware_abstraction::Controllers::CanFrame& frame)
+void MsgGateway::storeMsg(const uint8_t frameId, const std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>& frame)
 {
-	hardware_abstraction::Controllers::CanFrame* newFrame;
-	newFrame = &frame;
-	switch (frame.id)
+	//hardware_abstraction::Controllers::CanFrame* newFrame;
+	//newFrame = &frame;
+	switch (frameId)
 	{
 		case static_cast<uint8_t>(CAN_MSG_TYPES::CAMERA_IMAGE):
-			m_cameraFramesQueue->sendToBack(( void * ) &newFrame);
+			m_cameraFramesQueue->sendToBack(frame.data());
 			break;
 		case static_cast<uint8_t>(CAN_MSG_TYPES::LIDAR_3D_IMAGE):
-			m_lidarFramesQueue->sendToBack(( void * ) &newFrame);
+			m_lidarFramesQueue->sendToBack(frame.data());
 			break;
 		default:
 			break;
@@ -49,15 +51,23 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 		{
 			LOG_INFO("CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs");
 			const auto storedMsg = m_cameraFramesQueue->getStoredMsg();
-			LOG_INFO("Stored frames in CameraImageQueue: ", std::to_string(storedMsg));
+			std::vector<uint8_t> cborFrame;
+			cborFrame.reserve(storedMsg * hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE);
+
 			for(size_t idx = 0; idx < storedMsg; idx++)
 			{
-				hardware_abstraction::Controllers::CanFrame* rxBuffer;
-				m_cameraFramesQueue->receive((void*&)rxBuffer);
-				LOG_INFO("Read frame: ", std::to_string(rxBuffer->id), " index: ", std::to_string(rxBuffer->data[0]), "--", std::to_string(rxBuffer->data[1]));
-				const auto storedMsg = m_cameraFramesQueue->getStoredMsg();
-				LOG_INFO("Stored frames in CameraImageQueue: ", std::to_string(storedMsg));
+				std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE> rxBuffer;
+				m_cameraFramesQueue->receive(rxBuffer.data());
+				cborFrame.insert(cborFrame.end(), rxBuffer.begin(), rxBuffer.end());
+				const std::string stringBuffer =  std::to_string(rxBuffer[0]) + " " + std::to_string(rxBuffer[1]) + " " + std::to_string(rxBuffer[2]) + " " + std::to_string(rxBuffer[3]) + " " + std::to_string(rxBuffer[4]) + " " + std::to_string(rxBuffer[5]) + " " + std::to_string(rxBuffer[6]) + " " + std::to_string(rxBuffer[7]);
+				LOG_TRACE("Read frame: ", stringBuffer);
 			}
+			const auto pendingStoredMsg = m_cameraFramesQueue->getStoredMsg();
+			LOG_INFO("CAMERA_IMAGE frame: Stored frames after read queue: ", std::to_string(pendingStoredMsg));
+			std::string cborStr;
+			for(const auto& element : cborFrame)
+				cborStr += std::to_string(element) + " ";
+			LOG_INFO(cborStr);
 			break;
 		}
 		case static_cast<uint8_t>(CAN_MSG_TYPES::LIDAR_3D_IMAGE):

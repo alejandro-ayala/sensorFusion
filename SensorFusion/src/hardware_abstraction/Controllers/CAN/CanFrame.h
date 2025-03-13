@@ -1,9 +1,11 @@
 #pragma once
-
+#include <array>
 namespace hardware_abstraction
 {
 namespace Controllers
 {
+constexpr uint8_t CAN_DATA_PAYLOAD_SIZE = 8;
+
 enum class CanRxBuffer {
    CanRx0 = 0, CanRx1, None
 };
@@ -28,7 +30,7 @@ struct CanFrame
    uint8_t rtr;     // Remote transmission request bit
    uint8_t srr;     // Standard Frame Remote Transmit Request
    uint8_t dlc;     // Data length
-   uint8_t data[8]; // Data buffer
+   std::array<uint8_t, CAN_DATA_PAYLOAD_SIZE> data; // Data buffer
    // Some additional information has not yet been encapsulated here
    // (ex:priority bits), primarily, no TXBxCTRL bits
 };
