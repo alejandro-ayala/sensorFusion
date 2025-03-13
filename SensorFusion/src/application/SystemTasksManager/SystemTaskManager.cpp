@@ -11,9 +11,6 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 {
 	m_image3DCapturer = std::move(systemTaskMngParams.image3dCapturer);
 	m_globalClkMng    = std::move(systemTaskMngParams.globalClkMng);
-	uint32_t queueItemSize   = sizeof(business_logic::LidarArray*); //sizeof(business_logic::Image3DSnapshot*);
-	uint32_t queueLength     = 10;
-	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 
 	//TODO check not NULL pointers
 }

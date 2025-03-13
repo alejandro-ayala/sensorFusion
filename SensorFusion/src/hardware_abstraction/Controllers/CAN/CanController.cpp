@@ -237,6 +237,7 @@ void CanController::receive(CanFrame *receiveMsg, CanRxBuffer target)
 
 	receiveMsg->dlc = data[4] & 0x0F;
 
+	spiControl->readData(CAN_READBUF_CMD | read_start_addr, data, receiveMsg->dlc);
 	for (uint8_t i = 0; i < receiveMsg->dlc; i++)
 		receiveMsg->data[i] = data[i + 5];
 }

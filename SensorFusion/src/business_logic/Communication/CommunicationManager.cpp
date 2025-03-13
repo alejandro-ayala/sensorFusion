@@ -15,6 +15,7 @@ namespace Communication
 {
 CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& cancontroller)  : timeController(timecontroller), canController(cancontroller)
 {
+	msgGateway = std::make_shared<MsgGateway>();
 }
 
 CommunicationManager::~CommunicationManager()
@@ -67,19 +68,25 @@ bool CommunicationManager::sendData(const std::vector<business_logic::Communicat
     return result;
 }
 
-IData CommunicationManager::receiveData()
+void CommunicationManager::receiveData()
 {
-	uint8_t lenght = 800;
-	uint8_t data[lenght];
-	const auto rxMsg = canController->receiveMsg();
-	IData parsedMsg;
+	auto rxMsg = canController->receiveMsg();
+	static uint8_t lastFrameIndex = 0;
+	static uint8_t lastCborIndex  = 0;
 	if(rxMsg.dlc > 0)
 	{
-		LOG_INFO(std::to_string(rxMsg.id), ",", std::to_string(rxMsg.data[0]), ",", std::to_string(rxMsg.data[1]));
+		LOG_INFO(std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
+		if(lastFrameIndex !=rxMsg.data[0])
+		{
+			msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex);
+		}
+		msgGateway->storeMsg(rxMsg);
+		lastFrameIndex = rxMsg.data[0];
+		lastCborIndex  = rxMsg.data[1];
+
 		//parsedMsg.deSerialize(data);
 		//LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
 	}
-	return parsedMsg;
 }
 
 bool CommunicationManager::selfTest()

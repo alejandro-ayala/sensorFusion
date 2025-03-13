@@ -3,6 +3,7 @@
 #include <business_logic/ClockSyncronization/TimeStamp.h>
 #include <business_logic/Communication/IData.h>
 #include <hardware_abstraction/Controllers/CAN/CanController.h>
+#include "MsgGateway.h"
 #include <memory>
 #include <vector>
 #include "CanMsg.h"
@@ -16,6 +17,8 @@ class CommunicationManager
 private:
 	std::shared_ptr<ClockSyncronization::TimeController> timeController;
 	std::shared_ptr<hardware_abstraction::Controllers::CanController> canController;
+	std::shared_ptr<MsgGateway> msgGateway;
+
 	ClockSyncronization::TimeStamp globalTimeStamp;
 public:
 	CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& cancontroller);
@@ -24,7 +27,7 @@ public:
 	void initialization();
 	bool sendData(IData msg);
 	bool sendData(const std::vector<business_logic::Communication::CanMsg>& dataToSend);
-	IData receiveData(void);
+	void receiveData();
 	bool selfTest();
 
 };
