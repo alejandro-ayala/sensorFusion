@@ -1,5 +1,7 @@
 
 #include "MsgGateway.h"
+#include "business_logic/DataSerializer/DataSerializer.h"
+#include "business_logic/DataSerializer/ImageSnapshot.h"
 #include "services/Logger/LoggerMacros.h"
 #include <string>
 #include <vector>
@@ -58,16 +60,37 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 			{
 				std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE> rxBuffer;
 				m_cameraFramesQueue->receive(rxBuffer.data());
-				cborFrame.insert(cborFrame.end(), rxBuffer.begin(), rxBuffer.end());
-				const std::string stringBuffer =  std::to_string(rxBuffer[0]) + " " + std::to_string(rxBuffer[1]) + " " + std::to_string(rxBuffer[2]) + " " + std::to_string(rxBuffer[3]) + " " + std::to_string(rxBuffer[4]) + " " + std::to_string(rxBuffer[5]) + " " + std::to_string(rxBuffer[6]) + " " + std::to_string(rxBuffer[7]);
-				LOG_TRACE("Read frame: ", stringBuffer);
+				cborFrame.insert(cborFrame.end(), rxBuffer.begin() + 2, rxBuffer.end());
+//				const std::string stringBuffer =  std::to_string(rxBuffer[0]) + " " + std::to_string(rxBuffer[1]) + " " + std::to_string(rxBuffer[2]) + " " + std::to_string(rxBuffer[3]) + " " + std::to_string(rxBuffer[4]) + " " + std::to_string(rxBuffer[5]) + " " + std::to_string(rxBuffer[6]) + " " + std::to_string(rxBuffer[7]);
+//				LOG_DEBUG("Read frame: ", stringBuffer);
+//
+//				std::vector<uint8_t> insertedData;
+//				insertedData.insert(insertedData.end(), rxBuffer.begin() + 2, rxBuffer.end());
+//				std::string insertedDataStr;
+//				for(const auto& data : insertedData)
+//					insertedDataStr += std::to_string(data) + " ";
+//
+//				LOG_DEBUG("Inserted data: ", insertedDataStr);
 			}
 			const auto pendingStoredMsg = m_cameraFramesQueue->getStoredMsg();
-			LOG_INFO("CAMERA_IMAGE frame: Stored frames after read queue: ", std::to_string(pendingStoredMsg));
+			if(pendingStoredMsg != 0)
+				LOG_WARNING("CAMERA_IMAGE frame: pending frames after read queue: ", std::to_string(pendingStoredMsg));
+
+
+		    // Eliminar 0xFF's incluidos para completar el frame de 8 bytes
+		    auto it = std::find_if(cborFrame.rbegin(), cborFrame.rend(), [](uint8_t val) { return val != 0xFF; });
+		    cborFrame.erase(it.base(), cborFrame.end());
+
 			std::string cborStr;
 			for(const auto& element : cborFrame)
 				cborStr += std::to_string(element) + " ";
 			LOG_INFO(cborStr);
+
+			auto m_dataSerializer = std::make_shared<business_logic::DataSerializer>();
+			business_logic::ImageSnapshot cborImgChunk;
+			m_dataSerializer->deserialize(cborImgChunk, cborFrame);
+			std::string cborImgChunkStr = "Deserialized ImageSnapshot: " + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + " of " + std::to_string(cborImgChunk.m_imgSize) + " bytes at: " + std::to_string(cborImgChunk.m_timestamp) + " data[]: " + std::to_string(cborImgChunk.m_imgBuffer[0]) + " " + std::to_string(cborImgChunk.m_imgBuffer[1]) ;
+			LOG_INFO(cborImgChunkStr);
 			break;
 		}
 		case static_cast<uint8_t>(CAN_MSG_TYPES::LIDAR_3D_IMAGE):

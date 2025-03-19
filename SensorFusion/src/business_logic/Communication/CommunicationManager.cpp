@@ -75,11 +75,21 @@ void CommunicationManager::receiveData()
 	static uint8_t lastCborIndex  = 0;
 	if(rxMsg.dlc > 0)
 	{
-		LOG_INFO(std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
+		std::string frameSize = "Received frame of size" + std::to_string(rxMsg.dlc) + " : ";
+		LOG_TRACE(frameSize, std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
 		if(lastFrameIndex !=rxMsg.data[0])
 		{
 			msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex);
 		}
+		if(rxMsg.dlc != 8)
+		{
+			//Completamos con 0xFF los bytes pendientes del final de trama
+		    for (size_t i = rxMsg.dlc; i < CAN_DATA_PAYLOAD_SIZE; ++i)
+		    {
+		    	rxMsg.data[i] = 0xFF;
+		    }
+		}
+
 		msgGateway->storeMsg(rxMsg.id, rxMsg.data);
 		lastFrameIndex = rxMsg.data[0];
 		lastCborIndex  = rxMsg.data[1];
