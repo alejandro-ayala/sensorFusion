@@ -49,5 +49,9 @@ void ImageSnapshot::deserialize(const std::vector<uint8_t>& serializeMsg)
 
     m_imgBuffer = std::make_unique<uint8_t[]>(m_imgSize);
     std::memcpy(m_imgBuffer.get(), deserialized_json["imgBuffer"].get<std::vector<uint8_t>>().data(), m_imgSize);
+//	std::string imgChunkBuffer = "imgChunkBuffer: ";
+//	for(int i = 0; i< 128; i++)
+//		imgChunkBuffer += std::to_string(m_imgBuffer[i]) + " ";
+//	LOG_INFO(imgChunkBuffer);
 }
 }

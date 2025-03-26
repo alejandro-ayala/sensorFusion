@@ -17,14 +17,20 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 
 void SystemTasksManager::globalClockSyncronization(void* argument)
 {
-	LOG_INFO("Starting globalClockSyncronization");
-
 	m_globalClkMng->initialization();
 	const TickType_t taskSleep = pdMS_TO_TICKS( 30000 );
+    size_t freeHeapSize = xPortGetFreeHeapSize();
+    size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
+    const std::string startMsg = "SystemTasks::globalClockSyncronization started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
+    LOG_INFO(startMsg);
 
 	while(1)
 	{
 		LOG_DEBUG("Sending global master time: ", std::to_string(m_globalClkMng->getAbsotuleTime()), " ns") ;
+	    size_t freeHeapSize = xPortGetFreeHeapSize();
+	    size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
+	    const std::string freeHeapMsg = "freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
+	    LOG_INFO(freeHeapMsg);
 		m_globalClkMng->sendGlobalTime();
 		vTaskDelay( taskSleep );
 	}
@@ -32,15 +38,28 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 
 void SystemTasksManager::communicationTask(void* argument)
 {
-	LOG_INFO("SystemTasksManager::Starting communicationTask");
 	const TickType_t taskSleep = pdMS_TO_TICKS( 10 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 	commMng->initialization();
+    size_t freeHeapSize = xPortGetFreeHeapSize();
+    size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
+    const std::string startMsg = "SystemTasks::communicationTask started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
+    LOG_INFO(startMsg);
   /* Infinite loop */
 
 	while(1)
 	{
+		static uint32_t loopIndex = 0;
+		if(loopIndex > 5000)
+		{
+			size_t freeHeapSize = xPortGetFreeHeapSize();
+			size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
+			const std::string freeHeapMsg = "SystemTasks::communicationTask freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
+			LOG_INFO(freeHeapMsg);
+			loopIndex = 0;
+		}
 		commMng->receiveData();
+		loopIndex++;
 		vTaskDelay( taskSleep );
 	}
 }

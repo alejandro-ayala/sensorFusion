@@ -66,10 +66,9 @@ void createApplicationLayerComponents()
 	systemTaskHandler->createPoolTasks();
 	LOG_DEBUG("Created Application layer components");
 }
-
+#include <cstring>
 int main()
 {
-
 	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
 	createHardwareAbstractionLayerComponents();
 	createBusinessLogicLayerComponents();

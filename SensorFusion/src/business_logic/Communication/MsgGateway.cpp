@@ -51,7 +51,7 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 	{
 		case static_cast<uint8_t>(CAN_MSG_TYPES::CAMERA_IMAGE):
 		{
-			LOG_INFO("CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs");
+			LOG_TRACE("CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs");
 			const auto storedMsg = m_cameraFramesQueue->getStoredMsg();
 			std::vector<uint8_t> cborFrame;
 			cborFrame.reserve(storedMsg * hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE);
@@ -81,16 +81,29 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 		    auto it = std::find_if(cborFrame.rbegin(), cborFrame.rend(), [](uint8_t val) { return val != 0xFF; });
 		    cborFrame.erase(it.base(), cborFrame.end());
 
-			std::string cborStr;
-			for(const auto& element : cborFrame)
-				cborStr += std::to_string(element) + " ";
-			LOG_INFO(cborStr);
+//			std::string cborStr;
+//			for(const auto& element : cborFrame)
+//				cborStr += std::to_string(element) + " ";
+//			LOG_INFO(cborStr);
 
-			auto m_dataSerializer = std::make_shared<business_logic::DataSerializer>();
-			business_logic::ImageSnapshot cborImgChunk;
-			m_dataSerializer->deserialize(cborImgChunk, cborFrame);
-			std::string cborImgChunkStr = "Deserialized ImageSnapshot: " + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + " of " + std::to_string(cborImgChunk.m_imgSize) + " bytes at: " + std::to_string(cborImgChunk.m_timestamp) + " data[]: " + std::to_string(cborImgChunk.m_imgBuffer[0]) + " " + std::to_string(cborImgChunk.m_imgBuffer[1]) ;
-			LOG_INFO(cborImgChunkStr);
+			try
+			{
+				auto m_dataSerializer = std::make_shared<business_logic::DataSerializer>();
+				business_logic::ImageSnapshot cborImgChunk;
+				m_dataSerializer->deserialize(cborImgChunk, cborFrame);
+				std::string cborImgChunkStr = "Deserialized ImageSnapshot: " + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + " of " + std::to_string(cborImgChunk.m_imgSize) + " bytes at: " + std::to_string(cborImgChunk.m_timestamp);
+				LOG_TRACE(cborImgChunkStr);
+				std::string cborStr = "[" + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + "]";
+				for(int i = 0; i< cborImgChunk.m_imgSize;i++)
+					cborStr += std::to_string(cborImgChunk.m_imgBuffer[i]) + " ";
+				LOG_INFO(cborStr);
+			}
+			catch (const std::exception& e) {
+			    LOG_ERROR("Exception caught: " + std::string(e.what()));
+			}
+			catch (...) {
+				LOG_ERROR("Unknown exception caught during image deserialization.");
+			}
 			break;
 		}
 		case static_cast<uint8_t>(CAN_MSG_TYPES::LIDAR_3D_IMAGE):
