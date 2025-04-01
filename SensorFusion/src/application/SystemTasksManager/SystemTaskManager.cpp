@@ -38,7 +38,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 
 void SystemTasksManager::communicationTask(void* argument)
 {
-	const TickType_t taskSleep = pdMS_TO_TICKS( 10 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 1 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 	commMng->initialization();
     size_t freeHeapSize = xPortGetFreeHeapSize();
@@ -50,14 +50,14 @@ void SystemTasksManager::communicationTask(void* argument)
 	while(1)
 	{
 		static uint32_t loopIndex = 0;
-		if(loopIndex > 5000)
-		{
-			size_t freeHeapSize = xPortGetFreeHeapSize();
-			size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
-			const std::string freeHeapMsg = "SystemTasks::communicationTask freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
-			LOG_INFO(freeHeapMsg);
-			loopIndex = 0;
-		}
+//		if(loopIndex > 5000000)
+//		{
+//			size_t freeHeapSize = xPortGetFreeHeapSize();
+//			size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
+//			const std::string freeHeapMsg = "SystemTasks::communicationTask freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
+//			LOG_INFO(freeHeapMsg);
+//			loopIndex = 0;
+//		}
 		commMng->receiveData();
 		loopIndex++;
 		vTaskDelay( taskSleep );
@@ -125,7 +125,7 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
 void SystemTasksManager::createPoolTasks()
 {
 	LOG_INFO("Creating pool tasks");
-	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
+	//m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
 	//m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dMappingTask, "image3dMappingTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
 	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
 	LOG_INFO("Created pool tasks");

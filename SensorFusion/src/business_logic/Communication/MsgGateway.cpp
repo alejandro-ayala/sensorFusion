@@ -92,11 +92,13 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 				business_logic::ImageSnapshot cborImgChunk;
 				m_dataSerializer->deserialize(cborImgChunk, cborFrame);
 				std::string cborImgChunkStr = "Deserialized ImageSnapshot: " + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + " of " + std::to_string(cborImgChunk.m_imgSize) + " bytes at: " + std::to_string(cborImgChunk.m_timestamp);
-				LOG_TRACE(cborImgChunkStr);
+				LOG_INFO(cborImgChunkStr);
+				/*
 				std::string cborStr = "[" + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + "]";
 				for(int i = 0; i< cborImgChunk.m_imgSize;i++)
 					cborStr += std::to_string(cborImgChunk.m_imgBuffer[i]) + " ";
 				LOG_INFO(cborStr);
+				*/
 			}
 			catch (const std::exception& e) {
 			    LOG_ERROR("Exception caught: " + std::string(e.what()));

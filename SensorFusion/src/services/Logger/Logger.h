@@ -18,7 +18,7 @@ private:
 
 	virtual void initialize();
 
-	LogLevel m_logLevel = LogLevel::Debug;
+	LogLevel m_logLevel;
 	bool m_disable;
 	std::shared_ptr<business_logic::Osal::MutexHandler> uartMutex;
 
