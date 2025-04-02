@@ -2,7 +2,7 @@
 
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <business_logic/ClockSyncronization/TimeStamp.h>
-#include <business_logic/Conectivity/HTTPClient.h>
+//#include <business_logic/Conectivity/HTTPClient.h>
 #include <hardware_abstraction/Controllers/CAN/CanController.h>
 #include <memory>
 namespace business_logic
@@ -14,7 +14,7 @@ class TimeBaseManager
 private:
 	std::shared_ptr<TimeController>timeController;
 	std::shared_ptr<hardware_abstraction::Controllers::CanController>canController;
-	std::shared_ptr<Conectivity::HTTPClient>httpClient;
+	//std::shared_ptr<Conectivity::HTTPClient>httpClient;
 	TimeStamp                      globalTimeStamp;
 	TimeBaseRef                    globalTimeReference;
 	uint8_t                        seqCounter;

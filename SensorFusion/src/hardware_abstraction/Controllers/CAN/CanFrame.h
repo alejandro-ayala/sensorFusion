@@ -22,6 +22,15 @@ enum class CanMode {
    Configuration = 0x80
 };
 
+enum class CanPsMode {
+   NormalOperation = 0,
+   Sleep,
+   Loopback,
+   ListenOnly,
+   Config,
+   Snoop
+};
+
 struct CanFrame
 {
    uint16_t id;     // 11 bit id
