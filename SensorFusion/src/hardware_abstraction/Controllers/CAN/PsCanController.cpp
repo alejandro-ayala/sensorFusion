@@ -2,7 +2,9 @@
 #include <hardware_abstraction/Controllers/CAN/PsCanController.h>
 #include "services/Exception/SystemExceptions.h"
 #include "services/Logger/LoggerMacros.h"
+#ifdef CANPS_IRQ
 #include "xinterrupt_wrap.h"
+#endif
 #include <math.h>
 
 namespace hardware_abstraction
@@ -12,30 +14,11 @@ namespace Controllers
 
 constexpr uint8_t READ_STATUS_REG_RETRIES = 10;
 
-static void SendHandler(void *CallBackRef);
-static void RecvHandler(void *CallBackRef);
-static void ErrorHandler(void *CallBackRef, u32 ErrorMask);
-static void EventHandler(void *CallBackRef, u32 Mask);
-/*
- * Shared variables used to test the callbacks.
- */
+#ifdef CANPS_IRQ
 static volatile int LoopbackError;	/* Asynchronous error occurred */
 static volatile int RecvDone;		/* Received a frame */
 static volatile int SendDone;		/* Frame was sent successfully */
-/*****************************************************************************/
-/**
-*
-* Callback function (called from interrupt handler) to handle confirmation of
-* transmit events when in interrupt mode.
-*
-* @param	CallBackRef is the callback reference passed from the interrupt
-*		handler, which in our case is a pointer to the driver instance.
-*
-* @return	None.
-*
-* @note		This function is called by the driver within interrupt context.
-*
-******************************************************************************/
+
 static void SendHandler(void *CallBackRef)
 {
 	/*
@@ -46,44 +29,11 @@ static void SendHandler(void *CallBackRef)
 }
 
 
-/*****************************************************************************/
-/**
-*
-* Callback function (called from interrupt handler) to handle frames received in
-* interrupt mode.  This function is called once per frame received.
-* The driver's receive function is called to read the frame from RX FIFO.
-*
-* @param	CallBackRef is the callback reference passed from the interrupt
-*		handler, which in our case is a pointer to the device instance.
-*
-* @return	None.
-*
-* @note		This function is called by the driver within interrupt context.
-*
-******************************************************************************/
 static void RecvHandler(void *CallBackRef)
 {
 	RecvDone = TRUE;
 }
 
-
-/*****************************************************************************/
-/**
-*
-* Callback function (called from interrupt handler) to handle error interrupt.
-* Error code read from Error Status register is passed into this function.
-*
-* @param	CallBackRef is the callback reference passed from the interrupt
-*		handler, which in our case is a pointer to the driver instance.
-* @param	ErrorMask is a bit mask indicating the cause of the error.
-*		Its value equals 'OR'ing one or more XCANPS_ESR_* defined in
-*		xcanps_hw.h.
-*
-* @return	None.
-*
-* @note		This function is called by the driver within interrupt context.
-*
-******************************************************************************/
 static void ErrorHandler(void *CallBackRef, u32 ErrorMask)
 {
 	(void)CallBackRef;
@@ -185,9 +135,10 @@ static void EventHandler(void *CallBackRef, u32 IntrMask)
 	}
 }
 
+#endif
 PsCanController::PsCanController() : m_deviceId(XPAR_XCANPS_0_DEVICE_ID), m_initialized(false)
 {
-	m_timingConfiguration = canTimingPresets[CanBusBaudrates::_1Mbps];
+	m_timingConfiguration = canTimingPresets[CanBusBaudrates::_250kbps];
 	canMutex = std::make_shared<business_logic::Osal::MutexHandler>();
 }
 
@@ -225,7 +176,7 @@ void PsCanController::initialize()
 		XCanPs_SetBaudRatePrescaler(&m_canPs, m_timingConfiguration.brpr);
 		XCanPs_SetBitTiming(&m_canPs, m_timingConfiguration.sjw, m_timingConfiguration.tseg2, m_timingConfiguration.tseg1);
 
-
+#ifdef CANPS_IRQ
 		/*
 		 * Set interrupt handlers.
 		 */
@@ -255,6 +206,7 @@ void PsCanController::initialize()
 		{
 			THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::CanInitializationError, "CanController error during initialization");
 		}
+#endif
 		configureTransceiver(CanPsMode::NormalOperation);
 		m_initialized = true;
 	}
@@ -376,10 +328,11 @@ void PsCanController::transmit(CanFrame msg)
 	auto status = XCanPs_Send(&m_canPs, m_txFrame);
 	if (status != XST_SUCCESS)
 	{
-
+#ifdef CANPS_IRQ
 		LoopbackError = TRUE;
 		SendDone = TRUE;
 		RecvDone = TRUE;
+#endif
 	}
 }
 
@@ -388,24 +341,32 @@ CanFrame PsCanController::receiveMsg()
 
 	CanFrame rxMsg;
 	uint8_t* framePtr;
-	auto status = XCanPs_Recv(&m_canPs, m_rxFrame);
-	if (status == XST_SUCCESS)
+	if(XCanPs_IsRxEmpty(&m_canPs) != TRUE)
 	{
-		rxMsg.id  = (m_rxFrame[0] & XCANPS_IDR_ID1_MASK) >> XCANPS_IDR_ID1_SHIFT;
-		rxMsg.dlc = (m_rxFrame[1] & XCANPS_DLCR_DLC_MASK) >> XCANPS_DLCR_DLC_SHIFT;
-
-		framePtr = (uint8_t *)(&m_rxFrame[2]);
-		for (auto idx = 0; idx < rxMsg.dlc; idx++)
+		auto status = XCanPs_Recv(&m_canPs, m_rxFrame);
+		if (status == XST_SUCCESS)
 		{
-			rxMsg.data[idx] = *framePtr++;
+			rxMsg.id  = (m_rxFrame[0] & XCANPS_IDR_ID1_MASK) >> XCANPS_IDR_ID1_SHIFT;
+			rxMsg.dlc = (m_rxFrame[1] & XCANPS_DLCR_DLC_MASK) >> XCANPS_DLCR_DLC_SHIFT;
+
+			framePtr = (uint8_t *)(&m_rxFrame[2]);
+			for (auto idx = 0; idx < rxMsg.dlc; idx++)
+			{
+				rxMsg.data[idx] = *framePtr++;
+			}
+#ifdef CANPS_IRQ
+			RecvDone = TRUE;
+#endif
 		}
-		RecvDone = TRUE;
+		else
+		{
+			rxMsg.dlc = 0;
+		}
 	}
 	else
 	{
 		rxMsg.dlc = 0;
 	}
-
 	return rxMsg;
 }
 
@@ -429,8 +390,11 @@ bool PsCanController::selfTest()
 	/*
 	 * Wait here until both sending and reception have been completed.
 	 */
+#ifdef CANPS_IRQ
 	while ((SendDone != TRUE) || (RecvDone != TRUE));
-
+#else
+	usleep(500000);
+#endif
 	auto rxMsg = receiveMsg();
 
 	return true;

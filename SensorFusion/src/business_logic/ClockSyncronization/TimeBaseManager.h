@@ -3,7 +3,7 @@
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <business_logic/ClockSyncronization/TimeStamp.h>
 //#include <business_logic/Conectivity/HTTPClient.h>
-#include <hardware_abstraction/Controllers/CAN/CanController.h>
+#include <hardware_abstraction/Controllers/CAN/PsCanController.h>
 #include <memory>
 namespace business_logic
 {
@@ -13,7 +13,7 @@ class TimeBaseManager
 {
 private:
 	std::shared_ptr<TimeController>timeController;
-	std::shared_ptr<hardware_abstraction::Controllers::CanController>canController;
+	std::shared_ptr<hardware_abstraction::Controllers::PsCanController>canController;
 	//std::shared_ptr<Conectivity::HTTPClient>httpClient;
 	TimeStamp                      globalTimeStamp;
 	TimeBaseRef                    globalTimeReference;
@@ -22,7 +22,7 @@ private:
 	bool sendFollowUpMessage();
 	void syncTimeReference();
 public:
-	TimeBaseManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& icomm);//, const std::shared_ptr<Conectivity::HTTPClient>& httpclient);
+	TimeBaseManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& icomm);//, const std::shared_ptr<Conectivity::HTTPClient>& httpclient);
 	~TimeBaseManager();
 	void initialization();
 	TimeStamp getGlobalTime();

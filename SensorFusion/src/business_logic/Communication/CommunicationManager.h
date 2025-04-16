@@ -2,7 +2,7 @@
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <business_logic/ClockSyncronization/TimeStamp.h>
 #include <business_logic/Communication/IData.h>
-#include <hardware_abstraction/Controllers/CAN/CanController.h>
+#include <hardware_abstraction/Controllers/CAN/PsCanController.h>
 #include "MsgGateway.h"
 #include <memory>
 #include <vector>
@@ -16,12 +16,12 @@ class CommunicationManager
 {
 private:
 	std::shared_ptr<ClockSyncronization::TimeController> timeController;
-	std::shared_ptr<hardware_abstraction::Controllers::CanController> canController;
+	std::shared_ptr<hardware_abstraction::Controllers::PsCanController> canController;
 	std::shared_ptr<MsgGateway> msgGateway;
 
 	ClockSyncronization::TimeStamp globalTimeStamp;
 public:
-	CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& cancontroller);
+	CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller);
 	virtual ~CommunicationManager();
 
 	void initialization();

@@ -12,7 +12,7 @@ using namespace hardware_abstraction::Controllers;
 using namespace Communication;
 namespace ClockSyncronization
 {
-TimeBaseManager::TimeBaseManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::CanController>& icomm/*, const std::shared_ptr<Conectivity::HTTPClient>& httpclient*/) :
+TimeBaseManager::TimeBaseManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& icomm/*, const std::shared_ptr<Conectivity::HTTPClient>& httpclient*/) :
 		timeController(timecontroller), canController(icomm), /*httpClient(
 				httpclient),*/ seqCounter(0) {
 
