@@ -38,12 +38,12 @@ static std::shared_ptr<CommunicationManager> commMng;
 static std::shared_ptr<TimeBaseManager> globalClkMng;
 static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
-static std::shared_ptr<CanController> canController;
+static std::shared_ptr<PsCanController> canController;
 application::TaskParams systemTaskMngParams;
 
 void createHardwareAbstractionLayerComponents()
 {
-	canController = std::make_shared<CanController>();
+	canController = std::make_shared<PsCanController>();
 	LOG_INFO("Created Hardware Abstraction layer components");
 }
 
@@ -66,9 +66,39 @@ void createApplicationLayerComponents()
 	systemTaskHandler->createPoolTasks();
 	LOG_DEBUG("Created Application layer components");
 }
-#include <cstring>
+#include <hardware_abstraction/Controllers/CAN/PsCanController.h>
+
 int main()
 {
+//	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
+//	auto canCtrl = PsCanController();
+//	canCtrl.initialize();
+//	uint8_t idMsg = 0x03;
+//	uint8_t txMsg[5] = {0x1,0x2,0x3,0x4,0x44};
+//	uint8_t msgLength = 8;
+//	canCtrl.transmitMsg(idMsg, txMsg, msgLength); /* Send a frame */
+//
+//	while(1)
+//	{
+//		auto frame = canCtrl.receiveMsg();
+//		if(frame.dlc != 0)
+//		{
+//			std::string data = "RX FRAME: Id:" + std::to_string(frame.id) + " -- "
+//					+ "Dlc:" + std::to_string(frame.dlc) + " --> "
+//					+ std::to_string(frame.data[0]) + " "
+//					+ std::to_string(frame.data[1]) + " "
+//					+ std::to_string(frame.data[2]) + " "
+//					+ std::to_string(frame.data[3]) + " "
+//					+ std::to_string(frame.data[4]) + " "
+//					+ std::to_string(frame.data[5]) + " "
+//					+ std::to_string(frame.data[6]) + " "
+//					+ std::to_string(frame.data[7]);
+//
+//
+//			LOG_INFO("RX FRAME: ", data);
+//		}
+//		usleep(3000);
+//	}
 	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
 	createHardwareAbstractionLayerComponents();
 	createBusinessLogicLayerComponents();

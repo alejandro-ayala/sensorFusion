@@ -47,6 +47,7 @@ void MsgGateway::storeMsg(const uint8_t frameId, const std::array<uint8_t, hardw
 }
 void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex)
 {
+	static uint8_t imageId = 0;
 	switch (msgType)
 	{
 		case static_cast<uint8_t>(CAN_MSG_TYPES::CAMERA_IMAGE):
@@ -91,8 +92,17 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 				auto m_dataSerializer = std::make_shared<business_logic::DataSerializer>();
 				business_logic::ImageSnapshot cborImgChunk;
 				m_dataSerializer->deserialize(cborImgChunk, cborFrame);
-				std::string cborImgChunkStr = "Deserialized ImageSnapshot: " + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + " of " + std::to_string(cborImgChunk.m_imgSize) + " bytes at: " + std::to_string(cborImgChunk.m_timestamp);
-				LOG_INFO(cborImgChunkStr);
+				static uint8_t totalChunks = 0;
+				if(imageId != cborImgChunk.m_msgId)
+				{
+					//std::string cborImgChunkStr = "Deserialized ImageSnapshot: " + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + " of " + std::to_string(cborImgChunk.m_imgSize) + " bytes at: " + std::to_string(cborImgChunk.m_timestamp);
+					std::string cborImgChunkStr = "Completed ImageSnapshot: " + std::to_string(imageId) + " with " + std::to_string(totalChunks) + " chunks at: " + std::to_string(cborImgChunk.m_timestamp);
+					LOG_INFO(cborImgChunkStr);
+				}
+				imageId = cborImgChunk.m_msgId;
+				totalChunks = cborImgChunk.m_msgIndex;
+
+
 				/*
 				std::string cborStr = "[" + std::to_string(cborImgChunk.m_msgId) +  "- "+ std::to_string(cborImgChunk.m_msgIndex) + "]";
 				for(int i = 0; i< cborImgChunk.m_imgSize;i++)
