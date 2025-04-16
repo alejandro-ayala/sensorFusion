@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <map>
 namespace hardware_abstraction
 {
 namespace Controllers
@@ -29,6 +30,25 @@ enum class CanPsMode {
    ListenOnly,
    Config,
    Snoop
+};
+
+struct CanTimingParams{
+    uint8_t brpr;   // Baud Rate Prescaler Register
+    uint8_t tseg1;  // Time Segment 1
+    uint8_t tseg2;  // Time Segment 2
+    uint8_t sjw;    // Synchronization Jump Width
+};
+
+enum class CanBusBaudrates
+{
+	_40kbps, _250kbps, _500kbps, _1Mbps
+};
+
+static std::map<CanBusBaudrates, CanTimingParams> canTimingPresets = {
+    {CanBusBaudrates::_40kbps,  {6, 12, 3, 3}},   // 24 MHz clock
+    {CanBusBaudrates::_250kbps, {5, 11, 2, 2}},    // 24 MHz clock
+    {CanBusBaudrates::_500kbps, {2, 8, 5, 3}},    // 24 MHz clock
+    {CanBusBaudrates::_1Mbps,   {1, 5, 4, 2}},    // 24 MHz clock
 };
 
 struct CanFrame

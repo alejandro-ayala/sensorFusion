@@ -3,31 +3,13 @@
 #include "services/Exception/SystemExceptions.h"
 #include "services/Logger/LoggerMacros.h"
 #include "xinterrupt_wrap.h"
+#include <math.h>
 
 namespace hardware_abstraction
 {
 namespace Controllers
 {
 
-#define CAN_DEVICE_ID		XPAR_XCANPS_0_DEVICE_ID
-#define CAN_INTR_VEC_ID		XPAR_INTC_0_CANPS_0_VEC_ID
-/*
- * Timing parameters to be set in the Bit Timing Register (BTR).
- * These values are for a 40 Kbps baudrate assuming the CAN input clock
- * frequency is 24 MHz.
- */
-#define TEST_BTR_SYNCJUMPWIDTH		3
-#define TEST_BTR_SECOND_TIMESEGMENT	2
-#define TEST_BTR_FIRST_TIMESEGMENT	15
-
-/*
- * The Baud rate Prescalar value in the Baud Rate Prescaler Register
- * needs to be set based on the input clock  frequency to the CAN core and
- * the desired CAN baud rate.
- * This value is for a 40 Kbps baudrate assuming the CAN input clock frequency
- * is 24 MHz.
- */
-#define TEST_BRPR_BAUD_PRESCALAR	29
 constexpr uint8_t READ_STATUS_REG_RETRIES = 10;
 
 static void SendHandler(void *CallBackRef);
@@ -205,8 +187,8 @@ static void EventHandler(void *CallBackRef, u32 IntrMask)
 
 PsCanController::PsCanController() : m_deviceId(XPAR_XCANPS_0_DEVICE_ID), m_initialized(false)
 {
+	m_timingConfiguration = canTimingPresets[CanBusBaudrates::_1Mbps];
 	canMutex = std::make_shared<business_logic::Osal::MutexHandler>();
-
 }
 
 PsCanController::~PsCanController()
@@ -240,8 +222,9 @@ void PsCanController::initialize()
 		 * Setup Baud Rate Prescaler Register (BRPR) and
 		 * Bit Timing Register (BTR).
 		 */
-		XCanPs_SetBaudRatePrescaler(&m_canPs, TEST_BRPR_BAUD_PRESCALAR);
-		XCanPs_SetBitTiming(&m_canPs, TEST_BTR_SYNCJUMPWIDTH, TEST_BTR_SECOND_TIMESEGMENT, TEST_BTR_FIRST_TIMESEGMENT);
+		XCanPs_SetBaudRatePrescaler(&m_canPs, m_timingConfiguration.brpr);
+		XCanPs_SetBitTiming(&m_canPs, m_timingConfiguration.sjw, m_timingConfiguration.tseg2, m_timingConfiguration.tseg1);
+
 
 		/*
 		 * Set interrupt handlers.
@@ -509,5 +492,6 @@ int PsCanController::setupInterruptSystem(XScuGic *IntcInstancePtr, XCanPs *CanI
 
 	return XST_SUCCESS;
 }
+
 }
 }

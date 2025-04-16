@@ -24,6 +24,7 @@ private:
 	XCanPs m_canPs;
 	XScuGic m_irqController;
 	XScuGic_Config *m_irqCtrlConfig;
+	CanTimingParams m_timingConfiguration;
 	std::shared_ptr<business_logic::Osal::MutexHandler> canMutex;
 
 	static inline uint32_t m_txFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
