@@ -6,7 +6,7 @@
 namespace business_logic
 {
 
-ImageSnapshot::ImageSnapshot(uint8_t msgId, uint8_t msgIndex, uint8_t* msgBuffer, uint32_t imgSize, uint32_t timestamp) : m_msgId(msgId), m_msgIndex(msgIndex), m_imgSize(imgSize), m_timestamp(timestamp), m_imgBuffer(std::make_unique<uint8_t[]>(imgSize))
+ImageSnapshot::ImageSnapshot(uint8_t msgId, uint8_t msgIndex, uint8_t* msgBuffer, uint32_t imgSize, uint64_t timestamp) : m_msgId(msgId), m_msgIndex(msgIndex), m_imgSize(imgSize), m_timestamp(timestamp), m_imgBuffer(std::make_unique<uint8_t[]>(imgSize))
 {
 	BUSINESS_LOGIC_ASSERT( m_imgBuffer != nullptr, services::BusinessLogicErrorId::MemoryAllocationFailed, "Can not allocate memory for image snapshot msg");
 	//std::copy(msgBuffer + imgSize*msgIndex, (msgBuffer + imgSize*msgIndex) + imgSize, this->m_imgBuffer);

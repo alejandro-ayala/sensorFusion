@@ -11,7 +11,7 @@ class ImageSnapshot : public ISerializableMessage
 {
 public:
 	ImageSnapshot() = default;
-	ImageSnapshot(uint8_t msgId, uint8_t m_msgIndex, uint8_t* msgBuffer, uint32_t msgSize, uint32_t timestamp);
+	ImageSnapshot(uint8_t msgId, uint8_t m_msgIndex, uint8_t* msgBuffer, uint32_t msgSize, uint64_t timestamp);
 	~ImageSnapshot() = default;
 	ImageSnapshot(const ImageSnapshot&) = delete;  // Deshabilitar copia
 	ImageSnapshot& operator=(const ImageSnapshot&) = delete;  // Deshabilitar asignación por copia
@@ -31,7 +31,7 @@ public:
     uint8_t  m_msgIndex;
     std::unique_ptr<uint8_t[]> m_imgBuffer;
     uint32_t m_imgSize;
-    uint32_t m_timestamp;
+    uint64_t m_timestamp;
 private:
     friend void to_json(nlohmann::json& j, const ImageSnapshot& image)
     {
@@ -61,7 +61,7 @@ private:
         LOG_INFO("ImageSnapshot::from_json() --> ", std::to_string(image.m_imgSize));
         image.m_imgBuffer = std::make_unique<uint8_t[]>(imgBufferVector.size());
         std::copy(imgBufferVector.begin(), imgBufferVector.end(), image.m_imgBuffer.get());
-    	image.m_timestamp = j.at("timestamp").get<uint32_t>();
+    	image.m_timestamp = j.at("timestamp").get<uint64_t>();
     }
 };
 }
