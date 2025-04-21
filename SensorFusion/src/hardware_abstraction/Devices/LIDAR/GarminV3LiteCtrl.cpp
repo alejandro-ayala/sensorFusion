@@ -142,6 +142,7 @@ uint16_t GarminV3LiteCtrl::readDistance()
 
 	uint8_t rxBuffer[16];
 	uint8_t txBuffer[2];
+	memset(rxBuffer, 0, sizeof(rxBuffer));
 
 	txBuffer[0] = GarminV3LiteRegister::ACQ_COMMAND; // Register Addr;
 	txBuffer[1] = 0x04; // Register Value;
@@ -159,6 +160,7 @@ uint16_t GarminV3LiteCtrl::readDistance()
 	}
 	LOG_TRACE("readDistance READED GarminV3LiteRegister::STATUS");
 	registerAddr = GarminV3LiteRegister::DISTANCE_CM;
+	memset(rxBuffer, 0, sizeof(rxBuffer));
 	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 2);
 	LOG_TRACE("readDistance READED GarminV3LiteRegister::DISTANCE_CM");
 	uint16_t distance = ((rxBuffer[0] << 8) | rxBuffer[1]);
@@ -187,12 +189,6 @@ bool GarminV3LiteCtrl::selfTest()
 			selfTestResult = true;
 		}
 
-		while(1)
-		{
-			auto distance = readDistance();
-			LOG_INFO("Distance: ", std::to_string(distance));
-			usleep(2000000);
-		}
 		return selfTestResult;
 	}
 	else

@@ -93,6 +93,7 @@ void createBusinessLogicLayerComponents()
 
 void createApplicationLayerComponents()
 {
+	systemTaskMngParams.image3dCapturer = std::move(image3dCapturer);
 	systemTaskMngParams.globalClkMng    = globalClkMng;
 	systemTaskMngParams.commMng         = commMng;
 	systemTaskHandler = std::make_unique<application::SystemTasksManager>(std::move(systemTaskMngParams));

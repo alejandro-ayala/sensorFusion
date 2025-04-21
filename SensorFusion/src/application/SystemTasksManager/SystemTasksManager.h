@@ -38,7 +38,7 @@ public:
 	virtual ~SystemTasksManager() = default;
 	static void globalClockSyncronization(void* argument);
 	static void communicationTask(void* argument);
-	static void image3dMappingTask(void* argument);
+	static void image3dCapturerTask(void* argument);
     static void getNextImage(std::array<business_logic::LidarPoint, business_logic::IMAGE3D_SIZE>& lastCapture);
     static bool isPendingData();
     static void splitCborToCanMsgs(uint8_t canMsgId, const std::vector<uint8_t>& cborSerializedChunk, std::vector<business_logic::Communication::CanMsg>& canMsgChunks);
