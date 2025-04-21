@@ -10,6 +10,7 @@ namespace hardware_abstraction
 namespace Controllers
 {
 
+#ifndef I2C_POLLING
 void I2CController::irqHandler(void *callBackRef, u32 event)
 {
 	if (0 != (event & XIICPS_EVENT_COMPLETE_RECV))
@@ -64,6 +65,8 @@ void I2CController::irqHandler(void *callBackRef, u32 event)
 	}
 }
 
+#endif
+
 I2CController::I2CController(const I2CConfig& config) : m_config(config)
 {
 
@@ -102,6 +105,7 @@ void I2CController::initialize()
 		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::I2cInitializationError, "XIicPs_SelfTest XST_FAILURE");
 	}
 
+#ifndef I2C_POLLING
 	/*
 	 * Connect the IIC to the interrupt subsystem such that interrupts can
 	 * occur. This function is application specific.
@@ -112,7 +116,7 @@ void I2CController::initialize()
 	{
 		THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::I2cInitializationError, "SetupInterruptSystem XST_FAILURE");
 	}
-
+#endif
 	/*
 	 * Set the IIC serial clock rate.
 	 */
@@ -121,10 +125,13 @@ void I2CController::initialize()
 
 uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_t *buffer, uint8_t bufferSize)
 {
+	int status = 0;
+#ifndef I2C_POLLING
 	sendComplete = FALSE;
 	uint8_t printed = 0;
+
 	//LOG_INFO("rmS");
-	XIicPs_SetOptions(&m_config.i2cPsInstance, XIICPS_REP_START_OPTION);
+	//XIicPs_ClearOptions(&m_config.i2cPsInstance, XIICPS_REP_START_OPTION);
 	XIicPs_MasterSend(&m_config.i2cPsInstance, &registerAddr, 1, slaveAddr);
 
 	/*
@@ -143,8 +150,17 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 			if(printed==0){printed=1;LOG_ERROR("I2C Error during sending register address");};
 		}
 	}
-	//LOG_TRACE("I2C sent waiting");
 	printed = 0;
+#else
+	status = XIicPs_MasterSendPolled(&m_config.i2cPsInstance, &registerAddr, 1, slaveAddr);
+
+	if (status != XST_SUCCESS)
+	{
+		LOG_ERROR("I2C Error during sending register address");
+	}
+#endif
+	//LOG_TRACE("I2C sent waiting");
+
 	/*
 	 * Wait bus activities to finish.
 	 */
@@ -157,12 +173,13 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	 * Receive data from slave, errors are reported through
 	 * totalErrorCount.
 	 */
-
+	uint8_t bufferAux[30];
+#ifndef I2C_POLLING
 	//LOG_INFO("rmR");
 	recvComplete = FALSE;
-	uint8_t bufferAux[30];
-	XIicPs_ClearOptions(&m_config.i2cPsInstance, XIICPS_REP_START_OPTION);    //enable sending STOP bit after data transfer
-	XIicPs_MasterRecv(&m_config.i2cPsInstance, bufferAux, bufferSize + 16, slaveAddr);
+
+	//XIicPs_ClearOptions(&m_config.i2cPsInstance, XIICPS_REP_START_OPTION);    //enable sending STOP bit after data transfer
+	XIicPs_MasterRecv(&m_config.i2cPsInstance, bufferAux, bufferSize, slaveAddr);
 
 
 	while (!recvComplete)
@@ -176,7 +193,7 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 		if(recvError)
 		{
 			recvError = 0;
-			XIicPs_MasterRecv(&m_config.i2cPsInstance, bufferAux, bufferSize + 16, slaveAddr);
+			XIicPs_MasterRecv(&m_config.i2cPsInstance, bufferAux, bufferSize, slaveAddr);
 		}
 	}
 	//LOG_TRACE("I2C received");
@@ -187,6 +204,13 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		/* NOP */
 	}
+#else
+	status = XIicPs_MasterRecvPolled(&m_config.i2cPsInstance, bufferAux, bufferSize, slaveAddr);
+	if (status != XST_SUCCESS)
+	{
+		LOG_ERROR("I2C Error during receiving data");
+	}
+#endif
 	for(int i=0; i< bufferSize;i++)
 	{
 		buffer[i] = bufferAux[i];
@@ -198,6 +222,7 @@ uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t buf
 {	
 #ifndef I2C_POLLING
 	//LOG_INFO("wmS");
+	sendComplete = FALSE;
 	XIicPs_MasterSend(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
 				  	
 	while (!sendComplete)
@@ -214,16 +239,16 @@ uint8_t I2CController::sendData(uint8_t slaveAddr, uint8_t *buffer, uint32_t buf
 
 	}
 #else
-	auto Status = XIicPs_MasterSendPolled(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
+	auto status = XIicPs_MasterSendPolled(&m_config.i2cPsInstance, buffer, bufferSize, slaveAddr);
 
-	if (Status != XST_SUCCESS)
+	if (status != XST_SUCCESS)
 	{
-		return XST_FAILURE;
+		LOG_ERROR("I2C Error during sending I2C data");
 	}
 #endif
 	return XST_SUCCESS;
 }
-
+#ifndef I2C_POLLING
 int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 {
 	int Status;
@@ -299,7 +324,7 @@ int I2CController::SetupInterruptSystem(XIicPs *IicPsPtr)
 	XIicPs_SetStatusHandler(&m_config.i2cPsInstance, (void *) &m_config.i2cPsInstance, irqHandler);
 	return XST_SUCCESS;
 }
-
+#endif
 bool I2CController::selfTest()
 {
 	/*

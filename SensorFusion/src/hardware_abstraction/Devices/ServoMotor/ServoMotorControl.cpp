@@ -36,7 +36,7 @@ void ServoMotorControl::setAngle(uint8_t angle)
     // Calcular el duty cycle correspondiente al ángulo (de 5% a 10%)
     float dutyCycle = 5.0f + (static_cast<float>(angle) * 5.0f / 180.0f);
 
-    m_pwmController->setDutyCicle(dutyCycle);
+    //m_pwmController->setDutyCicle(dutyCycle);
 }
 
 uint8_t ServoMotorControl::getAngle() const

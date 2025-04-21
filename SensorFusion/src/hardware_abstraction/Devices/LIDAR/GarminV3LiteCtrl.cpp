@@ -2,7 +2,7 @@
 #include "Devices/LIDAR/GarminV3LiteRegisterMap.h"
 #include "services/Logger/LoggerMacros.h"
 #include "services/Exception/SystemExceptions.h"
-
+#include "sleep.h"
 #include <iostream>
 
 namespace hardware_abstraction
@@ -149,14 +149,14 @@ uint16_t GarminV3LiteCtrl::readDistance()
 	m_i2cControl->sendData(m_addr, txBuffer, sizeof(txBuffer) / sizeof(txBuffer[0]));
 	LOG_TRACE("readDistance reading GarminV3LiteRegister::STATUS");
 	uint8_t registerAddr = GarminV3LiteRegister::STATUS;
-//	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
-//	while((rxBuffer[0] && 0x01) != 0)
-//	{
-//		m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
-//
-//		//TODO review it
-//		for (int Delay = 0; Delay < 0x3FF; Delay++);
-//	}
+	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
+	while((rxBuffer[0] & 0x01) != 0)
+	{
+		m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
+
+		//TODO review it
+		for (int Delay = 0; Delay < 0x3FF; Delay++);
+	}
 	LOG_TRACE("readDistance READED GarminV3LiteRegister::STATUS");
 	registerAddr = GarminV3LiteRegister::DISTANCE_CM;
 	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 2);
@@ -185,6 +185,13 @@ bool GarminV3LiteCtrl::selfTest()
 		if(lidarSerialNumber == expectedLidarSN)
 		{
 			selfTestResult = true;
+		}
+
+		while(1)
+		{
+			auto distance = readDistance();
+			LOG_INFO("Distance: ", std::to_string(distance));
+			usleep(2000000);
 		}
 		return selfTestResult;
 	}

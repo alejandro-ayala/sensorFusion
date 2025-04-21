@@ -14,8 +14,8 @@ ImageCapturer3D::ImageCapturer3D(const ImageCapturer3DConfig& config):  m_horSer
 
 void ImageCapturer3D::initialize()
 {
-	m_horServoCtrl->initialize();
-	m_verServoCtrl->initialize();
+//	m_horServoCtrl->initialize();
+//	m_verServoCtrl->initialize();
 #ifndef FAKE_VALUES
 
 	m_lidarCtrl->initialization();
