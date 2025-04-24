@@ -14,8 +14,17 @@ ImageCapturer3D::ImageCapturer3D(const ImageCapturer3DConfig& config):  m_horSer
 
 void ImageCapturer3D::initialize()
 {
-//	m_horServoCtrl->initialize();
-//	m_verServoCtrl->initialize();
+	m_horServoCtrl->initialize();
+	m_verServoCtrl->initialize();
+
+	uint8_t ver=1, hor=0;
+	int angle = 0;
+	while(1)
+	{
+		if(ver)m_verServoCtrl->setAngle(angle);
+		if(hor)m_horServoCtrl->setAngle(angle);
+
+	}
 #ifndef FAKE_VALUES
 
 	m_lidarCtrl->initialization();
@@ -43,6 +52,7 @@ void ImageCapturer3D::captureImage()
 			LOG_WARNING("Error applying bias correction");
 		}
 	}
+
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	for(int vAngle = m_config.initVerticalAngle; vAngle <= m_config.maxVerticalAngle; )
@@ -55,6 +65,7 @@ void ImageCapturer3D::captureImage()
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
+			vTaskDelay(pdMS_TO_TICKS(20));
 		}
 
 		vAngle += m_config.verticalAngleResolution;
@@ -66,6 +77,7 @@ void ImageCapturer3D::captureImage()
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
+			vTaskDelay(pdMS_TO_TICKS(20));
 		}
 
 		vAngle += m_config.verticalAngleResolution;

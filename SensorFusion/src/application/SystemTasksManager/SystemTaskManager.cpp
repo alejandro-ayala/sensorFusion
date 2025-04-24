@@ -71,7 +71,7 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 	LOG_INFO("Starting image3dCapturerTask");
 	//business_logic::ImageCapturer3D* image3dCapturer = reinterpret_cast<business_logic::ImageCapturer3D*>(argument);
 
-	const TickType_t taskSleep = pdMS_TO_TICKS( 20000 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
 	m_image3DCapturer->initialize();
   /* Infinite loop */
 

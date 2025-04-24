@@ -62,7 +62,7 @@ void createHardwareAbstractionLayerComponents()
 	horServoControl = std::make_unique<ServoMotorControl>(std::move(pwmHortCtrl));
 
 	const auto garminLiteV3Addr = (0x62);
-	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
+	LidarConfiguration lidarCfg{GarminV3LiteMode::DefaultRange, garminLiteV3Addr};
 	i2cController = std::make_unique<I2CController>();
 	lidarDevice   = std::make_unique<GarminV3LiteCtrl>(std::move(i2cController), lidarCfg);
 
@@ -86,7 +86,6 @@ void createBusinessLogicLayerComponents()
 	image3dConfig.horServoCtrl = std::move(horServoControl);
 	image3dConfig.lidarCtrl = std::move(lidarDevice);
 	image3dCapturer = std::make_unique<ImageCapturer3D>(image3dConfig);
-	image3dCapturer->initialize();
 
 	LOG_INFO("Created Business Logic layer components");
 }
