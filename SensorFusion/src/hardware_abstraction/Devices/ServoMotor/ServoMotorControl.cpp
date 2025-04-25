@@ -33,6 +33,11 @@ void ServoMotorControl::setAngle(uint8_t angle)
         angle = 180;
     float dutyCycle = 5.0f + (static_cast<float>(angle) * 5.0f / 180.0f);
 
+    while(1)
+    {
+    	m_pwmController->setDutyCicle(dutyCycle);
+
+    }
     m_pwmController->setDutyCicle(dutyCycle);
 }
 

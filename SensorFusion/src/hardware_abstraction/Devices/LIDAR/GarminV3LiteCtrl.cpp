@@ -160,7 +160,6 @@ uint16_t GarminV3LiteCtrl::readDistance()
 	LOG_TRACE("readDistance READED GarminV3LiteRegister::STATUS");
 	registerAddr = GarminV3LiteRegister::DISTANCE_CM;
 	memset(rxBuffer, 0, sizeof(rxBuffer));
-//	vTaskDelay(pdMS_TO_TICKS(2));
 	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 2);
 	LOG_TRACE("readDistance READED GarminV3LiteRegister::DISTANCE_CM");
 	uint16_t distance = ((rxBuffer[0] << 8) | rxBuffer[1]);
