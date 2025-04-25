@@ -17,17 +17,25 @@ void ImageCapturer3D::initialize()
 	m_horServoCtrl->initialize();
 	m_verServoCtrl->initialize();
 
-	uint8_t ver=1, hor=0;
-	int angle = 0;
-	while(1)
-	{
-		if(ver)m_verServoCtrl->setAngle(angle);
-		if(hor)m_horServoCtrl->setAngle(angle);
-
-	}
+//	uint8_t ver=1, hor=0;
+//	int angle = 0;
+//	while(1)
+//	{
+//		if(ver)m_verServoCtrl->setAngle(angle);
+//		if(hor)m_horServoCtrl->setAngle(angle);
+//
+//	}
 #ifndef FAKE_VALUES
 
 	m_lidarCtrl->initialization();
+
+   while(1)
+   {
+		   auto distance = m_lidarCtrl->readDistance();
+		   LOG_INFO("Distance: ", std::to_string(distance));
+		   vTaskDelay(pdMS_TO_TICKS(2000));
+   }
+
 #endif
 
 }

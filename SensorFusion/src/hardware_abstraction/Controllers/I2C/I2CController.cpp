@@ -210,6 +210,10 @@ uint8_t I2CController::readData(uint8_t slaveAddr, uint8_t registerAddr,  uint8_
 	{
 		LOG_ERROR("I2C Error during receiving data");
 	}
+	while (XIicPs_BusIsBusy(&m_config.i2cPsInstance))
+	{
+		/* NOP */
+	}
 #endif
 	for(int i=0; i< bufferSize;i++)
 	{
