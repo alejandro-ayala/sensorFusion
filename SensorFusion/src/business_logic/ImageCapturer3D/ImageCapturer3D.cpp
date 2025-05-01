@@ -4,7 +4,7 @@
 #include <numeric>
 #include "services/Logger/LoggerMacros.h"
 
-//#define FAKE_VALUES
+#define FAKE_VALUES
 namespace business_logic
 {
 ImageCapturer3D::ImageCapturer3D(const ImageCapturer3DConfig& config):  m_horServoCtrl(config.horServoCtrl), m_verServoCtrl(config.verServoCtrl), m_lidarCtrl(config.lidarCtrl), m_config(config), m_initialized(false)
@@ -17,36 +17,6 @@ void ImageCapturer3D::initialize()
 	m_horServoCtrl->initialize();
 	m_verServoCtrl->initialize();
 
-	uint8_t ver=1, hor=0;
-	int angle = 0;
-	while(1)
-	{
-		if(ver)
-		{
-			angle = 0;
-			m_verServoCtrl->setAngle(angle);
-			vTaskDelay(pdMS_TO_TICKS(2000));
-			angle = 90;
-			m_verServoCtrl->setAngle(angle);
-			vTaskDelay(pdMS_TO_TICKS(2000));
-			angle = 180;
-			m_verServoCtrl->setAngle(angle);
-			vTaskDelay(pdMS_TO_TICKS(2000));
-		}
-		if(hor)
-		{
-			angle = 0;
-			m_horServoCtrl->setAngle(angle);
-			vTaskDelay(pdMS_TO_TICKS(2000));
-			angle = 90;
-			m_horServoCtrl->setAngle(angle);
-			vTaskDelay(pdMS_TO_TICKS(2000));
-			angle = 180;
-			m_horServoCtrl->setAngle(angle);
-			vTaskDelay(pdMS_TO_TICKS(2000));
-		}
-
-	}
 #ifndef FAKE_VALUES
 
 	m_lidarCtrl->initialization();
@@ -83,31 +53,34 @@ void ImageCapturer3D::captureImage()
 		}
 	}
 
+	m_horServoCtrl->setAngle(m_config.initHorizontalAngle);
+	m_verServoCtrl->setAngle(m_config.initVerticalAngle);
+
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	for(int vAngle = m_config.initVerticalAngle; vAngle <= m_config.maxVerticalAngle; )
 	{
 		static int a = 0;
 		a++;
-		for(int hAngle = m_config.initHorizontalAngle; hAngle <= m_config.maxHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
+		for(int hAngle = m_config.initHorizontalAngle; hAngle >= m_config.minHorizontalAngle; hAngle -= m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
-			vTaskDelay(pdMS_TO_TICKS(20));
+			vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 		}
 
 		vAngle += m_config.verticalAngleResolution;
 		m_verServoCtrl->setAngle(vAngle);
 
-		for(int hAngle = m_config.maxHorizontalAngle; hAngle >= m_config.initHorizontalAngle; hAngle -= m_config.horizontalAngleResolution)
+		for(int hAngle = m_config.minHorizontalAngle; hAngle <= m_config.initHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
-			vTaskDelay(pdMS_TO_TICKS(20));
+			vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 		}
 
 		vAngle += m_config.verticalAngleResolution;
