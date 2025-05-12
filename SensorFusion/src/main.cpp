@@ -1,4 +1,35 @@
+//#define TENSORFLOW_LITE
 
+#ifdef TENSORFLOW_LITE
+
+
+#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
+
+#include "tensorflow/lite/micro/examples/person_detection/detection_responder.h"
+#include "tensorflow/lite/micro/examples/person_detection/image_provider.h"
+#include "tensorflow/lite/micro/examples/person_detection/model_settings.h"
+#include "tensorflow/lite/micro/examples/person_detection/person_detect_model_data.h"
+#include "tensorflow/lite/micro/kernels/micro_ops.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/version.h"
+
+#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
+
+// This is the default main used on systems that have the standard C entry
+// point. Other devices (for example FreeRTOS or ESP32) that have different
+// requirements for entry code (like an app_main function) should specialize
+// this main.cc file in a target-specific subfolder.
+int main(int argc, char* argv[]) {
+  setup();
+  while (true) {
+    loop();
+  }
+}
+
+#else
 #ifdef HTTP_CLIENT
 #include <business_logic/Conectivity/ConnectionSettings.h>
 #include <business_logic/Conectivity/CryptoMng.h>
@@ -114,3 +145,5 @@ int main()
 	while(1);
 	return 0;
 }
+
+#endif

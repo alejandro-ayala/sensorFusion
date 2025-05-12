@@ -4,7 +4,7 @@
 #include <numeric>
 #include "services/Logger/LoggerMacros.h"
 
-#define FAKE_VALUES
+//#define FAKE_VALUES
 namespace business_logic
 {
 ImageCapturer3D::ImageCapturer3D(const ImageCapturer3DConfig& config):  m_horServoCtrl(config.horServoCtrl), m_verServoCtrl(config.verServoCtrl), m_lidarCtrl(config.lidarCtrl), m_config(config), m_initialized(false)
@@ -20,13 +20,6 @@ void ImageCapturer3D::initialize()
 #ifndef FAKE_VALUES
 
 	m_lidarCtrl->initialization();
-
-   while(1)
-   {
-		   auto distance = m_lidarCtrl->readDistance();
-		   LOG_INFO("Distance: ", std::to_string(distance));
-		   vTaskDelay(pdMS_TO_TICKS(2000));
-   }
 
 #endif
 

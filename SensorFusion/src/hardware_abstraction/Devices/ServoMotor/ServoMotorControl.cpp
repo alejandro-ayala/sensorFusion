@@ -33,11 +33,6 @@ void ServoMotorControl::setAngle(uint8_t angle)
         angle = m_maxAngle;
     float dutyCycle = m_minPwmAngle + (static_cast<float>(angle) * (m_maxPwmAngle - m_minPwmAngle) / m_maxAngle);
 
-    while(1)
-    {
-    	m_pwmController->setDutyCicle(dutyCycle);
-
-    }
     m_pwmController->setDutyCicle(dutyCycle);
 }
 
