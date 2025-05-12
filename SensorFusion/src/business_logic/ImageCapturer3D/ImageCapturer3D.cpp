@@ -18,9 +18,7 @@ void ImageCapturer3D::initialize()
 	m_verServoCtrl->initialize();
 
 #ifndef FAKE_VALUES
-
 	m_lidarCtrl->initialization();
-
 #endif
 
 }
@@ -61,6 +59,8 @@ void ImageCapturer3D::captureImage()
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
+			std::string distance = "Point distance (" + std::to_string(hAngle) + ", " + std::to_string(vAngle) + ") = " + std::to_string(lidarPoint);
+			LOG_DEBUG(distance);
 			vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 		}
 
@@ -73,6 +73,8 @@ void ImageCapturer3D::captureImage()
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
+			std::string distance = "Point distance (" + std::to_string(hAngle) + ", " + std::to_string(vAngle) + ") = " + std::to_string(lidarPoint);
+			LOG_DEBUG(distance);
 			vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 		}
 
@@ -94,6 +96,7 @@ uint16_t ImageCapturer3D::getPointDistance() const
 		distance[idx] = m_lidarCtrl->readDistance();
 	}
 	auto pointDistance = getDistanceMedian(distance);
+
 	return pointDistance;
 #endif
 }

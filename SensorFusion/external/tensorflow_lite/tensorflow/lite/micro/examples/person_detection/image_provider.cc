@@ -16,11 +16,16 @@ limitations under the License.
 #include "tensorflow/lite/micro/examples/person_detection/image_provider.h"
 
 #include "tensorflow/lite/micro/examples/person_detection/model_settings.h"
-
+#include "imageTest.h"
 TfLiteStatus GetImage(tflite::ErrorReporter* error_reporter, int image_width,
                       int image_height, int channels, uint8_t* image_data) {
+	static int imgIdx = 0;
   for (int i = 0; i < image_width * image_height * channels; ++i) {
-    image_data[i] = 0;
+	  if(imgIdx==0)
+		  image_data[i] = persona_320x240_gray[i];
+	  else
+		  image_data[i] = coche_320x240_gray[i];
+
   }
   return kTfLiteOk;
 }
