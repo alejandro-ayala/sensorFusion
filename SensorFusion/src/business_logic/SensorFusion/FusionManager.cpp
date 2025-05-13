@@ -15,6 +15,10 @@ FusionManager::~FusionManager()
 
 }
 
+void FusionManager::initialization()
+{
+
+}
 
 void FusionManager::pullFrames()
 {

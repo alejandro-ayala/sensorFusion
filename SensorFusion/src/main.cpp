@@ -1,4 +1,35 @@
+//#define TENSORFLOW_LITE
 
+#ifdef TENSORFLOW_LITE
+
+
+#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
+
+#include "tensorflow/lite/micro/examples/person_detection/detection_responder.h"
+#include "tensorflow/lite/micro/examples/person_detection/image_provider.h"
+#include "tensorflow/lite/micro/examples/person_detection/model_settings.h"
+#include "tensorflow/lite/micro/examples/person_detection/person_detect_model_data.h"
+#include "tensorflow/lite/micro/kernels/micro_ops.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/version.h"
+
+#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
+
+// This is the default main used on systems that have the standard C entry
+// point. Other devices (for example FreeRTOS or ESP32) that have different
+// requirements for entry code (like an app_main function) should specialize
+// this main.cc file in a target-specific subfolder.
+int main(int argc, char* argv[]) {
+  setup();
+  while (true) {
+    loop();
+  }
+}
+
+#else
 #ifdef HTTP_CLIENT
 #include <business_logic/Conectivity/ConnectionSettings.h>
 #include <business_logic/Conectivity/CryptoMng.h>
@@ -26,13 +57,21 @@ using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
 using namespace business_logic::Communication;
 using namespace business_logic::ClockSyncronization;
-
+using namespace business_logic;
 
 
 
 #ifdef HTTP_CLIENT
 static std::shared_ptr<HTTPClient> httpClient;
 #endif
+
+static std::unique_ptr<PWMController> pwmVertCtrl;
+static std::unique_ptr<ServoMotorControl> verServoControl;
+static std::unique_ptr<PWMController> pwmHortCtrl;
+static std::unique_ptr<ServoMotorControl> horServoControl;
+static std::unique_ptr<ImageCapturer3D> image3dCapturer;
+static std::unique_ptr<I2CController> i2cController;
+static std::unique_ptr<GarminV3LiteCtrl> lidarDevice;
 
 static std::shared_ptr<CommunicationManager> commMng;
 static std::shared_ptr<TimeBaseManager> globalClkMng;
@@ -43,6 +82,21 @@ application::TaskParams systemTaskMngParams;
 
 void createHardwareAbstractionLayerComponents()
 {
+
+	PWMConfig pwmCfgVer;
+	pwmVertCtrl = std::make_unique<PWMController>(pwmCfgVer);
+	verServoControl = std::make_unique<ServoMotorControl>(std::move(pwmVertCtrl));
+
+	PWMConfig pwmCfgHor;
+	pwmCfgHor.pwmIndex = 0;
+	pwmHortCtrl = std::make_unique<PWMController>(pwmCfgHor);
+	horServoControl = std::make_unique<ServoMotorControl>(std::move(pwmHortCtrl));
+
+	const auto garminLiteV3Addr = (0x62);
+	LidarConfiguration lidarCfg{GarminV3LiteMode::DefaultRange, garminLiteV3Addr};
+	i2cController = std::make_unique<I2CController>();
+	lidarDevice   = std::make_unique<GarminV3LiteCtrl>(std::move(i2cController), lidarCfg);
+
 	canController = std::make_shared<PsCanController>();
 	LOG_INFO("Created Hardware Abstraction layer components");
 }
@@ -55,11 +109,21 @@ void createBusinessLogicLayerComponents()
 	httpClient = std::make_shared<HTTPClient>();
 #endif
 	globalClkMng = std::make_shared<TimeBaseManager>(timecontroller, canController);//, httpClient);
+
+
+
+	ImageCapturer3DConfig image3dConfig;
+	image3dConfig.verServoCtrl = std::move(verServoControl);
+	image3dConfig.horServoCtrl = std::move(horServoControl);
+	image3dConfig.lidarCtrl = std::move(lidarDevice);
+	image3dCapturer = std::make_unique<ImageCapturer3D>(image3dConfig);
+
 	LOG_INFO("Created Business Logic layer components");
 }
 
 void createApplicationLayerComponents()
 {
+	systemTaskMngParams.image3dCapturer = std::move(image3dCapturer);
 	systemTaskMngParams.globalClkMng    = globalClkMng;
 	systemTaskMngParams.commMng         = commMng;
 	systemTaskHandler = std::make_unique<application::SystemTasksManager>(std::move(systemTaskMngParams));
@@ -70,36 +134,9 @@ void createApplicationLayerComponents()
 
 int main()
 {
-//	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
-//	auto canCtrl = PsCanController();
-//	canCtrl.initialize();
-//	uint8_t idMsg = 0x03;
-//	uint8_t txMsg[5] = {0x1,0x2,0x3,0x4,0x44};
-//	uint8_t msgLength = 8;
-//	canCtrl.transmitMsg(idMsg, txMsg, msgLength); /* Send a frame */
-//
-//	while(1)
-//	{
-//		auto frame = canCtrl.receiveMsg();
-//		if(frame.dlc != 0)
-//		{
-//			std::string data = "RX FRAME: Id:" + std::to_string(frame.id) + " -- "
-//					+ "Dlc:" + std::to_string(frame.dlc) + " --> "
-//					+ std::to_string(frame.data[0]) + " "
-//					+ std::to_string(frame.data[1]) + " "
-//					+ std::to_string(frame.data[2]) + " "
-//					+ std::to_string(frame.data[3]) + " "
-//					+ std::to_string(frame.data[4]) + " "
-//					+ std::to_string(frame.data[5]) + " "
-//					+ std::to_string(frame.data[6]) + " "
-//					+ std::to_string(frame.data[7]);
-//
-//
-//			LOG_INFO("RX FRAME: ", data);
-//		}
-//		usleep(3000);
-//	}
 	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
+
+
 	createHardwareAbstractionLayerComponents();
 	createBusinessLogicLayerComponents();
 	createApplicationLayerComponents();
@@ -108,3 +145,5 @@ int main()
 	while(1);
 	return 0;
 }
+
+#endif

@@ -2,7 +2,7 @@
 
 #include <hardware_abstraction/Controllers/I2C/I2CConfig.h>
 #include <vector>
-
+#define I2C_POLLING
 namespace hardware_abstraction
 {
 namespace Controllers
@@ -24,11 +24,13 @@ public:
 	virtual ~I2CController() = default;
 
 	void initialize();
-	int SetupInterruptSystem(XIicPs *IicPsPtr);
 	uint8_t readData(uint8_t slaveAddr, uint8_t registerAddr, uint8_t *buffer, uint8_t bufferSize);
 	uint8_t sendData(uint8_t regAddr, uint8_t *buffer, uint32_t bufferSize);
 
+#ifndef I2C_POLLING
+	int SetupInterruptSystem(XIicPs *IicPsPtr);
 	static void irqHandler(void *callBackRef, u32 event);
+#endif
 	bool selfTest();
 };
 }

@@ -15,7 +15,7 @@ private:
 public:
 	FusionManager(Osal::StreamBufferHandler* input, Osal::StreamBufferHandler* output);
 	virtual ~FusionManager();
-
+	void initialization();
 	void pullFrames();
 	void filterFrames();
 	void fusionFrames();

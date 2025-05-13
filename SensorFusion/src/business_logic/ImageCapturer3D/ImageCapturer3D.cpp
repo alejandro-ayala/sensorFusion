@@ -16,8 +16,8 @@ void ImageCapturer3D::initialize()
 {
 	m_horServoCtrl->initialize();
 	m_verServoCtrl->initialize();
-#ifndef FAKE_VALUES
 
+#ifndef FAKE_VALUES
 	m_lidarCtrl->initialization();
 #endif
 
@@ -43,29 +43,39 @@ void ImageCapturer3D::captureImage()
 			LOG_WARNING("Error applying bias correction");
 		}
 	}
+
+	m_horServoCtrl->setAngle(m_config.initHorizontalAngle);
+	m_verServoCtrl->setAngle(m_config.initVerticalAngle);
+
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	for(int vAngle = m_config.initVerticalAngle; vAngle <= m_config.maxVerticalAngle; )
 	{
 		static int a = 0;
 		a++;
-		for(int hAngle = m_config.initHorizontalAngle; hAngle <= m_config.maxHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
+		for(int hAngle = m_config.initHorizontalAngle; hAngle >= m_config.minHorizontalAngle; hAngle -= m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
+			std::string distance = "Point distance (" + std::to_string(hAngle) + ", " + std::to_string(vAngle) + ") = " + std::to_string(lidarPoint);
+			LOG_DEBUG(distance);
+			vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 		}
 
 		vAngle += m_config.verticalAngleResolution;
 		m_verServoCtrl->setAngle(vAngle);
 
-		for(int hAngle = m_config.maxHorizontalAngle; hAngle >= m_config.initHorizontalAngle; hAngle -= m_config.horizontalAngleResolution)
+		for(int hAngle = m_config.minHorizontalAngle; hAngle <= m_config.initHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint, hAngle, vAngle);
 			image3dSize++;
+			std::string distance = "Point distance (" + std::to_string(hAngle) + ", " + std::to_string(vAngle) + ") = " + std::to_string(lidarPoint);
+			LOG_DEBUG(distance);
+			vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 		}
 
 		vAngle += m_config.verticalAngleResolution;
@@ -86,6 +96,7 @@ uint16_t ImageCapturer3D::getPointDistance() const
 		distance[idx] = m_lidarCtrl->readDistance();
 	}
 	auto pointDistance = getDistanceMedian(distance);
+
 	return pointDistance;
 #endif
 }
