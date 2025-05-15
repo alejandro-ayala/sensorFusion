@@ -2,6 +2,7 @@
 
 #include "business_logic/Osal/QueueHandler.h"
 #include "hardware_abstraction/Controllers/CAN/CanFrame.h"
+#include "business_logic/ImageClassifier/ImageAssembler.h"
 #include <memory>
 namespace business_logic
 {
@@ -13,6 +14,7 @@ class MsgGateway
 private:
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_cameraFramesQueue;
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_lidarFramesQueue;
+	std::shared_ptr<business_logic::ImageClassifier::ImageAssembler> m_imageAssembler;
 public:
 	MsgGateway();
 	virtual ~MsgGateway() = default;
