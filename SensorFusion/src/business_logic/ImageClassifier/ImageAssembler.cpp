@@ -11,7 +11,7 @@ namespace ImageClassifier
 ImageAssembler::ImageAssembler(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue) : m_cameraFramesQueue(cameraFramesQueue)
 {
 	uint32_t queueItemSize   = sizeof(std::shared_ptr<business_logic::ImageSnapshot>);
-	uint32_t queueLength     = 50;
+	uint32_t queueLength     = 100;
 	m_cameraSnapshotsQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 }
 
@@ -25,7 +25,7 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 {
 	std::vector<uint8_t> assembledImage;
 	const auto storedCborChunks = m_cameraSnapshotsQueue->getStoredMsg();
-	if(storedCborChunks != totalChunks)
+	if((storedCborChunks-1) != totalChunks)
 	{
 		const std::string msg = "Queue contains " + std::to_string(storedCborChunks) + " and the image to assembly expects " + std::to_string(totalChunks) ;
 		LOG_WARNING(msg);
@@ -35,13 +35,45 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 		const std::string cborImgChunkStr = "Completed ImageSnapshot: " + std::to_string(imageId) + " with " + std::to_string(totalChunks) + " chunks ";
 		LOG_INFO(cborImgChunkStr);
 	}
-	for(uint32_t idx = 0; idx < storedCborChunks; idx++)
+
+	bool discardImage = false;
+	for(uint32_t idx = 0; idx < storedCborChunks -1 ; idx++)
 	{
+		bool insertFrame = true;
 		auto rxSnapshotChunk = std::make_shared<business_logic::ImageSnapshot>();
         m_cameraSnapshotsQueue->receive(static_cast<void*>(rxSnapshotChunk.get()));
-        assembledImage.insert(assembledImage.end(), rxSnapshotChunk->m_imgBuffer.get(), rxSnapshotChunk->m_imgBuffer.get() + rxSnapshotChunk->m_imgSize);
+        if(insertFrame && rxSnapshotChunk->m_msgId != imageId)
+        {
+        	const std::string msg = "Snapshot id: " + std::to_string(rxSnapshotChunk->m_msgId) + " different that " +std::to_string(imageId);
+        	LOG_WARNING(msg);
+        	insertFrame = false;
+        }
+        if(insertFrame && rxSnapshotChunk->m_msgIndex != idx)
+        {
+        	const std::string msg = "ChunkID: " + std::to_string(rxSnapshotChunk->m_msgIndex) + " not in sequence with previous " +std::to_string(idx);
+        	LOG_WARNING(msg);
+        	insertFrame = false;
+        }
+        if(insertFrame)
+        {
+        	assembledImage.insert(assembledImage.end(), rxSnapshotChunk->m_imgBuffer.get(), rxSnapshotChunk->m_imgBuffer.get() + rxSnapshotChunk->m_imgSize);
+        }
+        else
+        {
+        	discardImage = true;
+        	LOG_WARNING("Discarded frame: ", imageId);
+        }
 	}
-
+	if(!discardImage)
+	{
+		//TODO implement read chunks and assemble to provide to TensorFlowLite
+		std::string assembledImageStr = " Assembled Image " + std::to_string(imageId) + " with " + std::to_string(storedCborChunks) + " chunks: ";
+		for( const auto elem : assembledImage)
+		{
+			assembledImageStr += std::to_string(elem) + " ";
+		}
+		LOG_INFO(assembledImageStr);
+	}
 	return true;
 }
 
@@ -51,9 +83,9 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex)
     LOG_TRACE("CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs");
     const auto storedMsg = m_cameraFramesQueue->getStoredMsg();
     std::vector<uint8_t> cborFrame;
-    if(cborIndex != storedMsg)
+    if(cborIndex != storedMsg - 1)
     {
-        LOG_ERROR("CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs, but ", std::to_string(storedMsg), " stored msgs in queue");
+        LOG_ERROR("ImageAssembler::assembleFrame CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs, but ", std::to_string(storedMsg), " stored msgs in queue");
     }
 
     cborFrame.reserve(storedMsg * hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE);
@@ -63,7 +95,14 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex)
     {
         std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE> rxBuffer;
         m_cameraFramesQueue->receive(rxBuffer.data());
-        cborFrame.insert(cborFrame.end(), rxBuffer.begin() + 2, rxBuffer.end());
+        if(rxBuffer[0] == msgIndex)
+        {
+        	cborFrame.insert(cborFrame.end(), rxBuffer.begin() + 2, rxBuffer.end());
+        }
+        else
+        {
+        	LOG_WARNING("CAMERA_IMAGE frame from different CborChunk: ", std::to_string(rxBuffer[0]), " -- ", std::to_string(msgIndex) );
+        }
     }
     const auto pendingStoredMsg = m_cameraFramesQueue->getStoredMsg();
     if(pendingStoredMsg != 0)

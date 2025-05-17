@@ -68,11 +68,12 @@ bool CommunicationManager::sendData(const std::vector<business_logic::Communicat
     return result;
 }
 
-void CommunicationManager::receiveData()
+bool CommunicationManager::receiveData()
 {
 	auto rxMsg = canController->receiveMsg();
 	static uint8_t lastFrameIndex = 0;
 	static uint8_t lastCborIndex  = 0;
+	bool status = false;
 	if(rxMsg.dlc > 0)
 	{
 		std::string frameSize = "Received frame of size" + std::to_string(rxMsg.dlc) + " : ";
@@ -96,7 +97,9 @@ void CommunicationManager::receiveData()
 
 		//parsedMsg.deSerialize(data);
 		//LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
+		status = true;
 	}
+	return status;
 }
 
 bool CommunicationManager::selfTest()

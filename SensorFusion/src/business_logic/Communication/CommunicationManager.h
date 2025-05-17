@@ -27,7 +27,7 @@ public:
 	void initialization();
 	bool sendData(IData msg);
 	bool sendData(const std::vector<business_logic::Communication::CanMsg>& dataToSend);
-	void receiveData();
+	bool receiveData();
 	bool selfTest();
 
 };

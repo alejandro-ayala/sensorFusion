@@ -30,12 +30,15 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 
 	while(1)
 	{
+		const auto t1 = xTaskGetTickCount();
 		LOG_DEBUG("Sending global master time: ", std::to_string(m_globalClkMng->getAbsotuleTime()), " ns") ;
 	    size_t freeHeapSize = xPortGetFreeHeapSize();
 	    size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
 	    const std::string freeHeapMsg = "freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
 	    LOG_INFO(freeHeapMsg);
 		m_globalClkMng->sendGlobalTime();
+		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
+		LOG_INFO("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
 		vTaskDelay( taskSleep );
 	}
 }
@@ -53,6 +56,7 @@ void SystemTasksManager::communicationTask(void* argument)
 
 	while(1)
 	{
+		const auto t1 = xTaskGetTickCount();
 		static uint32_t loopIndex = 0;
 //		if(loopIndex > 5000000)
 //		{
@@ -62,8 +66,10 @@ void SystemTasksManager::communicationTask(void* argument)
 //			LOG_INFO(freeHeapMsg);
 //			loopIndex = 0;
 //		}
-		commMng->receiveData();
+		const auto result = commMng->receiveData();
 		loopIndex++;
+		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
+		//if(result)LOG_INFO("SystemTasks::communicationTask executed in: ", executionTime, " ms");
 		vTaskDelay( taskSleep );
 	}
 }
@@ -79,6 +85,7 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 
 	while(1)
 	{
+		const auto t1 = xTaskGetTickCount();
 		static uint8_t captureId = 0;
 		try
 		{
@@ -99,6 +106,8 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 			captureId++;
 			LOG_TRACE("Capturing 3D image done");
 
+			const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
+			LOG_INFO("SystemTasks::image3dCapturerTask executed in: ", executionTime, " ms");
 			vTaskDelay( taskSleep );
 		}
 		catch (const services::BaseException& e)
@@ -117,7 +126,10 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 
 	while(1)
 	{
+		const auto t1 = xTaskGetTickCount();
 		m_imageClassifier->detect();
+		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
+		LOG_INFO("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
 		vTaskDelay( taskSleep );
 	}
 }
@@ -170,10 +182,10 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
 void SystemTasksManager::createPoolTasks()
 {
 	LOG_INFO("Creating pool tasks");
-	//m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
-	//m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
-	//m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
-	m_imageTaskHandler             = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
+	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
+	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
+	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
+	//m_imageTaskHandler             = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
 	LOG_INFO("Created pool tasks");
 }
 
