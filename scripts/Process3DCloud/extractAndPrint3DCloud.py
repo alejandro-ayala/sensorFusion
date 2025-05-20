@@ -2,7 +2,7 @@ import os
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # aunque no se use explícito, necesario para 3d
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def extraer_bloques_y_guardar(input_file, output_prefix="LidarSample_"):
@@ -28,7 +28,6 @@ def extraer_bloques_y_guardar(input_file, output_prefix="LidarSample_"):
                 continue
 
             if capturing:
-                # Procesar líneas que empiezan con [INFO]
                 if line.startswith("[INFO]"):
                     data_str = line[len("[INFO] "):].strip()
                     data_str = data_str.replace(",", " ")
@@ -45,11 +44,21 @@ def margen(limites, porcentaje=0.1):
     return (limites[0] - rango * porcentaje, limites[1] + rango * porcentaje)
 
 
+def filtrar_outliers(x, y, z, porcentaje=2):
+    def filtrar(arr):
+        low, high = np.percentile(arr, porcentaje), np.percentile(arr, 100 - porcentaje)
+        return (arr >= low) & (arr <= high)
+
+    filtro_x = filtrar(x)
+    filtro_y = filtrar(y)
+    filtro_z = filtrar(z)
+
+    filtro_total = filtro_x & filtro_y & filtro_z
+    return x[filtro_total], y[filtro_total], z[filtro_total]
+
+
 def mostrar_nubes_puntos(file_pattern="LidarSample_"):
-    # Busca todos los archivos LidarSample_*.txt ordenados por número
     files = [f for f in os.listdir() if f.startswith(file_pattern) and f.endswith(".txt")]
-    
-    # Ordenar por número al final del nombre (ej: LidarSample_2.txt)
     files.sort(key=lambda x: int(re.findall(r'\d+', x)[0]))
 
     for archivo_lidar in files:
@@ -67,6 +76,9 @@ def mostrar_nubes_puntos(file_pattern="LidarSample_"):
         x = distancias * np.sin(angulosV) * np.cos(angulosH)
         y = distancias * np.sin(angulosV) * np.sin(angulosH)
         z = distancias * np.cos(angulosV)
+
+        # 🔍 Filtrar outliers
+        x, y, z = filtrar_outliers(x, y, z, porcentaje=2)
 
         xlim = margen((np.min(x), np.max(x)))
         ylim = margen((np.min(y), np.max(y)))
@@ -91,7 +103,7 @@ def mostrar_nubes_puntos(file_pattern="LidarSample_"):
 
 
 if __name__ == "__main__":
-    archivo_log = "logLidarData.log"  # Cambia al nombre real de tu fichero log
+    archivo_log = "logLidarData.log"  # Cambia esto si el nombre de tu archivo es diferente
 
     print("Extrayendo bloques del log...")
     extraer_bloques_y_guardar(archivo_log)
