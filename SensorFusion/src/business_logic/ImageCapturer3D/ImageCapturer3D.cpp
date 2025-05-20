@@ -29,7 +29,7 @@ void ImageCapturer3D::stop()
 
 }
 
-void ImageCapturer3D::captureImage()
+uint32_t ImageCapturer3D::captureImage()
 {
 	uint32_t image3dSize = 0;
 	uint16_t delayServo = 1;
@@ -44,16 +44,16 @@ void ImageCapturer3D::captureImage()
 		}
 	}
 
-	m_horServoCtrl->setAngle(m_config.initHorizontalAngle);
-	m_verServoCtrl->setAngle(m_config.initVerticalAngle);
+	m_horServoCtrl->setAngle(m_config.minHorizontalAngle);
+	m_verServoCtrl->setAngle(m_config.minVerticalAngle);
 
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
-	for(int vAngle = m_config.initVerticalAngle; vAngle <= m_config.maxVerticalAngle; )
+	for(int vAngle = m_config.minVerticalAngle; vAngle <= m_config.maxVerticalAngle; )
 	{
 		static int a = 0;
 		a++;
-		for(int hAngle = m_config.initHorizontalAngle; hAngle >= m_config.minHorizontalAngle; hAngle -= m_config.horizontalAngleResolution)
+		for(int hAngle = m_config.minHorizontalAngle; hAngle <= m_config.maxHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
@@ -67,7 +67,7 @@ void ImageCapturer3D::captureImage()
 		vAngle += m_config.verticalAngleResolution;
 		m_verServoCtrl->setAngle(vAngle);
 
-		for(int hAngle = m_config.minHorizontalAngle; hAngle <= m_config.initHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
+		for(int hAngle = m_config.maxHorizontalAngle; hAngle >= m_config.minHorizontalAngle; hAngle -= m_config.horizontalAngleResolution)
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
@@ -81,7 +81,7 @@ void ImageCapturer3D::captureImage()
 		vAngle += m_config.verticalAngleResolution;
 		m_verServoCtrl->setAngle(vAngle);
 	}
-
+	return image3dSize;
 }
 
 uint16_t ImageCapturer3D::getPointDistance() const

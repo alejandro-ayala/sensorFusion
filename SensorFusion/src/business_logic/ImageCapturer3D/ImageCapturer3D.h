@@ -31,7 +31,7 @@ public:
 
     void initialize();
     void stop();
-    void captureImage();
+    uint32_t captureImage();
     LidarArray getLastCapture();
 };
 }
