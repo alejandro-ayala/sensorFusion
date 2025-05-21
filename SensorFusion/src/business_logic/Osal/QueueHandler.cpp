@@ -64,6 +64,12 @@ void QueueHandler::sendToBack(const void * itemToQueue)
 	}
 }
 
+bool QueueHandler::sendToBack(const std::shared_ptr<business_logic::ImageSnapshot>& itemToQueue)
+{
+    auto itemPtr = new std::shared_ptr<business_logic::ImageSnapshot>(itemToQueue);
+    return xQueueSendToBack(queue, &itemPtr, static_cast<TickType_t>(0)) == pdPASS;
+}
+
 void QueueHandler::sendToBack(const void * itemToQueue, uint32_t timeout)
 {
 	if( xQueueSendToBack( queue, itemToQueue, static_cast<TickType_t>(timeout) ) != pdPASS )
@@ -92,6 +98,20 @@ void QueueHandler::receive(void* rxBuffer)
     xQueueReceive(queue, rxBuffer, (TickType_t)10);
     LOG_TRACE("Receiving from queue into buffer: %p", rxBuffer);
     return;
+}
+
+bool QueueHandler::receive(std::shared_ptr<business_logic::ImageSnapshot>& rxBuffer)
+{
+    std::shared_ptr<business_logic::ImageSnapshot>* itemPtr = nullptr;
+
+    if (xQueueReceive(queue, &itemPtr, static_cast<TickType_t>(portMAX_DELAY)) == pdPASS)
+    {
+        // Transferimos la propiedad del shared_ptr
+        rxBuffer = std::move(*itemPtr);
+        delete itemPtr;  // Limpiamos el puntero crudo
+        return true;
+    }
+    return false;
 }
 
 void QueueHandler::receive(void *rxBuffer, uint32_t timeout)	

@@ -27,7 +27,7 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 	const auto storedCborChunks = m_cameraSnapshotsQueue->getStoredMsg();
 	if((storedCborChunks-1) != totalChunks)
 	{
-		const std::string msg = "Queue contains " + std::to_string(storedCborChunks) + " and the image to assembly expects " + std::to_string(totalChunks) ;
+		const std::string msg = "Queue contains " + std::to_string(storedCborChunks) + " and the image to assembly expects " + std::to_string(storedCborChunks) ;
 		LOG_WARNING(msg);
 	}
 	else
@@ -37,11 +37,13 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 	}
 
 	bool discardImage = false;
-	for(uint32_t idx = 0; idx < storedCborChunks -1 ; idx++)
+	for(uint32_t idx = 0; idx < storedCborChunks ; idx++)
 	{
 		bool insertFrame = true;
-		auto rxSnapshotChunk = std::make_shared<business_logic::ImageSnapshot>();
-        m_cameraSnapshotsQueue->receive(static_cast<void*>(rxSnapshotChunk.get()));
+		//auto rxSnapshotChunk = std::make_shared<business_logic::ImageSnapshot>();
+		std::shared_ptr<business_logic::ImageSnapshot> rxSnapshotChunk;
+		m_cameraSnapshotsQueue->receive(rxSnapshotChunk);
+
         if(insertFrame && rxSnapshotChunk->m_msgId != imageId)
         {
         	const std::string msg = "Snapshot id: " + std::to_string(rxSnapshotChunk->m_msgId) + " different that " +std::to_string(imageId);
@@ -66,13 +68,27 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 	}
 	if(!discardImage)
 	{
+		static int i = 0;
 		//TODO implement read chunks and assemble to provide to TensorFlowLite
-		std::string assembledImageStr = " Assembled Image " + std::to_string(imageId) + " with " + std::to_string(storedCborChunks) + " chunks: ";
-		for( const auto elem : assembledImage)
-		{
-			assembledImageStr += std::to_string(elem) + " ";
-		}
-		LOG_INFO(assembledImageStr);
+		const auto assembledImageSize = assembledImage.size();
+		auto assembledImagePtr = assembledImage.data();
+		std::string assembledImageStr = " Assembled Image " + std::to_string(imageId) + " with " + std::to_string(storedCborChunks) + " chunks and size: " + std::to_string(assembledImageSize) + " bytes";
+//		std::stringstream ss;
+//		for( const auto elem : assembledImage)
+//		{
+//		    ss << std::uppercase           // Letras en mayúsculas (A-F)
+//		       << std::setfill('0')        // Rellenar con ceros a la izquierda
+//		       << std::setw(2)             // Ancho fijo de 2 caracteres
+//		       << std::hex
+//		       << static_cast<int>(elem)   // Asegura que uint8_t no se imprima como char
+//		       << " ";
+//		}
+//		assembledImageStr += ss.str();
+//		LOG_INFO(assembledImageStr);
+
+		const auto pendingCborChunks = m_cameraSnapshotsQueue->getStoredMsg();
+		LOG_INFO("Pending CBOR chunks: ", pendingCborChunks);
+		i++;
 	}
 	return true;
 }
@@ -114,19 +130,25 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex)
     try
     {
         auto m_dataSerializer = std::make_shared<business_logic::DataSerializer>();
-        auto cborImgChunk = std::make_shared<business_logic::ImageSnapshot>();
-        m_dataSerializer->deserialize(*cborImgChunk, cborFrame);
+        //auto cborImgChunk = std::make_shared<business_logic::ImageSnapshot>();
+        business_logic::ImageSnapshot cborImgChunk;
+
+        m_dataSerializer->deserialize(cborImgChunk, cborFrame);
 
         static uint8_t totalChunks = 0;
-		if(imageId != cborImgChunk->m_msgId)
+		if(imageId != cborImgChunk.m_msgId)
 		{
 			assembleImage(imageId, totalChunks);
 		}
-		imageId = cborImgChunk->m_msgId;
-		totalChunks = cborImgChunk->m_msgIndex;
+		imageId = cborImgChunk.m_msgId;
+		totalChunks = cborImgChunk.m_msgIndex;
 
         //TODO store the CBOR_CHUNK in the cborChunkQueue
-		m_cameraSnapshotsQueue->sendToBack(( void * ) cborImgChunk.get());
+		auto snapshotPtr = std::make_shared<business_logic::ImageSnapshot>(cborImgChunk.m_msgId, cborImgChunk.m_msgIndex, cborImgChunk.m_imgBuffer.get(), cborImgChunk.m_imgSize, cborImgChunk.m_timestamp);
+		m_cameraSnapshotsQueue->sendToBack(snapshotPtr);
+
+//		std::shared_ptr<business_logic::ImageSnapshot> rxSnapshotChunk;
+//		m_cameraSnapshotsQueue->receive(&rxSnapshotChunk);
     }
     catch (const std::exception& e)
     {

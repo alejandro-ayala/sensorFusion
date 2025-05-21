@@ -4,6 +4,9 @@
 #include "semphr.h"
 #include "Definitions.h"
 #include "business_logic/ImageCapturer3D/LidarPoint.h"
+#include <memory>
+#include "business_logic/DataSerializer/ImageSnapshot.h"
+
 namespace business_logic
 {
 namespace Osal
@@ -33,6 +36,9 @@ public:
 
 	void receive(void* rxBuffer);
 	void receive(void *rxBuffer, uint32_t timeout);
+
+	bool sendToBack(const std::shared_ptr<business_logic::ImageSnapshot>& itemToQueue);
+	bool receive(std::shared_ptr<business_logic::ImageSnapshot>& rxBuffer);
 
 	void peek(void *rxBuffer);
 	void peek(void *rxBuffer, uint32_t timeout);
