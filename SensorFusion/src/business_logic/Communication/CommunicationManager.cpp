@@ -80,6 +80,7 @@ bool CommunicationManager::receiveData()
 		LOG_TRACE(frameSize, std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
 		if(lastFrameIndex !=rxMsg.data[0])
 		{
+			//TODO FrameSync (if rxMsg.data[0] == KEY) m_imageAssembler->assembleFrame(msgIndex, cborIndex);
 			msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex);
 		}
 		if(rxMsg.dlc != 8)

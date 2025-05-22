@@ -4,6 +4,9 @@
 #include "hardware_abstraction/Controllers/CAN/CanFrame.h"
 #include "services/Logger/LoggerMacros.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
 namespace business_logic
 {
 namespace ImageClassifier
@@ -37,6 +40,7 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 	}
 
 	bool discardImage = false;
+	uint32_t assembledChunks = 0;
 	for(uint32_t idx = 0; idx < storedCborChunks ; idx++)
 	{
 		bool insertFrame = true;
@@ -59,6 +63,7 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
         if(insertFrame)
         {
         	assembledImage.insert(assembledImage.end(), rxSnapshotChunk->m_imgBuffer.get(), rxSnapshotChunk->m_imgBuffer.get() + rxSnapshotChunk->m_imgSize);
+        	assembledChunks++;
         }
         else
         {
@@ -72,23 +77,38 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 		//TODO implement read chunks and assemble to provide to TensorFlowLite
 		const auto assembledImageSize = assembledImage.size();
 		auto assembledImagePtr = assembledImage.data();
-		std::string assembledImageStr = " Assembled Image " + std::to_string(imageId) + " with " + std::to_string(storedCborChunks) + " chunks and size: " + std::to_string(assembledImageSize) + " bytes";
-//		std::stringstream ss;
-//		for( const auto elem : assembledImage)
-//		{
-//		    ss << std::uppercase           // Letras en mayúsculas (A-F)
-//		       << std::setfill('0')        // Rellenar con ceros a la izquierda
-//		       << std::setw(2)             // Ancho fijo de 2 caracteres
-//		       << std::hex
-//		       << static_cast<int>(elem)   // Asegura que uint8_t no se imprima como char
-//		       << " ";
-//		}
-//		assembledImageStr += ss.str();
-//		LOG_INFO(assembledImageStr);
+		std::string assembledImageStr = " Assembled Image " + std::to_string(imageId) + " with " + std::to_string(assembledChunks) + "/" + std::to_string(storedCborChunks) + " chunks and size: " + std::to_string(assembledImageSize) + " bytes --> "
+				+ std::to_string(assembledImage[0]) + ", " + std::to_string(assembledImage[1]) + " -- " + std::to_string(assembledImage[assembledImage.size() - 2]) + ", " + std::to_string(assembledImage.size() - 1);
 
-		const auto pendingCborChunks = m_cameraSnapshotsQueue->getStoredMsg();
-		LOG_INFO("Pending CBOR chunks: ", pendingCborChunks);
+		//		std::stringstream ss;
+		//		for( const auto elem : assembledImage)
+		//		{
+		//		    ss << std::uppercase           // Letras en mayúsculas (A-F)
+		//		       << std::setfill('0')        // Rellenar con ceros a la izquierda
+		//		       << std::setw(2)             // Ancho fijo de 2 caracteres
+		//		       << std::hex
+		//		       << static_cast<int>(elem)   // Asegura que uint8_t no se imprima como char
+		//		       << " ";
+		//		}
+		//		assembledImageStr += ss.str();
+		LOG_INFO(assembledImageStr);
+
+		int width = 0, height = 0, channels = 0;
+		unsigned char* input_image = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, 1);
+		if(input_image)
+		{
+			std::string loadImageStr = "Image loaded correctly: " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels";
+			LOG_INFO(loadImageStr);
+		}
+		else
+		{
+			LOG_ERROR("Load from memory image failed");
+		}
+
 		i++;
+		const auto pendingCborChunks = m_cameraSnapshotsQueue->getStoredMsg();
+		if(pendingCborChunks)
+			LOG_WARNING("Pending CBOR chunks: ", pendingCborChunks);
 	}
 	return true;
 }
