@@ -35,16 +35,22 @@ public:
 	void setLogLevel(LogLevel) override;
 	void disable() override;
 	void enable() override;
-
+	bool isLevelEnabled(LogLevel level) const;
 
 	void log(LogLevel level , const std::string& msg);
 
 	template<typename... Args>
 	void log(LogLevel logLevel , const Args&... args)
 	{
-		if((m_logLevel > logLevel) || m_disable) return;
-		const std::string msg = concatenateArgsToString(args...);
-		log(logLevel, msg);
+		if((m_logLevel > logLevel) || m_disable)
+		{
+			return;
+		}
+		else
+		{
+			const std::string msg = concatenateArgsToString(args...);
+			log(logLevel, msg);
+		}
 	}
 };
 } //namespace services

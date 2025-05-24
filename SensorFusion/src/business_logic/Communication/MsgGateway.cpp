@@ -46,14 +46,14 @@ void MsgGateway::storeMsg(const uint8_t frameId, const std::array<uint8_t, hardw
 			break;
 	}
 }
-void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex)
+void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex, bool isEndOfImage)
 {
 	static uint8_t imageId = 0;
 	switch (msgType)
 	{
 		case static_cast<uint8_t>(CAN_MSG_TYPES::CAMERA_IMAGE):
 		{
-			m_imageAssembler->assembleFrame(msgIndex, cborIndex);
+			m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 			break;
 		}
 		case static_cast<uint8_t>(CAN_MSG_TYPES::LIDAR_3D_IMAGE):

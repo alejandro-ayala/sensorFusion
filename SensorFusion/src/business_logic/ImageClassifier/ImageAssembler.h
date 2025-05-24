@@ -20,7 +20,7 @@ public:
 
     bool loadData(const std::vector<uint8_t>& input);
     bool assembleImage(uint8_t imageId, uint8_t totalChunks);
-    bool assembleFrame(uint8_t msgIndex, uint8_t cborIndex);
+    bool assembleFrame(uint8_t msgIndex, uint8_t cborIndex, bool isEndOfImage = false);
 };
 
 }

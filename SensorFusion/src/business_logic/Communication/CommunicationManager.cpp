@@ -78,10 +78,16 @@ bool CommunicationManager::receiveData()
 	{
 		std::string frameSize = "Received frame of size" + std::to_string(rxMsg.dlc) + " : ";
 		LOG_TRACE(frameSize, std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
-		if(lastFrameIndex !=rxMsg.data[0])
+		if(lastFrameIndex == rxMsg.data[0] && rxMsg.data[1] == 0x1E && rxMsg.data[2] == 0x1E && rxMsg.data[3] == 0x1E &&
+				rxMsg.data[4] == 0x1E && rxMsg.data[5] == 0x1E && rxMsg.data[6] == 0x1E)
+//		if(lastFrameIndex !=rxMsg.data[0])
 		{
 			//TODO FrameSync (if rxMsg.data[0] == KEY) m_imageAssembler->assembleFrame(msgIndex, cborIndex);
-			msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex);
+			bool isEndOfImage = static_cast<bool>(rxMsg.data[7]);
+			LOG_TRACE("CommunicationManager::receiveData: EndOfFrame received for imageID: ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string(isEndOfImage));
+			msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex, isEndOfImage);
+
+			return true;
 		}
 		if(rxMsg.dlc != 8)
 		{

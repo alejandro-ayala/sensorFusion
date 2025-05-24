@@ -21,7 +21,7 @@ public:
 
 	void initialization();
 	void storeMsg(const uint8_t frameId, const std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>& frame);
-	void completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex);
+	void completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex, bool isEndOfImage = false);
 };
 }
 }

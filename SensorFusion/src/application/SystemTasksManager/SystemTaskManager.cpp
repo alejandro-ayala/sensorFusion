@@ -32,13 +32,10 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 	{
 		const auto t1 = xTaskGetTickCount();
 		LOG_DEBUG("Sending global master time: ", std::to_string(m_globalClkMng->getAbsotuleTime()), " ns") ;
-	    size_t freeHeapSize = xPortGetFreeHeapSize();
-	    size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
-	    const std::string freeHeapMsg = "freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
-	    LOG_INFO(freeHeapMsg);
+		logMemoryUsage();
 		m_globalClkMng->sendGlobalTime();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		LOG_INFO("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
+		LOG_TRACE("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
 		vTaskDelay( taskSleep );
 	}
 }
@@ -58,14 +55,11 @@ void SystemTasksManager::communicationTask(void* argument)
 	{
 		const auto t1 = xTaskGetTickCount();
 		static uint32_t loopIndex = 0;
-//		if(loopIndex > 5000000)
-//		{
-//			size_t freeHeapSize = xPortGetFreeHeapSize();
-//			size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
-//			const std::string freeHeapMsg = "SystemTasks::communicationTask freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
-//			LOG_INFO(freeHeapMsg);
-//			loopIndex = 0;
-//		}
+		if(loopIndex > 500000000)
+		{
+			logMemoryUsage();
+			loopIndex = 0;
+		}
 		const auto result = commMng->receiveData();
 		loopIndex++;
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
@@ -89,7 +83,7 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 		static uint8_t captureId = 0;
 		try
 		{
-			LOG_DEBUG("Capturing 3D image");
+			logMemoryUsage();
 			m_lastCaptureTimestampStart = m_globalClkMng->getAbsotuleTime();
 			const auto imageSize = m_image3DCapturer->captureImage();
 
@@ -112,10 +106,8 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 //			}
 //			m_capturesQueue->sendToBack(( void * ) &pxPointerToxMessage);
 			captureId++;
-			LOG_TRACE("Capturing 3D image done");
-
 			const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-			LOG_INFO("SystemTasks::image3dCapturerTask executed in: ", executionTime, " ms");
+			LOG_TRACE("SystemTasks::image3dCapturerTask executed in: ", executionTime, " ms");
 			vTaskDelay( taskSleep );
 		}
 		catch (const services::BaseException& e)
@@ -135,9 +127,11 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 	while(1)
 	{
 		const auto t1 = xTaskGetTickCount();
+		logMemoryUsage();
 		m_imageClassifier->detect();
+		logMemoryUsage();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		LOG_INFO("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
+		LOG_TRACE("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
 		vTaskDelay( taskSleep );
 	}
 }

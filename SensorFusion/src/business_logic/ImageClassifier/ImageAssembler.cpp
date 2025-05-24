@@ -3,10 +3,11 @@
 #include "business_logic/DataSerializer/ImageSnapshot.h"
 #include "hardware_abstraction/Controllers/CAN/CanFrame.h"
 #include "services/Logger/LoggerMacros.h"
-
+#include "task.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
+uint32_t cntLoadedImg = 0, cntFailedImg = 0;
 namespace business_logic
 {
 namespace ImageClassifier
@@ -14,7 +15,7 @@ namespace ImageClassifier
 ImageAssembler::ImageAssembler(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue) : m_cameraFramesQueue(cameraFramesQueue)
 {
 	uint32_t queueItemSize   = sizeof(std::shared_ptr<business_logic::ImageSnapshot>);
-	uint32_t queueLength     = 100;
+	uint32_t queueLength     = 200;
 	m_cameraSnapshotsQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 }
 
@@ -77,8 +78,8 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 		//TODO implement read chunks and assemble to provide to TensorFlowLite
 		const auto assembledImageSize = assembledImage.size();
 		auto assembledImagePtr = assembledImage.data();
-		std::string assembledImageStr = " Assembled Image " + std::to_string(imageId) + " with " + std::to_string(assembledChunks) + "/" + std::to_string(storedCborChunks) + " chunks and size: " + std::to_string(assembledImageSize) + " bytes --> "
-				+ std::to_string(assembledImage[0]) + ", " + std::to_string(assembledImage[1]) + " -- " + std::to_string(assembledImage[assembledImage.size() - 2]) + ", " + std::to_string(assembledImage.size() - 1);
+		std::string assembledImageStr = "*********** Assembled Image " + std::to_string(imageId) + " with " + std::to_string(assembledChunks) + "/" + std::to_string(storedCborChunks) + " chunks and size: " + std::to_string(assembledImageSize) + " bytes --> "
+				+ std::to_string(assembledImage[0]) + ", " + std::to_string(assembledImage[1]) + " -- " + std::to_string(assembledImage[assembledImage.size() - 2]) + ", " + std::to_string(assembledImage.size() - 1) + "***********";
 
 		//		std::stringstream ss;
 		//		for( const auto elem : assembledImage)
@@ -91,18 +92,34 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 		//		       << " ";
 		//		}
 		//		assembledImageStr += ss.str();
-		LOG_INFO(assembledImageStr);
+		LOG_TRACE(assembledImageStr);
 
 		int width = 0, height = 0, channels = 0;
-		unsigned char* input_image = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, 1);
-		if(input_image)
+		if(stbi_info_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels))
 		{
-			std::string loadImageStr = "Image loaded correctly: " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels";
+			std::string loadImageStr = "Image can be load: " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels";
 			LOG_INFO(loadImageStr);
+			unsigned char* input_image = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, 1);
+			if(input_image)
+			{
+				std::string loadImageStr = "***********Image loaded correctly(" + std::to_string(cntLoadedImg) + "/" + std::to_string(cntFailedImg) + "): " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels***********";
+				LOG_INFO(loadImageStr);
+				logMemoryUsage();
+				stbi_image_free(input_image);
+				logMemoryUsage();
+				cntLoadedImg++;
+			}
+			else
+			{
+				logMemoryUsage();
+				LOG_ERROR("Load from memory image FAILED!!!!!!!");
+				cntFailedImg++;
+			}
 		}
 		else
 		{
-			LOG_ERROR("Load from memory image failed");
+			logMemoryUsage();
+			LOG_ERROR("Image can not be Loaded from memory");
 		}
 
 		i++;
@@ -113,16 +130,23 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 	return true;
 }
 
-bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex)
+bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex, bool isEndOfImage)
 {
 	static uint8_t imageId = 0;
-    LOG_TRACE("CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs");
-    const auto storedMsg = m_cameraFramesQueue->getStoredMsg();
+	static uint32_t testId = 0;
+	const auto storedMsg = m_cameraFramesQueue->getStoredMsg();
+
+
     std::vector<uint8_t> cborFrame;
     if(cborIndex != storedMsg - 1)
     {
-        LOG_ERROR("ImageAssembler::assembleFrame CAMERA_IMAGE frame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs, but ", std::to_string(storedMsg), " stored msgs in queue");
+        LOG_ERROR("ImageAssembler::assembleFrame: ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs, but ", std::to_string(storedMsg), " stored msgs in queue");
     }
+    else if((testId % 30) == 0)
+	{
+		LOG_TRACE("ImageAssembler::assembleFrame:  ", std::to_string(msgIndex), " completed with ", std::to_string(cborIndex), " cbor msgs,  and ", std::to_string(storedMsg), " stored msgs in queue");
+	}
+	testId++;
 
     cborFrame.reserve(storedMsg * hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE);
 
@@ -150,16 +174,11 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex)
     try
     {
         auto m_dataSerializer = std::make_shared<business_logic::DataSerializer>();
-        //auto cborImgChunk = std::make_shared<business_logic::ImageSnapshot>();
         business_logic::ImageSnapshot cborImgChunk;
 
         m_dataSerializer->deserialize(cborImgChunk, cborFrame);
 
         static uint8_t totalChunks = 0;
-		if(imageId != cborImgChunk.m_msgId)
-		{
-			assembleImage(imageId, totalChunks);
-		}
 		imageId = cborImgChunk.m_msgId;
 		totalChunks = cborImgChunk.m_msgIndex;
 
@@ -167,8 +186,10 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex)
 		auto snapshotPtr = std::make_shared<business_logic::ImageSnapshot>(cborImgChunk.m_msgId, cborImgChunk.m_msgIndex, cborImgChunk.m_imgBuffer.get(), cborImgChunk.m_imgSize, cborImgChunk.m_timestamp);
 		m_cameraSnapshotsQueue->sendToBack(snapshotPtr);
 
-//		std::shared_ptr<business_logic::ImageSnapshot> rxSnapshotChunk;
-//		m_cameraSnapshotsQueue->receive(&rxSnapshotChunk);
+		if(isEndOfImage)
+		{
+			assembleImage(imageId, totalChunks);
+		}
     }
     catch (const std::exception& e)
     {
