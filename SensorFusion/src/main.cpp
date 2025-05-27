@@ -74,6 +74,7 @@ static std::unique_ptr<I2CController> i2cController;
 static std::unique_ptr<GarminV3LiteCtrl> lidarDevice;
 
 static std::shared_ptr<CommunicationManager> commMng;
+static std::shared_ptr<business_logic::Osal::QueueHandler> cameraFramesQueue;
 static std::shared_ptr<TimeBaseManager> globalClkMng;
 static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
@@ -104,7 +105,11 @@ void createHardwareAbstractionLayerComponents()
 void createBusinessLogicLayerComponents()
 {
 	timecontroller = std::make_shared<TimeController>();
-	commMng = std::make_shared<CommunicationManager>(timecontroller, canController);
+	uint32_t queueItemSize   = sizeof(std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>);
+	uint32_t queueLength     = 200;
+	cameraFramesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
+
+	commMng = std::make_shared<CommunicationManager>(timecontroller, canController, cameraFramesQueue);
 #ifdef HTTP_CLIENT
 	httpClient = std::make_shared<HTTPClient>();
 #endif
@@ -126,6 +131,7 @@ void createApplicationLayerComponents()
 	systemTaskMngParams.image3dCapturer = std::move(image3dCapturer);
 	systemTaskMngParams.globalClkMng    = globalClkMng;
 	systemTaskMngParams.commMng         = commMng;
+	systemTaskMngParams.cameraFramesQueue = cameraFramesQueue;
 	systemTaskHandler = std::make_unique<application::SystemTasksManager>(std::move(systemTaskMngParams));
 	systemTaskHandler->createPoolTasks();
 	LOG_DEBUG("Created Application layer components");

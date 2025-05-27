@@ -2,7 +2,6 @@
 
 #include "business_logic/Osal/QueueHandler.h"
 #include "hardware_abstraction/Controllers/CAN/CanFrame.h"
-#include "business_logic/ImageClassifier/ImageAssembler.h"
 #include <memory>
 namespace business_logic
 {
@@ -14,12 +13,13 @@ class MsgGateway
 private:
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_cameraFramesQueue;
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_lidarFramesQueue;
-	std::shared_ptr<business_logic::ImageClassifier::ImageAssembler> m_imageAssembler;
+	TaskHandle_t m_taskToNotify;
+
 public:
-	MsgGateway();
+	explicit MsgGateway(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue);
 	virtual ~MsgGateway() = default;
 
-	void initialization();
+	void initialization(const TaskHandle_t& taskToNotify);
 	void storeMsg(const uint8_t frameId, const std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>& frame);
 	void completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex, bool isEndOfImage = false);
 };

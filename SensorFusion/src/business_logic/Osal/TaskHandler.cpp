@@ -73,5 +73,10 @@ void TaskHandler::setPriority(uint32_t newPriority) const
 {
 	vTaskPrioritySet(m_task, newPriority);
 }
+
+TaskHandle_t TaskHandler::getTaskHandler() const
+{
+	return m_task;
+}
 }
 }

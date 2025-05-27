@@ -33,6 +33,7 @@ public:
 	void suspend() const;
 	void setPriority(uint32_t newPriority) const;
 	uint32_t getPriority() const;
+	TaskHandle_t getTaskHandler() const;
 };
 }
 }

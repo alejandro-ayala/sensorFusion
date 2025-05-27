@@ -17,17 +17,17 @@ enum class CAN_MSG_TYPES
 	LIDAR_3D_IMAGE  = 0x19
 };
 
-MsgGateway::MsgGateway()
+MsgGateway::MsgGateway(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue) : m_cameraFramesQueue(cameraFramesQueue)
 {
 	uint32_t queueItemSize   = sizeof(std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>);
 	uint32_t queueLength     = 200;
-	m_cameraFramesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 	m_lidarFramesQueue  = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
-	m_imageAssembler    = std::make_shared<business_logic::ImageClassifier::ImageAssembler>(m_cameraFramesQueue);
-}
-void MsgGateway::initialization()
-{
 
+}
+
+void MsgGateway::initialization(const TaskHandle_t& taskToNotify)
+{
+	m_taskToNotify = taskToNotify;
 }
 
 void MsgGateway::storeMsg(const uint8_t frameId, const std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>& frame)
@@ -53,7 +53,14 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 	{
 		case static_cast<uint8_t>(CAN_MSG_TYPES::CAMERA_IMAGE):
 		{
-			m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
+			//TODO notify to assembleImageTask
+			//m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
+			const std::string strMsg = "MsgGateway::completedFrame CAMERA_IMAGE. msgIndex: " + std::to_string(msgIndex) + "-- cborIndex: " + std::to_string(cborIndex) + " -- isEndOfFrame: " + std::to_string(isEndOfImage & 0x1);
+			LOG_INFO(strMsg);
+			uint32_t valueToNotify = (msgIndex << 16) | (cborIndex << 8) | (isEndOfImage & 0x1);
+			xTaskNotify(m_taskToNotify, valueToNotify, eSetValueWithOverwrite);
+
+			LOG_INFO("MsgGateway::completedFrame notification done");
 			break;
 		}
 		case static_cast<uint8_t>(CAN_MSG_TYPES::LIDAR_3D_IMAGE):

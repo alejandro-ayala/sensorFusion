@@ -13,17 +13,18 @@ using namespace ClockSyncronization;
 using namespace hardware_abstraction::Controllers;
 namespace Communication
 {
-CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller)  : timeController(timecontroller), canController(cancontroller)
+CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller, const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue)  : timeController(timecontroller), canController(cancontroller)
 {
-	msgGateway = std::make_shared<MsgGateway>();
+	msgGateway = std::make_shared<MsgGateway>(cameraFramesQueue);
 }
 
 CommunicationManager::~CommunicationManager()
 {
 }
 
-void CommunicationManager::initialization()
+void CommunicationManager::initialization(const TaskHandle_t& taskToNotify)
 {
+	msgGateway->initialization(taskToNotify);
 	canController->initialize();
 }
 

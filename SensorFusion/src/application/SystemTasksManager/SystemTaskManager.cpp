@@ -5,6 +5,7 @@
 #include "business_logic/Communication/CanMsg.h"
 namespace application
 {
+TaskHandle_t taskHandlerImgAssembler;
 QueueHandle_t xPointerQueue = NULL;
 
 SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_commMng(systemTaskMngParams.commMng)
@@ -15,7 +16,7 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 	uint32_t queueLength     = 10;
 	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 	m_imageClassifier =  std::make_shared<business_logic::ImageClassifier::ImageClassifierManager>();
-
+	m_imageAssembler    = std::make_shared<business_logic::ImageClassifier::ImageAssembler>(systemTaskMngParams.cameraFramesQueue);
 	//TODO check not NULL pointers
 }
 
@@ -44,7 +45,7 @@ void SystemTasksManager::communicationTask(void* argument)
 {
 	const TickType_t taskSleep = pdMS_TO_TICKS( 1 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
-	commMng->initialization();
+	commMng->initialization(taskHandlerImgAssembler);
     size_t freeHeapSize = xPortGetFreeHeapSize();
     size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
     const std::string startMsg = "SystemTasks::communicationTask started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
@@ -116,6 +117,7 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 		}
 	}  
 }
+
 void SystemTasksManager::imageClassificationTask(void* argument)
 {
 
@@ -132,6 +134,39 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 		logMemoryUsage();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_TRACE("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
+		vTaskDelay( taskSleep );
+	}
+}
+
+void SystemTasksManager::imageAssemblerTask(void* argument)
+{
+
+	LOG_INFO("Starting imageAssemblerTask");
+
+	const TickType_t taskSleep = pdMS_TO_TICKS( 50 );
+	const UBaseType_t xArrayIndex = 1;
+  /* Infinite loop */
+
+	while(1)
+	{
+		const TickType_t xMaxBlockTime = pdMS_TO_TICKS( portMAX_DELAY );
+		LOG_INFO("SystemTasksManager::imageAssemblerTask waiting for notification");
+		uint32_t ulNotificationValue = 0;
+		xTaskNotifyWait( 0, 0x00, &ulNotificationValue, portMAX_DELAY );
+
+		uint8_t msgIndex    = (ulNotificationValue >> 16) & 0xFF;
+		uint8_t cborIndex   = (ulNotificationValue >> 8)  & 0xFF;
+		bool isEndOfImage   = ulNotificationValue & 0x1;
+
+		const std::string strMsg = "SystemTasksManager::imageAssemblerTask NOTIFICATION receive: msgIndex: " + std::to_string(msgIndex) + "-- cborIndex: " + std::to_string(cborIndex) + " -- isEndOfFrame: " + std::to_string(isEndOfImage);
+		LOG_INFO(strMsg);
+		const auto t1 = xTaskGetTickCount();
+		logMemoryUsage();
+
+		m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
+		logMemoryUsage();
+		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
+		LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime, " ms");
 		vTaskDelay( taskSleep );
 	}
 }
@@ -186,6 +221,8 @@ void SystemTasksManager::createPoolTasks()
 	LOG_INFO("Creating pool tasks");
 	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
 	//m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
+	m_imageAssemblerTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageAssemblerTask, "imageAssemblerTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageAssembler.get()), 2048);
+	taskHandlerImgAssembler = m_imageAssemblerTaskHandler->getTaskHandler();
 	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
 	//m_imageTaskHandler             = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
 	LOG_INFO("Created pool tasks");
