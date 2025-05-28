@@ -12,12 +12,14 @@ class ImageAssembler
 private:
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_cameraFramesQueue;
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_cameraSnapshotsQueue;
-
+	TaskHandle_t m_taskHandlerSensorFusion;
+	TaskHandle_t m_taskHandlerImgClassifier;
 
 public:
     ImageAssembler(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue);
     ~ImageAssembler() = default;
 
+    void initialization(const TaskHandle_t& taskHandlerSensorFusion, const TaskHandle_t& taskHandlerImgClassifier);
     bool loadData(const std::vector<uint8_t>& input);
     bool assembleImage(uint8_t imageId, uint8_t totalChunks);
     bool assembleFrame(uint8_t msgIndex, uint8_t cborIndex, bool isEndOfImage = false);

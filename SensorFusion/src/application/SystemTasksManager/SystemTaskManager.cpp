@@ -7,6 +7,8 @@ namespace application
 {
 TaskHandle_t taskHandlerImgAssembler;
 TaskHandle_t taskHandlerCommunication;
+TaskHandle_t taskHandlerSensorFusion;
+TaskHandle_t taskHandlerImgClassifier;
 
 QueueHandle_t xPointerQueue = NULL;
 
@@ -123,13 +125,17 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 void SystemTasksManager::imageClassificationTask(void* argument)
 {
 
-	LOG_INFO("Starting imageClassificationTask");
+	LOG_INFO("SystemTasksManager::imageClassificationTask started");
 	m_imageClassifier->initialization();
+	LOG_INFO("SystemTasksManager::imageClassificationTask initialization done");
 	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
   /* Infinite loop */
 
 	while(1)
 	{
+		LOG_INFO("SystemTasksManager::imageClassificationTask waiting for image ready");
+		ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+		LOG_INFO("SystemTasksManager::imageClassificationTask image ready");
 		const auto t1 = xTaskGetTickCount();
 		logMemoryUsage();
 		m_imageClassifier->detect();
@@ -140,11 +146,38 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 	}
 }
 
+
+void SystemTasksManager::sensorFusionTask(void* argument)
+{
+
+	LOG_INFO("SystemTasksManager::sensorFusionTask started");
+	//m_imageClassifier->initialization();
+	LOG_INFO("SystemTasksManager::sensorFusionTask initialization done");
+	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
+  /* Infinite loop */
+
+	while(1)
+	{
+		//Waiting for imageReady
+		LOG_INFO("SystemTasksManager::sensorFusionTask waiting for image ready");
+		ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+		LOG_INFO("SystemTasksManager::sensorFusionTask image ready");
+		const auto t1 = xTaskGetTickCount();
+		logMemoryUsage();
+		//TODO perform sensor fusion process
+		logMemoryUsage();
+		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
+		LOG_DEBUG("SystemTasks::sensorFusionTask executed in: ", executionTime, " ms");
+		vTaskDelay( taskSleep );
+	}
+}
+
 void SystemTasksManager::imageAssemblerTask(void* argument)
 {
 
-	LOG_INFO("Starting imageAssemblerTask");
-
+	LOG_INFO("SystemTasksManager::imageAssemblerTask started");
+	m_imageAssembler->initialization(taskHandlerSensorFusion, taskHandlerImgClassifier);
+	LOG_INFO("SystemTasksManager::imageAssemblerTask initialization done");
 	const TickType_t taskSleep = pdMS_TO_TICKS( 50 );
 	const UBaseType_t xArrayIndex = 1;
   /* Infinite loop */
@@ -232,15 +265,19 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
 
 void SystemTasksManager::createPoolTasks()
 {
-	LOG_INFO("Creating pool tasks");
+	LOG_INFO("SystemTasksManager::createPoolTasks started");
+	m_imageClassifierTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
+	m_sensorFusionTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::sensorFusionTask, "sensorFusionTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(nullptr), 2048);
+	taskHandlerSensorFusion = m_sensorFusionTaskHandler->getTaskHandler();;
+	taskHandlerImgClassifier = m_imageClassifierTaskHandler->getTaskHandler();;
 	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
 	//m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
 	m_imageAssemblerTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageAssemblerTask, "imageAssemblerTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageAssembler.get()), 2048);
 	taskHandlerImgAssembler = m_imageAssemblerTaskHandler->getTaskHandler();
 	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
 	taskHandlerCommunication = m_commTaskHandler->getTaskHandler();
-	//m_imageTaskHandler             = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
-	LOG_INFO("Created pool tasks");
+
+	LOG_INFO("SystemTasksManager::createPoolTasks done");
 }
 
 }

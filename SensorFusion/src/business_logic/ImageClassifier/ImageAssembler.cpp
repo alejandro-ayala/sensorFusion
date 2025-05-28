@@ -19,6 +19,11 @@ ImageAssembler::ImageAssembler(const std::shared_ptr<business_logic::Osal::Queue
 	m_cameraSnapshotsQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 }
 
+void ImageAssembler::initialization(const TaskHandle_t& taskHandlerSensorFusion, const TaskHandle_t& taskHandlerImgClassifier)
+{
+	m_taskHandlerImgClassifier = taskHandlerImgClassifier;
+	m_taskHandlerSensorFusion = taskHandlerSensorFusion;
+}
 
 bool ImageAssembler::loadData(const std::vector<uint8_t>& input)
 {
@@ -108,6 +113,10 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 				stbi_image_free(input_image);
 				logMemoryUsage();
 				cntLoadedImg++;
+				//Send notification to Fusion and Classifier task that image is ready
+				xTaskNotifyGive(m_taskHandlerImgClassifier);
+				xTaskNotifyGive(m_taskHandlerSensorFusion);
+
 			}
 			else
 			{
