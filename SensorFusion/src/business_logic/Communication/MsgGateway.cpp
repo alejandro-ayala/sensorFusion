@@ -32,8 +32,6 @@ void MsgGateway::initialization(const TaskHandle_t& taskToNotify)
 
 void MsgGateway::storeMsg(const uint8_t frameId, const std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>& frame)
 {
-	//hardware_abstraction::Controllers::CanFrame* newFrame;
-	//newFrame = &frame;
 	switch (frameId)
 	{
 		case static_cast<uint8_t>(CAN_MSG_TYPES::CAMERA_IMAGE):
@@ -56,11 +54,11 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 			//TODO notify to assembleImageTask
 			//m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 			const std::string strMsg = "MsgGateway::completedFrame CAMERA_IMAGE. msgIndex: " + std::to_string(msgIndex) + "-- cborIndex: " + std::to_string(cborIndex) + " -- isEndOfFrame: " + std::to_string(isEndOfImage & 0x1);
-			LOG_INFO(strMsg);
+			LOG_TRACE(strMsg);
 			uint32_t valueToNotify = (msgIndex << 16) | (cborIndex << 8) | (isEndOfImage & 0x1);
 			xTaskNotify(m_taskToNotify, valueToNotify, eSetValueWithOverwrite);
-
-			LOG_INFO("MsgGateway::completedFrame notification done");
+			LOG_TRACE("MsgGateway::completedFrame notification done waiting to finish assemble frame");
+			ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
 			break;
 		}
 		case static_cast<uint8_t>(CAN_MSG_TYPES::LIDAR_3D_IMAGE):

@@ -37,7 +37,7 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 	else
 	{
 		const std::string cborImgChunkStr = "Completed ImageSnapshot: " + std::to_string(imageId) + " with " + std::to_string(totalChunks) + " chunks ";
-		LOG_INFO(cborImgChunkStr);
+		LOG_TRACE(cborImgChunkStr);
 	}
 
 	bool discardImage = false;
@@ -154,24 +154,19 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex, bool isE
     for(size_t idx = 0; idx < storedMsg; idx++)
     {
         std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE> rxBuffer;
-
-        if (m_cameraFramesQueue->peek(rxBuffer.data()) == pdTRUE)
+        m_cameraFramesQueue->receive(rxBuffer.data());
+        if(rxBuffer[0] == msgIndex)
         {
-        	if(rxBuffer[0] == msgIndex)
-            {
-                m_cameraFramesQueue->receive(rxBuffer.data());
-                cborFrame.insert(cborFrame.end(), rxBuffer.begin() + 2, rxBuffer.end());
-            }
-            else
-            {
-            	LOG_WARNING("CAMERA_IMAGE frame from different CborChunk: ", std::to_string(rxBuffer[0]), " -- ", std::to_string(msgIndex) );
-            }
+        	cborFrame.insert(cborFrame.end(), rxBuffer.begin() + 2, rxBuffer.end());
         }
-
+        else
+        {
+        	LOG_WARNING("ImageAssembler::assembleFrame CAMERA_IMAGE frame from different CborChunk: ", std::to_string(rxBuffer[0]), " -- ", std::to_string(msgIndex) );
+        }
     }
     const auto pendingStoredMsg = m_cameraFramesQueue->getStoredMsg();
     if(pendingStoredMsg != 0)
-        LOG_WARNING("CAMERA_IMAGE frame: pending frames after read queue: ", std::to_string(pendingStoredMsg));
+        LOG_WARNING("ImageAssembler::assembleFrame CAMERA_IMAGE frame: pending frames after read queue: ", std::to_string(pendingStoredMsg));
 
     auto it = std::find_if(cborFrame.rbegin(), cborFrame.rend(), [](uint8_t val) { return val != 0xFF; });
     cborFrame.erase(it.base(), cborFrame.end());
@@ -190,10 +185,12 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex, bool isE
         //TODO store the CBOR_CHUNK in the cborChunkQueue
 		auto snapshotPtr = std::make_shared<business_logic::ImageSnapshot>(cborImgChunk.m_msgId, cborImgChunk.m_msgIndex, cborImgChunk.m_imgBuffer.get(), cborImgChunk.m_imgSize, cborImgChunk.m_timestamp);
 		m_cameraSnapshotsQueue->sendToBack(snapshotPtr);
+		LOG_TRACE("ImageAssembler::assembleFrame stored CBOR_CHUNK: ", std::to_string(cborImgChunk.m_msgId), ".", std::to_string(cborImgChunk.m_msgIndex));
 
 		if(isEndOfImage)
 		{
 			assembleImage(imageId, totalChunks);
+			LOG_INFO("ImageAssembler::assembleFrame assembled image: ", std::to_string(cborImgChunk.m_msgId));
 		}
     }
     catch (const std::exception& e)
