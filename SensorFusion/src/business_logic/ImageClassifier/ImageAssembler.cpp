@@ -154,15 +154,20 @@ bool ImageAssembler::assembleFrame(uint8_t msgIndex, uint8_t cborIndex, bool isE
     for(size_t idx = 0; idx < storedMsg; idx++)
     {
         std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE> rxBuffer;
-        m_cameraFramesQueue->receive(rxBuffer.data());
-        if(rxBuffer[0] == msgIndex)
+
+        if (m_cameraFramesQueue->peek(rxBuffer.data()) == pdTRUE)
         {
-        	cborFrame.insert(cborFrame.end(), rxBuffer.begin() + 2, rxBuffer.end());
+        	if(rxBuffer[0] == msgIndex)
+            {
+                m_cameraFramesQueue->receive(rxBuffer.data());
+                cborFrame.insert(cborFrame.end(), rxBuffer.begin() + 2, rxBuffer.end());
+            }
+            else
+            {
+            	LOG_WARNING("CAMERA_IMAGE frame from different CborChunk: ", std::to_string(rxBuffer[0]), " -- ", std::to_string(msgIndex) );
+            }
         }
-        else
-        {
-        	LOG_WARNING("CAMERA_IMAGE frame from different CborChunk: ", std::to_string(rxBuffer[0]), " -- ", std::to_string(msgIndex) );
-        }
+
     }
     const auto pendingStoredMsg = m_cameraFramesQueue->getStoredMsg();
     if(pendingStoredMsg != 0)

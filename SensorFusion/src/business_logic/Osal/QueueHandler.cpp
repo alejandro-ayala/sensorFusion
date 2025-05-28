@@ -122,13 +122,13 @@ void QueueHandler::receive(void *rxBuffer, uint32_t timeout)
 	}
 }
 
-void QueueHandler::peek(void *rxBuffer)
+bool QueueHandler::peek(void *rxBuffer)
 {
 	if( xQueuePeek( queue, rxBuffer, static_cast<TickType_t>(0)) )
 	{
-		// pcRxedMessage now points to the struct AMessage variable posted
-		// by vATask, but the item still remains on the queue.
+		return true;
 	}
+	else return false;
 }
 
 void QueueHandler::peek(void *rxBuffer, uint32_t timeout)

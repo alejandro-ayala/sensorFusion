@@ -40,7 +40,7 @@ public:
 	bool sendToBack(const std::shared_ptr<business_logic::ImageSnapshot>& itemToQueue);
 	bool receive(std::shared_ptr<business_logic::ImageSnapshot>& rxBuffer);
 
-	void peek(void *rxBuffer);
+	bool peek(void *rxBuffer);
 	void peek(void *rxBuffer, uint32_t timeout);
 	uint32_t getStoredMsg() const;
 	uint32_t getAvailableSpace() const;
