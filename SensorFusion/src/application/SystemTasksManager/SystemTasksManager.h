@@ -1,9 +1,9 @@
 #pragma once
+#include <business_logic/ImageAssembler/ImageAssembler.h>
 #include "business_logic/Osal/TaskHandler.h"
 #include "business_logic/Communication/CommunicationManager.h"
 #include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
 #include "business_logic/ImageClassifier/ImageClassifier.h"
-#include "business_logic/ImageClassifier/ImageAssembler.h"
 #include "business_logic/ClockSyncronization/TimeBaseManager.h"
 #include "TaskParams.h"
 #include "business_logic/Communication/CanMsg.h"
@@ -28,7 +28,7 @@ private:
 	static inline std::shared_ptr<business_logic::ClockSyncronization::TimeBaseManager> m_globalClkMng;
 	std::shared_ptr<business_logic::Communication::CommunicationManager> m_commMng;
 	static inline std::shared_ptr<business_logic::ImageClassifier::ImageClassifierManager> m_imageClassifier;
-	static inline std::shared_ptr<business_logic::ImageClassifier::ImageAssembler> m_imageAssembler;
+	static inline std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> m_imageAssembler;
 
 
 	static inline uint64_t m_lastCaptureTimestampStart = 0;

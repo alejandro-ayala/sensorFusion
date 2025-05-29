@@ -1,11 +1,12 @@
 #pragma once
+#include "business_logic/ImageClassifier/ImageProvider.h"
 #include "business_logic/Osal/QueueHandler.h"
 #include <memory>
 #include <vector>
 #include <cstdint>
 namespace business_logic
 {
-namespace ImageClassifier
+namespace ImageAssembler
 {
 class ImageAssembler
 {
@@ -14,9 +15,10 @@ private:
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_cameraSnapshotsQueue;
 	TaskHandle_t m_taskHandlerSensorFusion;
 	TaskHandle_t m_taskHandlerImgClassifier;
+	std::shared_ptr<business_logic::ImageClassifier::ImageProvider> m_imageProvider;
 
 public:
-    ImageAssembler(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue);
+    ImageAssembler(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue, const std::shared_ptr<business_logic::ImageClassifier::ImageProvider>& imageProvider);
     ~ImageAssembler() = default;
 
     void initialization(const TaskHandle_t& taskHandlerSensorFusion, const TaskHandle_t& taskHandlerImgClassifier);

@@ -1,18 +1,17 @@
-#include "ImageAssembler.h"
+#include <business_logic/ImageAssembler/ImageAssembler.h>
 #include "business_logic/DataSerializer/DataSerializer.h"
 #include "business_logic/DataSerializer/ImageSnapshot.h"
 #include "hardware_abstraction/Controllers/CAN/CanFrame.h"
 #include "services/Logger/LoggerMacros.h"
 #include "task.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
 uint32_t cntLoadedImg = 0, cntFailedImg = 0;
 namespace business_logic
 {
-namespace ImageClassifier
+namespace ImageAssembler
 {
-ImageAssembler::ImageAssembler(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue) : m_cameraFramesQueue(cameraFramesQueue)
+ImageAssembler::ImageAssembler(const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue, const std::shared_ptr<business_logic::ImageClassifier::ImageProvider>& imageProvider) : m_cameraFramesQueue(cameraFramesQueue), m_imageProvider(imageProvider)
 {
 	uint32_t queueItemSize   = sizeof(std::shared_ptr<business_logic::ImageSnapshot>);
 	uint32_t queueLength     = 200;
@@ -104,13 +103,21 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 		{
 			std::string loadImageStr = "Image can be load: " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels";
 			LOG_INFO(loadImageStr);
-			unsigned char* input_image = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, 1);
-			if(input_image)
+			unsigned char* rawImage = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, 1);
+			if(rawImage)
 			{
 				std::string loadImageStr = "***********Image loaded correctly(" + std::to_string(cntLoadedImg) + "/" + std::to_string(cntFailedImg) + "): " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels***********";
 				LOG_INFO(loadImageStr);
 				logMemoryUsage();
-				stbi_image_free(input_image);
+			    for (int i = 0; i < width * height; ++i)
+			    {
+			        int r = rawImage[i * 3 + 0];
+			        int g = rawImage[i * 3 + 1];
+			        int b = rawImage[i * 3 + 2];
+			        // Conversion estandar luminosidad perceptual
+			        rawImage[i] = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
+			    }
+				m_imageProvider->loadImage(rawImage, width, height);
 				logMemoryUsage();
 				cntLoadedImg++;
 				//Send notification to Fusion and Classifier task that image is ready

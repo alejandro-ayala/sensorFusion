@@ -79,6 +79,9 @@ static std::shared_ptr<TimeBaseManager> globalClkMng;
 static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
 static std::shared_ptr<PsCanController> canController;
+static std::shared_ptr<business_logic::ImageAssembler::SharedImage> sharedImage;
+static std::shared_ptr<business_logic::ImageClassifier::ImageProvider> imageProvider;
+
 application::TaskParams systemTaskMngParams;
 
 void createHardwareAbstractionLayerComponents()
@@ -114,7 +117,8 @@ void createBusinessLogicLayerComponents()
 	httpClient = std::make_shared<HTTPClient>();
 #endif
 	globalClkMng = std::make_shared<TimeBaseManager>(timecontroller, canController);//, httpClient);
-
+	sharedImage  = std::make_shared<business_logic::ImageAssembler::SharedImage>();
+	imageProvider = std::make_shared<business_logic::ImageClassifier::ImageProvider>(sharedImage);
 
 
 	ImageCapturer3DConfig image3dConfig;
@@ -132,6 +136,8 @@ void createApplicationLayerComponents()
 	systemTaskMngParams.globalClkMng    = globalClkMng;
 	systemTaskMngParams.commMng         = commMng;
 	systemTaskMngParams.cameraFramesQueue = cameraFramesQueue;
+	systemTaskMngParams.imageProvider = imageProvider;
+
 	systemTaskHandler = std::make_unique<application::SystemTasksManager>(std::move(systemTaskMngParams));
 	systemTaskHandler->createPoolTasks();
 	LOG_DEBUG("Created Application layer components");

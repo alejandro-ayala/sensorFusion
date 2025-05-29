@@ -19,8 +19,8 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 	uint32_t queueItemSize   = sizeof(business_logic::LidarArray*); //sizeof(business_logic::Image3DSnapshot*);
 	uint32_t queueLength     = 10;
 	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
-	m_imageClassifier =  std::make_shared<business_logic::ImageClassifier::ImageClassifierManager>();
-	m_imageAssembler    = std::make_shared<business_logic::ImageClassifier::ImageAssembler>(systemTaskMngParams.cameraFramesQueue);
+	m_imageClassifier =  std::make_shared<business_logic::ImageClassifier::ImageClassifierManager>(systemTaskMngParams.imageProvider);
+	m_imageAssembler    = std::make_shared<business_logic::ImageAssembler::ImageAssembler>(systemTaskMngParams.cameraFramesQueue, systemTaskMngParams.imageProvider);
 	//TODO check not NULL pointers
 }
 
@@ -138,7 +138,7 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 		LOG_INFO("SystemTasksManager::imageClassificationTask image ready");
 		const auto t1 = xTaskGetTickCount();
 		logMemoryUsage();
-		m_imageClassifier->detect();
+		m_imageClassifier->performInference();
 		logMemoryUsage();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");

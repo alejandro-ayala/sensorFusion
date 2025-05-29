@@ -1,10 +1,11 @@
 #include <business_logic/ImageClassifier/ImageClassifier.h>
+#include "services/Logger/LoggerMacros.h"
 
 namespace business_logic
 {
 namespace ImageClassifier
 {
-ImageClassifierManager::~ImageClassifierManager()
+ImageClassifierManager::ImageClassifierManager(const std::shared_ptr<ImageProvider>& imageProvider) : m_imageProvider(imageProvider)
 {
 
 }
@@ -62,25 +63,39 @@ void ImageClassifierManager::initialization()
 	  input = interpreter->input(0);
 }
 
-void ImageClassifierManager::detect()
+void ImageClassifierManager::performInference()
 {
 	  // Get image from provider.
-	  if (kTfLiteOk != GetImage(error_reporter, kNumCols, kNumRows, kNumChannels,
-	                            input->data.uint8)) {
-	    TF_LITE_REPORT_ERROR(error_reporter, "Image capture failed.");
-	  }
+	constexpr uint16_t rawImageWidth = 320;
+	constexpr uint16_t rawImageHeight = 240;
 
-	  // Run the model on this input and make sure it succeeds.
-	  if (kTfLiteOk != interpreter->Invoke()) {
-	    TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
-	  }
+	LOG_INFO("ImageClassifierManager::performInference triggered");
+	std::array<uint8_t, rawImageWidth*rawImageHeight> rawImage;
+	const bool scaleImage = true;
+	const auto validImage = m_imageProvider->retrieveSharedImage(rawImage.data(), rawImageWidth, rawImageHeight, scaleImage);
+	if(validImage)
+	{
+		input->data.uint8 = rawImage.data();
+		LOG_INFO("ImageClassifierManager::performInference raw image retrieved. Performing scaled");
+	}
+//	if (kTfLiteOk != GetImage(error_reporter, kNumCols, kNumRows, kNumChannels, input->data.uint8))
+//	{
+//		TF_LITE_REPORT_ERROR(error_reporter, "Image capture failed.");
+//	}
 
-	  TfLiteTensor* output = interpreter->output(0);
+	// Run the model on this input and make sure it succeeds.
+	if (kTfLiteOk != interpreter->Invoke())
+	{
+		TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
+	}
 
-	  // Process the inference results.
-	  uint8_t person_score = output->data.uint8[kPersonIndex];
-	  uint8_t no_person_score = output->data.uint8[kNotAPersonIndex];
-	  RespondToDetection(error_reporter, person_score, no_person_score);
+	TfLiteTensor* output = interpreter->output(0);
+
+	// Process the inference results.
+	uint8_t person_score = output->data.uint8[kPersonIndex];
+	uint8_t no_person_score = output->data.uint8[kNotAPersonIndex];
+	RespondToDetection(error_reporter, person_score, no_person_score);
+	LOG_INFO("ImageClassifierManager::performInference finished");
 }
 }
 }
