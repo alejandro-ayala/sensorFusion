@@ -38,15 +38,9 @@ uint8_t* ImageScaler::scaleImage(ScaleTipe type, const uint8_t* input, int input
 	int width = 0;
 	int height = 0;
 	int channels = 0;
-	if(stbi_info_from_memory(output_pixels.data(), output_pixels.size(), &width, &height, &channels))
-	{
-		const std::string strMsg = "ImageScaler::scaleImage: " + std::to_string(outputWidth) + "x" + std::to_string(outputHeight) + " with " + std::to_string(channels) + " channels";
-		LOG_INFO(strMsg);
-	}
-	else
-	{
-		LOG_ERROR("Error scaling image");
-	}
+
+	const std::string strMsg = "ImageScaler::scaleImage: " + std::to_string(outputWidth) + "x" + std::to_string(outputHeight) + " with " + std::to_string(channels) + " channels";
+	LOG_INFO(strMsg);
 
     return output_pixels.data();
 }

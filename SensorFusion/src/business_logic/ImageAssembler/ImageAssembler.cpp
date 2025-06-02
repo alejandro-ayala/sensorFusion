@@ -101,7 +101,7 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 		int width = 0, height = 0, channels = 0;
 		if(stbi_info_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels))
 		{
-			std::string loadImageStr = "Image can be load: " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels";
+			std::string loadImageStr = "Image of " + std::to_string(assembledImageSize) + " bytes can be load: " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels";
 			LOG_INFO(loadImageStr);
 			unsigned char* rawImage = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, 1);
 			if(rawImage)

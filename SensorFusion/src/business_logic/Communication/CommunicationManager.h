@@ -21,7 +21,11 @@ private:
 
 	ClockSyncronization::TimeStamp globalTimeStamp;
 public:
+#ifdef ASSEMBLER_TASK
 	CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller, const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue);
+#else
+	CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller, const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue, const std::shared_ptr<business_logic::ImageAssembler::ImageAssembler>& imageAssembler);
+#endif
 	virtual ~CommunicationManager();
 
 	void initialization(const TaskHandle_t& taskToNotify);

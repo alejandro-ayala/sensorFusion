@@ -336,12 +336,12 @@ void PsCanController::transmit(CanFrame msg)
 	}
 }
 
-CanFrame PsCanController::receiveMsg()
+std::vector<CanFrame> PsCanController::receiveMsg()
 {
-
+	std::vector<CanFrame> rxMsgVector;
 	CanFrame rxMsg;
 	uint8_t* framePtr;
-	if(XCanPs_IsRxEmpty(&m_canPs) != TRUE)
+	while(XCanPs_IsRxEmpty(&m_canPs) != TRUE)
 	{
 		auto status = XCanPs_Recv(&m_canPs, m_rxFrame);
 		if (status == XST_SUCCESS)
@@ -354,6 +354,7 @@ CanFrame PsCanController::receiveMsg()
 			{
 				rxMsg.data[idx] = *framePtr++;
 			}
+			rxMsgVector.push_back(rxMsg);
 #ifdef CANPS_IRQ
 			RecvDone = TRUE;
 #endif
@@ -363,11 +364,7 @@ CanFrame PsCanController::receiveMsg()
 			rxMsg.dlc = 0;
 		}
 	}
-	else
-	{
-		rxMsg.dlc = 0;
-	}
-	return rxMsg;
+	return rxMsgVector;
 }
 
 bool PsCanController::selfTest()

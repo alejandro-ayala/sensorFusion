@@ -12,6 +12,7 @@ struct TaskParams
 	std::shared_ptr<business_logic::Communication::CommunicationManager> commMng;
 	std::shared_ptr<business_logic::Osal::QueueHandler> cameraFramesQueue;
 	std::shared_ptr<business_logic::ImageClassifier::ImageProvider> imageProvider;
+	std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> imageAssembler;
 };
 
 }

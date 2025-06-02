@@ -8,6 +8,7 @@
 #include "business_logic/Osal/MutexHandler.h"
 #include <memory>
 #include "xscugic.h"
+#include <vector>
 
 namespace hardware_abstraction
 {
@@ -43,7 +44,7 @@ public:
 
 	void initialize();
 	bool transmitMsg(uint8_t idMsg, uint8_t *TxMsg, uint8_t msgLength);
-	CanFrame receiveMsg();
+	std::vector<CanFrame> receiveMsg();
 	bool selfTest();
 };
 }

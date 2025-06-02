@@ -2,6 +2,7 @@
 #include "services/Logger/LoggerMacros.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
+#include <cstring>
 
 namespace business_logic
 {
@@ -14,36 +15,44 @@ SharedImage::SharedImage()
 
 SharedImage::~SharedImage()
 {
-	if (m_imageData)
+	if (m_imageData.data())
 	{
-		stbi_image_free(m_imageData);
+		stbi_image_free(m_imageData.data());
 	}
 }
 
 void SharedImage::setImage(unsigned char* newImage, int w, int h)
 {
 	m_mutex->lock();
-	if (m_imageData)
+	if (m_imageData.data())
 	{
-		stbi_image_free(m_imageData);
+		//stbi_image_free(m_imageData.data());
 		LOG_WARNING("SharedImage::setImage free previous shared image buffer");
 	}
-	m_imageData = newImage;
-	m_width = w;
-	m_height = h;
+    size_t size = static_cast<size_t>(w) * h;
+    if (size > m_imageData.size())
+    {
+        throw std::runtime_error("Buffer size exceeds destination array");
+        LOG_ERROR("SharedImage::setImage Buffer size exceeds destination array");
+    }
+    else
+    {
+        std::memcpy(m_imageData.data(), newImage, size);
+    	m_width = w;
+    	m_height = h;
+    }
+
 	m_mutex->unlock();
 }
 
-unsigned char* SharedImage::getImageCopy(int& outW, int& outH)
+const uint8_t* SharedImage::getSharedImage(int& outW, int& outH)
 {
-	unsigned char* result = nullptr;
 	m_mutex->lock();
-	result = m_imageData; // avoid copy
 	outW = m_width;
 	outH = m_height;
 	m_mutex->unlock();
 
-	return result;
+	return m_imageData.data();;
 }
 }
 }

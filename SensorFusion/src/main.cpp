@@ -81,6 +81,7 @@ static std::shared_ptr<business_logic::ClockSyncronization::TimeController> time
 static std::shared_ptr<PsCanController> canController;
 static std::shared_ptr<business_logic::ImageAssembler::SharedImage> sharedImage;
 static std::shared_ptr<business_logic::ImageClassifier::ImageProvider> imageProvider;
+static std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> imageAssembler;
 
 application::TaskParams systemTaskMngParams;
 
@@ -112,7 +113,6 @@ void createBusinessLogicLayerComponents()
 	uint32_t queueLength     = 200;
 	cameraFramesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 
-	commMng = std::make_shared<CommunicationManager>(timecontroller, canController, cameraFramesQueue);
 #ifdef HTTP_CLIENT
 	httpClient = std::make_shared<HTTPClient>();
 #endif
@@ -120,6 +120,14 @@ void createBusinessLogicLayerComponents()
 	sharedImage  = std::make_shared<business_logic::ImageAssembler::SharedImage>();
 	imageProvider = std::make_shared<business_logic::ImageClassifier::ImageProvider>(sharedImage);
 
+	imageAssembler  = std::make_shared<business_logic::ImageAssembler::ImageAssembler>(cameraFramesQueue, imageProvider);
+
+#ifndef ASSEMBLER_TASK
+	commMng = std::make_shared<CommunicationManager>(timecontroller, canController, cameraFramesQueue, imageAssembler);
+#else
+	systemTaskMngParams.imageAssembler = imageAssembler;
+	commMng = std::make_shared<CommunicationManager>(timecontroller, canController, cameraFramesQueue);
+#endif
 
 	ImageCapturer3DConfig image3dConfig;
 	image3dConfig.verServoCtrl = std::move(verServoControl);

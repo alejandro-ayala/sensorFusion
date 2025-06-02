@@ -29,6 +29,7 @@ private:
 	std::shared_ptr<business_logic::Communication::CommunicationManager> m_commMng;
 	static inline std::shared_ptr<business_logic::ImageClassifier::ImageClassifierManager> m_imageClassifier;
 	static inline std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> m_imageAssembler;
+	static inline std::shared_ptr<business_logic::ImageClassifier::ImageProvider> m_imageProvider;
 
 
 	static inline uint64_t m_lastCaptureTimestampStart = 0;

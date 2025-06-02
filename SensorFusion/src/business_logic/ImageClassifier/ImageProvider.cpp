@@ -20,11 +20,11 @@ bool ImageProvider::loadImage(unsigned char* imageBuffer, int imageWidth, int im
 	m_sharedImage->setImage(imageBuffer, imageWidth, imageHeight);
 }
 
-bool ImageProvider::retrieveSharedImage(unsigned char* imageBuffer, int expectedImageWidth, int expectedImageHeight, bool scaleImage)
+bool ImageProvider::retrieveSharedImage(unsigned char* imageBuffer, unsigned char* scaledImageBuffer, int expectedImageWidth, int expectedImageHeight, bool scaleImage)
 {
 	int imageWidth = 0;
 	int imageHeight = 0;
-    imageBuffer = m_sharedImage->getImageCopy(imageWidth, imageHeight);
+    imageBuffer = m_sharedImage->getSharedImage(imageWidth, imageHeight);
     bool result;
     if((expectedImageWidth != imageWidth) || (expectedImageHeight != imageHeight))
     {
@@ -38,7 +38,7 @@ bool ImageProvider::retrieveSharedImage(unsigned char* imageBuffer, int expected
         {
         	int scaledImageWidth = 96;
         	int scaledImageHeight = 96;
-        	imageBuffer = m_imageScaler->scaleImage(ScaleTipe::Bilinear, imageBuffer, imageWidth, imageHeight, scaledImageWidth, scaledImageHeight);
+        	scaledImageBuffer = m_imageScaler->scaleImage(ScaleTipe::Bilinear, imageBuffer, imageWidth, imageHeight, scaledImageWidth, scaledImageHeight);
         }
         result = (imageBuffer != nullptr);
     }

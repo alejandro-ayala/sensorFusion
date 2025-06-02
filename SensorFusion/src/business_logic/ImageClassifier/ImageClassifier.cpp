@@ -70,12 +70,18 @@ void ImageClassifierManager::performInference()
 	constexpr uint16_t rawImageHeight = 240;
 
 	LOG_INFO("ImageClassifierManager::performInference triggered");
-	std::array<uint8_t, rawImageWidth*rawImageHeight> rawImage;
+	//std::array<uint8_t, rawImageWidth*rawImageHeight> rawImage;
+	uint8_t rawImage[76800];
+	uint8_t scaledImage[9216];
 	const bool scaleImage = true;
-	const auto validImage = m_imageProvider->retrieveSharedImage(rawImage.data(), rawImageWidth, rawImageHeight, scaleImage);
+	const auto validImage = m_imageProvider->retrieveSharedImage(rawImage, scaledImage, rawImageWidth, rawImageHeight, scaleImage);
 	if(validImage)
 	{
-		input->data.uint8 = rawImage.data();
+
+		for(int i = 0; i< (96*96); i++)
+		{
+			input->data.uint8[i] = rawImage[i];
+		}
 		LOG_INFO("ImageClassifierManager::performInference raw image retrieved. Performing scaled");
 	}
 //	if (kTfLiteOk != GetImage(error_reporter, kNumCols, kNumRows, kNumChannels, input->data.uint8))

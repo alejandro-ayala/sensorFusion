@@ -5,7 +5,9 @@
 #include "business_logic/Communication/CanMsg.h"
 namespace application
 {
+#ifdef ASSEMBLER_TASK
 TaskHandle_t taskHandlerImgAssembler;
+#endif
 TaskHandle_t taskHandlerCommunication;
 TaskHandle_t taskHandlerSensorFusion;
 TaskHandle_t taskHandlerImgClassifier;
@@ -20,7 +22,7 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 	uint32_t queueLength     = 10;
 	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
 	m_imageClassifier =  std::make_shared<business_logic::ImageClassifier::ImageClassifierManager>(systemTaskMngParams.imageProvider);
-	m_imageAssembler    = std::make_shared<business_logic::ImageAssembler::ImageAssembler>(systemTaskMngParams.cameraFramesQueue, systemTaskMngParams.imageProvider);
+	m_imageAssembler    = std::move(systemTaskMngParams.imageAssembler);
 	//TODO check not NULL pointers
 }
 
@@ -47,9 +49,11 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 
 void SystemTasksManager::communicationTask(void* argument)
 {
-	const TickType_t taskSleep = pdMS_TO_TICKS( 1 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 100 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
+#ifdef ASSEMBLER_TASK
 	commMng->initialization(taskHandlerImgAssembler);
+#endif
     size_t freeHeapSize = xPortGetFreeHeapSize();
     size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
     const std::string startMsg = "SystemTasks::communicationTask started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
@@ -159,7 +163,7 @@ void SystemTasksManager::sensorFusionTask(void* argument)
 	while(1)
 	{
 		//Waiting for imageReady
-		LOG_INFO("SystemTasksManager::sensorFusionTask waiting for image ready");
+		LOG_DEBUG("SystemTasksManager::sensorFusionTask waiting for image ready");
 		ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
 		LOG_INFO("SystemTasksManager::sensorFusionTask image ready");
 		const auto t1 = xTaskGetTickCount();
@@ -178,8 +182,6 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 	LOG_INFO("SystemTasksManager::imageAssemblerTask started");
 	m_imageAssembler->initialization(taskHandlerSensorFusion, taskHandlerImgClassifier);
 	LOG_INFO("SystemTasksManager::imageAssemblerTask initialization done");
-	const TickType_t taskSleep = pdMS_TO_TICKS( 50 );
-	const UBaseType_t xArrayIndex = 1;
   /* Infinite loop */
 
 	while(1)
@@ -207,14 +209,15 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		    const std::string strDelta = "DeltaTime between assembled frames: " + std::to_string(deltaTimeMs) + " ms";
 		    LOG_DEBUG(strDelta);
 		}
+		const auto t12 = xTaskGetTickCount();
 		m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 		logMemoryUsage();
 
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime, " ms");
-		static const TaskHandle_t taskToNotify = taskHandlerCommunication;
-		xTaskNotifyGive(taskToNotify);
-		//vTaskDelay( taskSleep );
+		//LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime, " ms but m_imageAssembler->assembleFrame in: ", ((xTaskGetTickCount() - t12) * portTICK_PERIOD_MS) );
+
+		//static const TaskHandle_t taskToNotify = taskHandlerCommunication;
+		//xTaskNotifyGive(taskToNotify);
 	}
 }
 
@@ -272,9 +275,11 @@ void SystemTasksManager::createPoolTasks()
 	taskHandlerImgClassifier = m_imageClassifierTaskHandler->getTaskHandler();;
 	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
 	//m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
-	m_imageAssemblerTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageAssemblerTask, "imageAssemblerTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageAssembler.get()), 2048);
+#ifdef ASSEMBLER_TASK
+	m_imageAssemblerTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageAssemblerTask, "imageAssemblerTask", DefaultPriorityTask + 2, static_cast<business_logic::Osal::VoidPtr>(m_imageAssembler.get()), 2048);
 	taskHandlerImgAssembler = m_imageAssemblerTaskHandler->getTaskHandler();
-	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
+#endif
+	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask +1 , static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
 	taskHandlerCommunication = m_commTaskHandler->getTaskHandler();
 
 	LOG_INFO("SystemTasksManager::createPoolTasks done");

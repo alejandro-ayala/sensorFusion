@@ -1,6 +1,6 @@
 #pragma once
 #include "services/Logger/Logger.h"
-
+#define ASSEMBLER_TASK
 #define LOG_IF_ENABLED(level, ...) \
     do { \
         if (services::Logger::getInstance().isLevelEnabled(level)) \
