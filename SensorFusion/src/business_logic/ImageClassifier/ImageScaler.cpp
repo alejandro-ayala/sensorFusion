@@ -26,24 +26,19 @@ void ImageScaler::rgb2Gray(const uint8_t* input)
 //    }
 }
 
-uint8_t* ImageScaler::scaleImage(ScaleTipe type, const uint8_t* input, int inputWidth, int inputHeight, int outputWidth, int outputHeight)
+std::vector<uint8_t> ImageScaler::scaleImage( ScaleTipe type, const uint8_t* input, int inputWidth, int inputHeight, int outputWidth, int outputHeight)
 {
+    std::vector<uint8_t> output_pixels(outputWidth * outputHeight);
 
-	std::vector<unsigned char> output_pixels(outputWidth * outputHeight);
-	stbir_resize_uint8_linear(
-			input, inputWidth, inputHeight, 0,
-	    output_pixels.data(), outputWidth, outputHeight, 0,
-	    STBIR_1CHANNEL
-	);
-	int width = 0;
-	int height = 0;
-	int channels = 0;
+    stbir_resize_uint8_linear(
+        input, inputWidth, inputHeight, 0,
+        output_pixels.data(), outputWidth, outputHeight, 0,
+        STBIR_1CHANNEL
+    );
 
-	const std::string strMsg = "ImageScaler::scaleImage: " + std::to_string(outputWidth) + "x" + std::to_string(outputHeight) + " with " + std::to_string(channels) + " channels";
-	LOG_INFO(strMsg);
-
-    return output_pixels.data();
+    return output_pixels;
 }
+
 
 }
 }

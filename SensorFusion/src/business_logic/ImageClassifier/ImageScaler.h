@@ -22,7 +22,8 @@ public:
 	explicit ImageScaler() = default;
 	virtual ~ImageScaler() = default;
 	void initialization();
-	uint8_t* scaleImage(ScaleTipe type, const uint8_t* input, int inputWidth, int inputHeight, int outputWidth, int outputHeight);
+	std::vector<uint8_t> scaleImage( ScaleTipe type, const uint8_t* input, int inputWidth, int inputHeight, int outputWidth, int outputHeight);
+
 };
 }
 }

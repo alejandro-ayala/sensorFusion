@@ -68,22 +68,25 @@ void ImageClassifierManager::performInference()
 	  // Get image from provider.
 	constexpr uint16_t rawImageWidth = 320;
 	constexpr uint16_t rawImageHeight = 240;
-
+	constexpr uint16_t scaledImageWidth = 96;
+	constexpr uint16_t scaledImageHeight = 96;
 	LOG_INFO("ImageClassifierManager::performInference triggered");
 	//std::array<uint8_t, rawImageWidth*rawImageHeight> rawImage;
-	uint8_t rawImage[76800];
-	uint8_t scaledImage[9216];
+	const uint8_t* rawImage = nullptr;
+	std::vector<uint8_t> scaledImage(scaledImageWidth * scaledImageHeight);
 	const bool scaleImage = true;
 	const auto validImage = m_imageProvider->retrieveSharedImage(rawImage, scaledImage, rawImageWidth, rawImageHeight, scaleImage);
 	if(validImage)
 	{
 
-		for(int i = 0; i< (96*96); i++)
+		for(int i = 0; i< (scaledImageWidth*scaledImageHeight); i++)
 		{
-			input->data.uint8[i] = rawImage[i];
+			input->data.uint8[i] = scaledImage[i];
 		}
 		LOG_INFO("ImageClassifierManager::performInference raw image retrieved. Performing scaled");
 	}
+	uint8_t* imageData = input->data.uint8;
+
 //	if (kTfLiteOk != GetImage(error_reporter, kNumCols, kNumRows, kNumChannels, input->data.uint8))
 //	{
 //		TF_LITE_REPORT_ERROR(error_reporter, "Image capture failed.");

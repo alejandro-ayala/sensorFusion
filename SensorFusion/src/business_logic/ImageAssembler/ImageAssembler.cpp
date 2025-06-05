@@ -98,25 +98,16 @@ bool ImageAssembler::assembleImage(uint8_t imageId, uint8_t totalChunks)
 		//		assembledImageStr += ss.str();
 		LOG_TRACE(assembledImageStr);
 
-		int width = 0, height = 0, channels = 0;
+		int width = 0, height = 0, channels = 0, desiredChannels = 1;
 		if(stbi_info_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels))
 		{
 			std::string loadImageStr = "Image of " + std::to_string(assembledImageSize) + " bytes can be load: " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels";
 			LOG_INFO(loadImageStr);
-			unsigned char* rawImage = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, 1);
+			unsigned char* rawImage = stbi_load_from_memory(assembledImagePtr, static_cast<int>(assembledImageSize), &width, &height, &channels, desiredChannels);
 			if(rawImage)
 			{
 				std::string loadImageStr = "***********Image loaded correctly(" + std::to_string(cntLoadedImg) + "/" + std::to_string(cntFailedImg) + "): " + std::to_string(width) + "x" + std::to_string(height) + " with " + std::to_string(channels) + " channels***********";
 				LOG_INFO(loadImageStr);
-				logMemoryUsage();
-			    for (int i = 0; i < width * height; ++i)
-			    {
-			        int r = rawImage[i * 3 + 0];
-			        int g = rawImage[i * 3 + 1];
-			        int b = rawImage[i * 3 + 2];
-			        // Conversion estandar luminosidad perceptual
-			        rawImage[i] = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
-			    }
 				m_imageProvider->loadImage(rawImage, width, height);
 				logMemoryUsage();
 				cntLoadedImg++;

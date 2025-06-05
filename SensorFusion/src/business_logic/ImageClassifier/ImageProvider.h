@@ -27,7 +27,7 @@ public:
 	virtual ~ImageProvider() = default;
 	void initialization();
 	bool loadImage(unsigned char* imageBuffer, int imageWidth, int imageHeight);
-	bool retrieveSharedImage(unsigned char* imageBuffer, unsigned char* scaledImageBuffer, int imageWidth, int imageHeight, bool scaleImage);
+	bool retrieveSharedImage(const uint8_t*& imageBuffer, std::vector<uint8_t>& scaledImageBuffer, int expectedImageWidth, int expectedImageHeight, bool scaleImage);
 	void getImage();
 };
 }
