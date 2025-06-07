@@ -2,7 +2,6 @@
 #include "Devices/LIDAR/GarminV3LiteRegisterMap.h"
 #include "services/Logger/LoggerMacros.h"
 #include "services/Exception/SystemExceptions.h"
-
 #include <iostream>
 
 namespace hardware_abstraction
@@ -142,6 +141,7 @@ uint16_t GarminV3LiteCtrl::readDistance()
 
 	uint8_t rxBuffer[16];
 	uint8_t txBuffer[2];
+	memset(rxBuffer, 0, sizeof(rxBuffer));
 
 	txBuffer[0] = GarminV3LiteRegister::ACQ_COMMAND; // Register Addr;
 	txBuffer[1] = 0x04; // Register Value;
@@ -149,16 +149,17 @@ uint16_t GarminV3LiteCtrl::readDistance()
 	m_i2cControl->sendData(m_addr, txBuffer, sizeof(txBuffer) / sizeof(txBuffer[0]));
 	LOG_TRACE("readDistance reading GarminV3LiteRegister::STATUS");
 	uint8_t registerAddr = GarminV3LiteRegister::STATUS;
-//	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
-//	while((rxBuffer[0] && 0x01) != 0)
-//	{
-//		m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
-//
-//		//TODO review it
-//		for (int Delay = 0; Delay < 0x3FF; Delay++);
-//	}
+	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
+	while((rxBuffer[0] & 0x01) != 0)
+	{
+		m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 1);
+
+		//TODO review it
+		for (int Delay = 0; Delay < 0x3FF; Delay++);
+	}
 	LOG_TRACE("readDistance READED GarminV3LiteRegister::STATUS");
 	registerAddr = GarminV3LiteRegister::DISTANCE_CM;
+	memset(rxBuffer, 0, sizeof(rxBuffer));
 	m_i2cControl->readData(m_addr, registerAddr, rxBuffer, 2);
 	LOG_TRACE("readDistance READED GarminV3LiteRegister::DISTANCE_CM");
 	uint16_t distance = ((rxBuffer[0] << 8) | rxBuffer[1]);
@@ -186,6 +187,7 @@ bool GarminV3LiteCtrl::selfTest()
 		{
 			selfTestResult = true;
 		}
+
 		return selfTestResult;
 	}
 	else

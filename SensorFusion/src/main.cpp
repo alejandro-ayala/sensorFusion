@@ -1,32 +1,53 @@
+//#define TENSORFLOW_LITE
 
-#include <hardware_abstraction/Devices/MotorControl/L298Hbridge.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <iostream>
-#include "xparameters.h"
-#include "netif/xadapter.h"
-#include <platform_config.h>
-#include "xil_printf.h"
+#ifdef TENSORFLOW_LITE
+
+
+#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
+
+#include "tensorflow/lite/micro/examples/person_detection/detection_responder.h"
+#include "tensorflow/lite/micro/examples/person_detection/image_provider.h"
+#include "tensorflow/lite/micro/examples/person_detection/model_settings.h"
+#include "tensorflow/lite/micro/examples/person_detection/person_detect_model_data.h"
+#include "tensorflow/lite/micro/kernels/micro_ops.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/version.h"
+
+#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
+
+// This is the default main used on systems that have the standard C entry
+// point. Other devices (for example FreeRTOS or ESP32) that have different
+// requirements for entry code (like an app_main function) should specialize
+// this main.cc file in a target-specific subfolder.
+int main(int argc, char* argv[]) {
+  setup();
+  while (true) {
+    loop();
+  }
+}
+
+#else
+#ifdef HTTP_CLIENT
 #include <business_logic/Conectivity/ConnectionSettings.h>
 #include <business_logic/Conectivity/CryptoMng.h>
 #include <business_logic/Conectivity/HTTPConnectionTypes.h>
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "../external/mbedtls/include/mbedtls/platform.h"
 #include <business_logic/Conectivity/ServerManager.h>
-#include <business_logic/Communication/CommunicationManager.h>
-#include <hardware_abstraction/Controllers/CAN/CanController.h>
-#include <hardware_abstraction/Controllers/I2C/I2CController.h>
-#include <hardware_abstraction/Devices/ServoMotor/ServoMotorControl.h>
-
-#include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
+#include <business_logic/Conectivity/HTTPClient.h>
+#include <business_logic/Image3DProjector/Image3DProjector.h>
+#include "../external/mbedtls/include/mbedtls/platform.h"
 #include "lwip/dhcp.h"
 #include "lwip/init.h"
 #include "lwip/sockets.h"
 #include "lwipopts.h"
+#include "netif/xadapter.h"
+#include <platform_config.h>
+#endif
 
+#include <hardware_abstraction/Controllers/CAN/CanController.h>
+#include <business_logic/Communication/CommunicationManager.h>
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <business_logic/ClockSyncronization/TimeBaseManager.h>
 #include "application/SystemTasksManager/SystemTasksManager.h"
@@ -34,11 +55,15 @@
 
 using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
-using namespace business_logic::Conectivity;
 using namespace business_logic::Communication;
 using namespace business_logic::ClockSyncronization;
 using namespace business_logic;
 
+
+
+#ifdef HTTP_CLIENT
+static std::shared_ptr<HTTPClient> httpClient;
+#endif
 
 static std::unique_ptr<PWMController> pwmVertCtrl;
 static std::unique_ptr<ServoMotorControl> verServoControl;
@@ -47,17 +72,17 @@ static std::unique_ptr<ServoMotorControl> horServoControl;
 static std::unique_ptr<ImageCapturer3D> image3dCapturer;
 static std::unique_ptr<I2CController> i2cController;
 static std::unique_ptr<GarminV3LiteCtrl> lidarDevice;
-static std::shared_ptr<CommunicationManager> commMng;
-static std::shared_ptr<SharedClockSlaveManager> globalClkMng;
-static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 
+static std::shared_ptr<CommunicationManager> commMng;
+static std::shared_ptr<TimeBaseManager> globalClkMng;
+static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
-static std::shared_ptr<CanController> canController;
-static std::shared_ptr<HTTPClient> httpClient;
+static std::shared_ptr<PsCanController> canController;
 application::TaskParams systemTaskMngParams;
 
 void createHardwareAbstractionLayerComponents()
 {
+
 	PWMConfig pwmCfgVer;
 	pwmVertCtrl = std::make_unique<PWMController>(pwmCfgVer);
 	verServoControl = std::make_unique<ServoMotorControl>(std::move(pwmVertCtrl));
@@ -68,11 +93,11 @@ void createHardwareAbstractionLayerComponents()
 	horServoControl = std::make_unique<ServoMotorControl>(std::move(pwmHortCtrl));
 
 	const auto garminLiteV3Addr = (0x62);
-	LidarConfiguration lidarCfg{GarminV3LiteMode::Balance, garminLiteV3Addr};
+	LidarConfiguration lidarCfg{GarminV3LiteMode::DefaultRange, garminLiteV3Addr};
 	i2cController = std::make_unique<I2CController>();
 	lidarDevice   = std::make_unique<GarminV3LiteCtrl>(std::move(i2cController), lidarCfg);
 
-	canController = std::make_shared<CanController>();
+	canController = std::make_shared<PsCanController>();
 	LOG_INFO("Created Hardware Abstraction layer components");
 }
 
@@ -80,19 +105,20 @@ void createBusinessLogicLayerComponents()
 {
 	timecontroller = std::make_shared<TimeController>();
 	commMng = std::make_shared<CommunicationManager>(timecontroller, canController);
+#ifdef HTTP_CLIENT
+	httpClient = std::make_shared<HTTPClient>();
+#endif
+	globalClkMng = std::make_shared<TimeBaseManager>(timecontroller, canController);//, httpClient);
+
+
 
 	ImageCapturer3DConfig image3dConfig;
 	image3dConfig.verServoCtrl = std::move(verServoControl);
-
 	image3dConfig.horServoCtrl = std::move(horServoControl);
 	image3dConfig.lidarCtrl = std::move(lidarDevice);
 	image3dCapturer = std::make_unique<ImageCapturer3D>(image3dConfig);
-	image3dCapturer->initialize();
 
-	globalClkMng = std::make_shared<SharedClockSlaveManager>(timecontroller, canController);
 	LOG_INFO("Created Business Logic layer components");
-
-
 }
 
 void createApplicationLayerComponents()
@@ -104,10 +130,12 @@ void createApplicationLayerComponents()
 	systemTaskHandler->createPoolTasks();
 	LOG_DEBUG("Created Application layer components");
 }
+#include <hardware_abstraction/Controllers/CAN/PsCanController.h>
 
 int main()
 {
-	LOG_INFO("*********************Starting Lidar Node Zybo Z7*********************");
+	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
+
 
 	createHardwareAbstractionLayerComponents();
 	createBusinessLogicLayerComponents();
@@ -117,3 +145,5 @@ int main()
 	while(1);
 	return 0;
 }
+
+#endif

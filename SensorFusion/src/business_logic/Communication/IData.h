@@ -1,5 +1,4 @@
 #pragma once
-#include "xil_printf.h"
 
 namespace business_logic
 {

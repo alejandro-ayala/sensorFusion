@@ -17,6 +17,11 @@ typedef struct
 	uint16_t min;
 	uint16_t sec;
 	uint32_t unixTime;
+
+	uint64_t toNs()
+	{
+		return (unixTime * 1e9);
+	}
 } TimeBaseRef;
 
 typedef struct

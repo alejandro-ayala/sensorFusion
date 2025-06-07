@@ -5,7 +5,7 @@ namespace hardware_abstraction
 {
 namespace Devices
 {
-static const uint64_t expectedLidarSN = 0xCDAB;
+static const uint64_t expectedLidarSN = 0x1442;
 enum GarminV3LiteRegister : uint8_t
 {
 	ACQ_COMMAND      = 0x00,

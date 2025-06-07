@@ -9,6 +9,7 @@ enum ControllersErrorId
 {
     AdcInitializationError = ErrorIdOffset::ControllersLayer,
 	CanInitializationError,
+	CanConfigTransceiverError,
 	GpioInitializationError,
 	PwmInitializationError,
 	PwmStartError,

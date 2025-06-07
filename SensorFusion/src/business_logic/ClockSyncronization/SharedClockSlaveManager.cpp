@@ -42,11 +42,6 @@ bool SharedClockSlaveManager::getGlobalTime()
 			globalTimeSynMsg.secCounter  = rxMsg.data[2];
 			globalTimeSynMsg.userByte    = rxMsg.data[3];
 			globalTimeSynMsg.syncTimeSec = rxMsg.data[4] << 24 | rxMsg.data[5] << 16 | rxMsg.data[6] << 8 | rxMsg.data[7];
-//			xil_printf(
-//					"SYNC -- type: %02x, crc: %02x, cnt: %02x, userByte: %02x, sec: %02x \n",
-//					globalTimeSynMsg.type, globalTimeSynMsg.crc,
-//					globalTimeSynMsg.secCounter, globalTimeSynMsg.userByte,
-//					globalTimeSynMsg.syncTimeSec);
 			globalTimeStamp.seconds = globalTimeSynMsg.syncTimeSec;
 			LOG_TRACE("globalTimeSynMsg --> type: ", globalTimeSynMsg.type, " CRC: ", globalTimeSynMsg.crc, " secCounter: ", globalTimeSynMsg.secCounter );
 			LOG_TRACE("globalTimeStamp.seconds: ", globalTimeStamp.seconds);

@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include "ILogger.h"
+#include "business_logic/Osal/MutexHandler.h"
 
 namespace services
 {
@@ -17,8 +18,9 @@ private:
 
 	virtual void initialize();
 
-	LogLevel m_logLevel = LogLevel::Debug;
+	LogLevel m_logLevel;
 	bool m_disable;
+	std::shared_ptr<business_logic::Osal::MutexHandler> uartMutex;
 
 	template<typename... Args>
 	std::string concatenateArgsToString(const Args&... args)
@@ -40,6 +42,7 @@ public:
 	template<typename... Args>
 	void log(LogLevel logLevel , const Args&... args)
 	{
+		if((m_logLevel > logLevel) || m_disable) return;
 		const std::string msg = concatenateArgsToString(args...);
 		log(logLevel, msg);
 	}

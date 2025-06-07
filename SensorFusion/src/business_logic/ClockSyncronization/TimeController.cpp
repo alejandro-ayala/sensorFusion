@@ -1,7 +1,7 @@
 #include <business_logic/ClockSyncronization/TimeController.h>
 #include <hardware_abstraction/Controllers/Timer/ZynqGT.h>
 #include "sleep.h"
-
+#include "services/Logger/LoggerMacros.h"
 
 namespace business_logic
 {
@@ -11,17 +11,17 @@ namespace ClockSyncronization
 {
 TimeController::TimeController() : IController("TimeController")
 {
-	internalTimer = new ZynqGT();
+	internalTimer = std::make_shared<ZynqGT>();
 }
 
 TimeController::~TimeController()
 {
-	delete internalTimer;
+	LOG_DEBUG("TimeController::~TimeController");
 };
 
 void TimeController::initialize()
 {
-	restartTimer();
+	//restartTimer();
 	initialized = true;
 }
 
@@ -51,7 +51,6 @@ double TimeController::getCurrentSecTime()
 double TimeController::getCurrentNsecTime()
 {
 	return internalTimer->getCurrentNsec();
-
 }
 uint64_t TimeController::getCurrentTicks()
 {

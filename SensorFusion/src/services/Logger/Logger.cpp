@@ -18,14 +18,12 @@ Logger::Logger() : ILogger(), m_logLevel(LogLevel::Debug), m_disable(false)
 
 void Logger::initialize()
 {
-
+	m_logLevel = LogLevel::Debug;
+	uartMutex = std::make_shared<business_logic::Osal::MutexHandler>();
 }
 
 void Logger::log(LogLevel logLevel, const std::string& msg)
 {
-	if((m_logLevel > logLevel) || m_disable) 
-    return;
-
 	std::string logMsg;
     switch (logLevel)
     {
@@ -37,7 +35,9 @@ void Logger::log(LogLevel logLevel, const std::string& msg)
      	 case LogLevel::Critical: logMsg = "[CRITICAL] " + msg; break;
      	 default: break;//THROW_SERVICES_EXCEPTION(ServicesErrorId::LoggerUnknownLevel, "Unknown logging level")
     }
-  std::cout << logMsg << std::endl;
+    uartMutex->lock();
+    std::cout << logMsg << std::endl;
+    uartMutex->unlock();
 }
 
 void Logger::setLogLevel(LogLevel logLevel)

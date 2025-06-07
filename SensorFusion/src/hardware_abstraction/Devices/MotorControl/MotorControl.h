@@ -2,7 +2,6 @@
 
 #include <hardware_abstraction/Controllers/IController.h>
 #include <hardware_abstraction/Devices/MotorControl/IHbridge.h>
-#include "TestInclude.h"
 #include "MotorChannelsEnum.h"
 
 namespace hardware_abstraction
@@ -19,7 +18,7 @@ public:
 	MotorControl(IHbridge* hbridge);
 	virtual ~MotorControl();
 
-	TVIRTUAL void initialize() override;
+	void initialize() override;
 	void turnOn(MOTOR_CHANNEL ch);
 	void turnOff(MOTOR_CHANNEL ch);
 	void forward(MOTOR_CHANNEL ch);
