@@ -158,6 +158,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
 		RunTimeStats_End("globalClockSyncronization", startExecutionTime, true);
+
 		vTaskDelay( taskSleep );
 
 		if(triggerSystemStats > 10)

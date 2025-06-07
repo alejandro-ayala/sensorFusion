@@ -105,6 +105,7 @@ void ImageClassifierManager::performInference()
 	uint8_t no_person_score = output->data.uint8[kNotAPersonIndex];
 	RespondToDetection(error_reporter, person_score, no_person_score);
 	LOG_INFO("ImageClassifierManager::performInference finished");
+
 }
 }
 }

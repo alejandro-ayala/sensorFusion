@@ -38,9 +38,6 @@ struct CanTimingParams{
     uint8_t tseg2;  // Time Segment 2
     uint8_t sjw;    // Synchronization Jump Width
 };
-//Xil_AssertNonvoid(TimeSegment1 <= (u8)15U );
-//Xil_AssertNonvoid(TimeSegment2 <= (u8)7U);
-//Xil_AssertNonvoid(SyncJumpWidth <= (u8)3U);
 
 enum class CanBusBaudrates
 {

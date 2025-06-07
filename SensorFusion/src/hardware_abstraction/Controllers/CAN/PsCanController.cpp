@@ -3,6 +3,7 @@
 #include "services/Exception/SystemExceptions.h"
 #include "services/Logger/LoggerMacros.h"
 #define CANPS_IRQ
+
 #ifdef CANPS_IRQ
 #include "xinterrupt_wrap.h"
 #endif
@@ -215,6 +216,7 @@ void PsCanController::transmit(CanFrame msg)
 	if (status != XST_SUCCESS)
 	{
 #ifdef CANPS_IRQ
+
 		m_sendDone = true;
 #endif
 	}
@@ -241,7 +243,6 @@ void PsCanController::clearBuffer()
 
 bool PsCanController::selfTest()
 {
-
 //	/*
 //	 * Enter Loop Back Mode.
 //	 */

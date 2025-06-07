@@ -66,6 +66,7 @@ uint32_t ImageCapturer3D::captureImage()
 			LOG_WARNING("Error applying bias correction");
 		}
 	}
+
 //	uint8_t hor = 1, ver = 1, angleH = m_config.maxHorizontalAngle, angleV = m_config.minVerticalAngle;
 //	while(1)
 //	{
@@ -93,6 +94,7 @@ uint32_t ImageCapturer3D::captureImage()
 	m_verServoCtrl->setAngle(m_config.minVerticalAngle);
 	//vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 	preciseDelayUs(10000);
+
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	for(int vAngle = m_config.minVerticalAngle; vAngle <= m_config.maxVerticalAngle; )

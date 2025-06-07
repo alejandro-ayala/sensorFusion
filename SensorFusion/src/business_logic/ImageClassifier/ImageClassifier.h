@@ -1,7 +1,9 @@
 #pragma once
 
 #include <business_logic/Osal/StreamBufferHandler.h>
+
 #include "business_logic/ImageClassifier/ImageProvider.h"
+
 #include "tensorflow/lite/micro/examples/person_detection/detection_responder.h"
 #include "tensorflow/lite/micro/examples/person_detection/image_provider.h"
 #include "tensorflow/lite/micro/examples/person_detection/model_settings.h"
@@ -12,6 +14,7 @@
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/version.h"
+
 #include <memory>
 
 namespace business_logic

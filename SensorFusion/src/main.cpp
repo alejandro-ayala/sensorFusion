@@ -75,6 +75,7 @@ static std::unique_ptr<GarminV3LiteCtrl> lidarDevice;
 
 static std::shared_ptr<CommunicationManager> commMng;
 static std::shared_ptr<business_logic::Osal::QueueHandler> cameraFramesQueue;
+
 static std::shared_ptr<TimeBaseManager> globalClkMng;
 static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;

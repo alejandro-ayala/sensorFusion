@@ -2,9 +2,11 @@
 
 #include "business_logic/Osal/QueueHandler.h"
 #include "hardware_abstraction/Controllers/CAN/CanFrame.h"
+
 #ifndef ASSEMBLER_TASK
 #include "business_logic/ImageAssembler/ImageAssembler.h"
 #endif
+
 #include <memory>
 namespace business_logic
 {

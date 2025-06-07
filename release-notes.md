@@ -1,5 +1,30 @@
 # Release Notes
 
+## Version 1.0.0 - 2025-05-01
+
+### 🚀 Features
+- Implement `ImageClassifierManager` using TensorFlow Lite Micro
+- Add `SystemTasksManager::image3dCapturerTask` for coordinated image capture
+- Implement new `PsCanController` abstraction layer with flexible baudrate support
+- Rework I2C communication logic to polling-based for increased stability
+- Introduce `MsgGateway` component to decouple data flow
+- Enable CBOR encoding for structured sensor data transmission
+- Upgrade timestamp fields to 64-bit to support longer runtimes
+- Add TensorFlow Lite Micro library integration
+
+### 🛠️ Improvements
+- Refactor `CanController`: remove blocking loops, add mutex in RX/TX
+- Improve Lidar measurement accuracy and configuration
+- Reduce communication task latency
+- Cleanup redundant test headers and simplify `main.cpp`
+- Add mutex to `Logger` for thread safety
+
+### 🐛 Fixes
+- Fix bug in Lidar distance measurement
+- Prevent I2C communication deadlocks
+- Resolve race conditions in Logger and communication subsystems
+- Correct uninitialized pointer in `TimeBaseManager`
+
 ## Version 0.2.0 - 2024-12-12
 
 ### Feature

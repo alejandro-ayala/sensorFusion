@@ -31,7 +31,6 @@ private:
 	static inline std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> m_imageAssembler;
 	static inline std::shared_ptr<business_logic::ImageClassifier::ImageProvider> m_imageProvider;
 
-
 	static inline uint64_t m_lastCaptureTimestampStart = 0;
 	static inline uint64_t m_lastCaptureTimestampEnd = 0;
 
