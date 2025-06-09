@@ -94,15 +94,14 @@ bool CommunicationManager::receiveData()
 					rxMsg.data[4] == 0x1E && rxMsg.data[5] == 0x1E && rxMsg.data[6] == 0x1E)
 	//		if(lastFrameIndex !=rxMsg.data[0])
 			{
-				//Sending confirmation to complete assembled frame
-				uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
-				LOG_TRACE("Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
-				canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
-
 				//TODO FrameSync (if rxMsg.data[0] == KEY) m_imageAssembler->assembleFrame(msgIndex, cborIndex);
 				bool isEndOfImage = static_cast<bool>(rxMsg.data[7]);
 				LOG_TRACE("CommunicationManager::receiveData: EndOfFrame received for imageID: ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string(isEndOfImage));
 				msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex, isEndOfImage);
+				//Sending confirmation to complete assembled frame
+				uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
+				LOG_TRACE("Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
+				canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
 
 
 				return true;

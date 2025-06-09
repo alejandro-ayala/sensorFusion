@@ -83,6 +83,10 @@
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/zyboProject/export/zyboProject/sw/zyboProject/freertos10_xilinx_domain/bspinclude/include}&quot;"/>
                                     									
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/external/SEGGER/Config}&quot;"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/external/SEGGER}&quot;"/>
+                                    									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/external/json/include}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/src/application}&quot;"/>
@@ -191,7 +195,7 @@
                     					
                     <sourceEntries>
                         						
-                        <entry excluding="src/business_logic/Conectivity|src/Common/TaskManager.h|src/Common/TaskManager.cpp|_ide" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+                        <entry excluding="external/SEGGER|src/business_logic/Conectivity|src/Common/TaskManager.h|src/Common/TaskManager.cpp|_ide" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
                         					
                     </sourceEntries>
                     				

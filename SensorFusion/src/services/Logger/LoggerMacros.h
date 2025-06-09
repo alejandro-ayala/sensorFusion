@@ -14,6 +14,14 @@
 #define LOG_ERROR(...) LOG_IF_ENABLED(services::LogLevel::Error, __VA_ARGS__)
 #define LOG_FATAL(...) LOG_IF_ENABLED(services::LogLevel::Critical, __VA_ARGS__)
 
+static inline void printSystemStats()
+{
+	char statsBuffer[512];
+	vTaskGetRunTimeStats(statsBuffer);
+	LOG_INFO(statsBuffer);
+}
+
+
 #define logMemoryUsage() /*{\
 	const std::string freeHeapMsg = std::string(__FUNCTION__) + "::" + std::to_string(__LINE__) + " -- Heap state:" +  std::to_string(xPortGetFreeHeapSize()) + " -- minMark " + std::to_string(xPortGetMinimumEverFreeHeapSize()) + " stackSize: " + std::to_string(uxTaskGetStackHighWaterMark( NULL ));\
 	LOG_DEBUG(freeHeapMsg);\

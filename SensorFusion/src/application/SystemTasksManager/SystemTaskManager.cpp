@@ -5,6 +5,105 @@
 #include "business_logic/Communication/CanMsg.h"
 namespace application
 {
+
+extern "C" {
+#include "xil_io.h"
+#include "xtime_l.h"
+
+#define MAX_REGISTRIES 10
+typedef struct {
+    const char *taskName;
+    uint32_t totalTime;
+    uint32_t minTime;
+    uint32_t maxTime;
+    uint32_t totalExecutions;
+} RunTimeStats_t;
+
+static RunTimeStats_t runtimeStatsRegistries[MAX_REGISTRIES];
+static uint8_t currentRegisteredStats = 0;
+
+
+
+#include <string.h>
+
+extern uint32_t ulGetRunTimeCounterValue(void);
+
+void RunTimeStats_Start(uint32_t *timestamp)
+{
+    *timestamp = ulGetRunTimeCounterValue();
+}
+
+void RunTimeStats_End(const char *taskName, uint32_t timestamp_start)
+{
+    uint32_t duration = ulGetRunTimeCounterValue() - timestamp_start;
+
+    RunTimeStats_t *currentTime = NULL;
+    for (int i = 0; i < currentRegisteredStats; i++) {
+        if (strcmp(runtimeStatsRegistries[i].taskName, taskName) == 0) {
+        	currentTime = &runtimeStatsRegistries[i];
+            break;
+        }
+    }
+
+    // Create new instance
+    if (currentTime == NULL && currentRegisteredStats < MAX_REGISTRIES) {
+    	runtimeStatsRegistries[currentRegisteredStats].taskName = taskName;
+    	runtimeStatsRegistries[currentRegisteredStats].totalTime = 0;
+    	runtimeStatsRegistries[currentRegisteredStats].minTime = 0xFFFFFFFF;
+    	runtimeStatsRegistries[currentRegisteredStats].maxTime = 0;
+    	runtimeStatsRegistries[currentRegisteredStats].totalExecutions = 0;
+        currentTime = &runtimeStatsRegistries[currentRegisteredStats++];
+    }
+
+    if (currentTime) {
+        currentTime->totalTime += duration;
+        if (duration < currentTime->minTime) currentTime->minTime = duration;
+        if (duration > currentTime->maxTime) currentTime->maxTime = duration;
+        currentTime->totalExecutions++;
+    }
+}
+#include <sstream>
+#include <string>
+
+std::string RunTimeStats_FormatLog(const RunTimeStats_t& r)
+{
+    std::ostringstream oss;
+    uint32_t averageTime = (r.totalExecutions > 0) ? (r.totalTime / r.totalExecutions) : 0;
+
+    oss << r.taskName << ": executions=" << r.totalExecutions
+        << ", min=" << r.minTime << " us"
+        << ", max=" << r.maxTime << " us"
+        << ", prom=" << averageTime << " us";
+
+    return oss.str();
+}
+
+
+void RunTimeStats_Print(void)
+{
+
+    LOG_INFO("Runtime execution time");
+    for (int i = 0; i < currentRegisteredStats; i++) {
+    	std::string logEntry = RunTimeStats_FormatLog(runtimeStatsRegistries[i]);
+    	LOG_INFO(logEntry);
+    }
+}
+
+void vConfigureTimerForRunTimeStats(void)
+{
+    //Nothing TODO, it is already provided by XTime_GetTime
+}
+
+
+uint32_t ulGetRunTimeCounterValue(void)
+{
+    XTime ticks;
+    XTime_GetTime(&ticks);
+    return static_cast<uint32_t>(ticks / (XPAR_CPU_CORTEXA9_CORE_CLOCK_FREQ_HZ / 2 / 1000000));
+}
+
+}
+
 #ifdef ASSEMBLER_TASK
 TaskHandle_t taskHandlerImgAssembler;
 #endif
@@ -34,15 +133,17 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
     size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
     const std::string startMsg = "SystemTasks::globalClockSyncronization started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
     LOG_INFO(startMsg);
-
+    uint32_t startExecutionTime;
 	while(1)
 	{
+		RunTimeStats_Start(&startExecutionTime);
 		const auto t1 = xTaskGetTickCount();
 		LOG_DEBUG("Sending global master time: ", std::to_string(m_globalClkMng->getAbsotuleTime()), " ns") ;
 		logMemoryUsage();
 		m_globalClkMng->sendGlobalTime();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
+		RunTimeStats_End("globalClockSyncronization", startExecutionTime);
 		vTaskDelay( taskSleep );
 	}
 }
@@ -59,9 +160,18 @@ void SystemTasksManager::communicationTask(void* argument)
     const std::string startMsg = "SystemTasks::communicationTask started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
     LOG_INFO(startMsg);
   /* Infinite loop */
-
+    uint32_t startExecutionTime;
+    for(int i=1;i<10;i++)
+    {
+        RunTimeStats_Start(&startExecutionTime);
+        const TickType_t taskSleepTest = pdMS_TO_TICKS( 500 * i);
+        vTaskDelay( taskSleepTest);
+    	RunTimeStats_End("communicationTask", startExecutionTime);
+    	RunTimeStats_Print();
+    }
 	while(1)
 	{
+		RunTimeStats_Start(&startExecutionTime);
 		const auto t1 = xTaskGetTickCount();
 		static uint32_t loopIndex = 0;
 		if(loopIndex > 500000000)
@@ -73,6 +183,7 @@ void SystemTasksManager::communicationTask(void* argument)
 		loopIndex++;
 		//const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		//if(result)LOG_INFO("SystemTasks::communicationTask executed in: ", executionTime, " ms");
+		RunTimeStats_End("communicationTask", startExecutionTime);
 		vTaskDelay( taskSleep );
 	}
 }
@@ -85,9 +196,10 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
 	m_image3DCapturer->initialize();
   /* Infinite loop */
-
+	uint32_t startExecutionTime;
 	while(1)
 	{
+		RunTimeStats_Start(&startExecutionTime);
 		const auto t1 = xTaskGetTickCount();
 		static uint8_t captureId = 0;
 		try
@@ -117,6 +229,7 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 			captureId++;
 			const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 			LOG_DEBUG("SystemTasks::image3dCapturerTask executed in: ", executionTime, " ms");
+			RunTimeStats_End("image3dCapturerTask", startExecutionTime);
 			vTaskDelay( taskSleep );
 		}
 		catch (const services::BaseException& e)
@@ -134,9 +247,11 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 	LOG_INFO("SystemTasksManager::imageClassificationTask initialization done");
 	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
   /* Infinite loop */
-
+//	int32_t triggerSystemStats = 0;
+	uint32_t startExecutionTime;
 	while(1)
 	{
+		RunTimeStats_Start(&startExecutionTime);
 		LOG_INFO("SystemTasksManager::imageClassificationTask waiting for image ready");
 		ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
 		LOG_INFO("SystemTasksManager::imageClassificationTask image ready");
@@ -146,6 +261,13 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 		logMemoryUsage();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
+
+//		if(triggerSystemStats % 5 == 0)
+//		{
+//			printSystemStats();
+//		}
+//		triggerSystemStats++;
+		RunTimeStats_End("imageClassificationTask", startExecutionTime);
 		vTaskDelay( taskSleep );
 	}
 }
@@ -159,9 +281,10 @@ void SystemTasksManager::sensorFusionTask(void* argument)
 	LOG_INFO("SystemTasksManager::sensorFusionTask initialization done");
 	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
   /* Infinite loop */
-
+	uint32_t startExecutionTime;
 	while(1)
 	{
+		RunTimeStats_Start(&startExecutionTime);
 		//Waiting for imageReady
 		LOG_DEBUG("SystemTasksManager::sensorFusionTask waiting for image ready");
 		ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
@@ -172,6 +295,7 @@ void SystemTasksManager::sensorFusionTask(void* argument)
 		logMemoryUsage();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::sensorFusionTask executed in: ", executionTime, " ms");
+		RunTimeStats_End("sensorFusionTask", startExecutionTime);
 		vTaskDelay( taskSleep );
 	}
 }
@@ -183,9 +307,10 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 	m_imageAssembler->initialization(taskHandlerSensorFusion, taskHandlerImgClassifier);
 	LOG_INFO("SystemTasksManager::imageAssemblerTask initialization done");
   /* Infinite loop */
-
+	uint32_t startExecutionTime;
 	while(1)
 	{
+		RunTimeStats_Start(&startExecutionTime);
 		LOG_TRACE("SystemTasksManager::imageAssemblerTask waiting for notification");
 		uint32_t ulNotificationValue = 0;
 		xTaskNotifyWait( 0, 0x00, &ulNotificationValue, portMAX_DELAY );
@@ -213,6 +338,7 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 		logMemoryUsage();
 
+		RunTimeStats_End("imageAssemblerTask", startExecutionTime);
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		//LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime, " ms but m_imageAssembler->assembleFrame in: ", ((xTaskGetTickCount() - t12) * portTICK_PERIOD_MS) );
 
