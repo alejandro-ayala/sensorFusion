@@ -341,6 +341,7 @@ std::vector<CanFrame> PsCanController::receiveMsg()
 	std::vector<CanFrame> rxMsgVector;
 	CanFrame rxMsg;
 	uint8_t* framePtr;
+	canMutex->lock();
 	while(XCanPs_IsRxEmpty(&m_canPs) != TRUE)
 	{
 		auto status = XCanPs_Recv(&m_canPs, m_rxFrame);
@@ -364,6 +365,7 @@ std::vector<CanFrame> PsCanController::receiveMsg()
 			rxMsg.dlc = 0;
 		}
 	}
+	canMutex->unlock();
 	return rxMsgVector;
 }
 

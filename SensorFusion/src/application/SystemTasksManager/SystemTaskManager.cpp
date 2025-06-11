@@ -134,6 +134,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
     const std::string startMsg = "SystemTasks::globalClockSyncronization started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
     LOG_INFO(startMsg);
     uint32_t startExecutionTime;
+    uint32_t triggerSystemStats = 0;
 	while(1)
 	{
 		RunTimeStats_Start(&startExecutionTime);
@@ -145,12 +146,20 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 		LOG_DEBUG("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
 		RunTimeStats_End("globalClockSyncronization", startExecutionTime);
 		vTaskDelay( taskSleep );
+
+		if(triggerSystemStats > 10)
+		{
+			//printSystemStats();
+			RunTimeStats_Print();
+			triggerSystemStats = 0;
+		}
+		triggerSystemStats++;
 	}
 }
 
 void SystemTasksManager::communicationTask(void* argument)
 {
-	const TickType_t taskSleep = pdMS_TO_TICKS( 100 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 10 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 #ifdef ASSEMBLER_TASK
 	commMng->initialization(taskHandlerImgAssembler);
@@ -161,14 +170,6 @@ void SystemTasksManager::communicationTask(void* argument)
     LOG_INFO(startMsg);
   /* Infinite loop */
     uint32_t startExecutionTime;
-    for(int i=1;i<10;i++)
-    {
-        RunTimeStats_Start(&startExecutionTime);
-        const TickType_t taskSleepTest = pdMS_TO_TICKS( 500 * i);
-        vTaskDelay( taskSleepTest);
-    	RunTimeStats_End("communicationTask", startExecutionTime);
-    	RunTimeStats_Print();
-    }
 	while(1)
 	{
 		RunTimeStats_Start(&startExecutionTime);
@@ -245,9 +246,9 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 	LOG_INFO("SystemTasksManager::imageClassificationTask started");
 	m_imageClassifier->initialization();
 	LOG_INFO("SystemTasksManager::imageClassificationTask initialization done");
-	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
+
   /* Infinite loop */
-//	int32_t triggerSystemStats = 0;
+	int32_t triggerSystemStats = 0;
 	uint32_t startExecutionTime;
 	while(1)
 	{
@@ -262,13 +263,7 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
 
-//		if(triggerSystemStats % 5 == 0)
-//		{
-//			printSystemStats();
-//		}
-//		triggerSystemStats++;
 		RunTimeStats_End("imageClassificationTask", startExecutionTime);
-		vTaskDelay( taskSleep );
 	}
 }
 
@@ -314,7 +309,6 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		LOG_TRACE("SystemTasksManager::imageAssemblerTask waiting for notification");
 		uint32_t ulNotificationValue = 0;
 		xTaskNotifyWait( 0, 0x00, &ulNotificationValue, portMAX_DELAY );
-
 		uint8_t msgIndex    = (ulNotificationValue >> 16) & 0xFF;
 		uint8_t cborIndex   = (ulNotificationValue >> 8)  & 0xFF;
 		bool isEndOfImage   = ulNotificationValue & 0x1;
@@ -335,13 +329,13 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		    LOG_DEBUG(strDelta);
 		}
 		const auto t12 = xTaskGetTickCount();
+		LOG_TRACE("SystemTasksManager::imageAssemblerTask assembling frame");
 		m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 		logMemoryUsage();
 
 		RunTimeStats_End("imageAssemblerTask", startExecutionTime);
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		//LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime, " ms but m_imageAssembler->assembleFrame in: ", ((xTaskGetTickCount() - t12) * portTICK_PERIOD_MS) );
-
+		LOG_DEBUG("SystemTasks::imageAssemblerTask executed in: ", executionTime );
 		//static const TaskHandle_t taskToNotify = taskHandlerCommunication;
 		//xTaskNotifyGive(taskToNotify);
 	}
