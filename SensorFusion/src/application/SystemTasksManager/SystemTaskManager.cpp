@@ -33,10 +33,10 @@ void RunTimeStats_Start(uint32_t *timestamp)
     *timestamp = ulGetRunTimeCounterValue();
 }
 
-void RunTimeStats_End(const char *taskName, uint32_t timestamp_start)
+void RunTimeStats_End(const char *taskName, uint32_t timestamp_start, bool printSample = false)
 {
     uint32_t duration = ulGetRunTimeCounterValue() - timestamp_start;
-
+//#ifdef GENERATE_RUNTIME_STATS
     RunTimeStats_t *currentTime = NULL;
     for (int i = 0; i < currentRegisteredStats; i++) {
         if (strcmp(runtimeStatsRegistries[i].taskName, taskName) == 0) {
@@ -61,6 +61,13 @@ void RunTimeStats_End(const char *taskName, uint32_t timestamp_start)
         if (duration > currentTime->maxTime) currentTime->maxTime = duration;
         currentTime->totalExecutions++;
     }
+//#else
+    if(printSample)
+    {
+        const std::string strRuntime = std::string(taskName) + " executed in " + std::to_string(duration) + " us";
+        LOG_DEBUG(strRuntime);
+    }
+//#endif
 }
 #include <sstream>
 #include <string>
@@ -144,7 +151,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 		m_globalClkMng->sendGlobalTime();
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
-		RunTimeStats_End("globalClockSyncronization", startExecutionTime);
+		RunTimeStats_End("globalClockSyncronization", startExecutionTime, true);
 		vTaskDelay( taskSleep );
 
 		if(triggerSystemStats > 10)
@@ -172,6 +179,7 @@ void SystemTasksManager::communicationTask(void* argument)
     uint32_t startExecutionTime;
 	while(1)
 	{
+		LOG_TRACE("SystemTasks::communicationTask triggered");
 		RunTimeStats_Start(&startExecutionTime);
 		const auto t1 = xTaskGetTickCount();
 		static uint32_t loopIndex = 0;
@@ -184,7 +192,7 @@ void SystemTasksManager::communicationTask(void* argument)
 		loopIndex++;
 		//const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		//if(result)LOG_INFO("SystemTasks::communicationTask executed in: ", executionTime, " ms");
-		RunTimeStats_End("communicationTask", startExecutionTime);
+		RunTimeStats_End("communicationTask", startExecutionTime, result);
 		vTaskDelay( taskSleep );
 	}
 }
@@ -263,7 +271,7 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
 
-		RunTimeStats_End("imageClassificationTask", startExecutionTime);
+		RunTimeStats_End("imageClassificationTask", startExecutionTime, true);
 	}
 }
 
@@ -333,9 +341,9 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 		logMemoryUsage();
 
-		RunTimeStats_End("imageAssemblerTask", startExecutionTime);
+		RunTimeStats_End("imageAssemblerTask", startExecutionTime, true);
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		LOG_DEBUG("SystemTasks::imageAssemblerTask executed in: ", executionTime );
+		LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime );
 		//static const TaskHandle_t taskToNotify = taskHandlerCommunication;
 		//xTaskNotifyGive(taskToNotify);
 	}
@@ -390,7 +398,7 @@ void SystemTasksManager::createPoolTasks()
 {
 	LOG_INFO("SystemTasksManager::createPoolTasks started");
 	m_imageClassifierTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
-	m_sensorFusionTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::sensorFusionTask, "sensorFusionTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(nullptr), 2048);
+	//m_sensorFusionTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::sensorFusionTask, "sensorFusionTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(nullptr), 2048);
 	taskHandlerSensorFusion = m_sensorFusionTaskHandler->getTaskHandler();;
 	taskHandlerImgClassifier = m_imageClassifierTaskHandler->getTaskHandler();;
 	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);

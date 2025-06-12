@@ -80,6 +80,7 @@ bool CommunicationManager::sendData(const std::vector<business_logic::Communicat
 bool CommunicationManager::receiveData()
 {
 	auto rxMsgVector = canController->receiveMsg();
+	LOG_TRACE("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
 
 	static uint8_t lastFrameIndex = 0;
 	static uint8_t lastCborIndex  = 0;
@@ -99,11 +100,12 @@ bool CommunicationManager::receiveData()
 
 				//Sending confirmation to complete assembled frame
 				uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
-				LOG_TRACE("Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
+				LOG_TRACE("CommunicationManager::receiveData Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
 				canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
 
-				LOG_TRACE("CommunicationManager::receiveData: EndOfFrame received for imageID: ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string(isEndOfImage));
+				LOG_TRACE("CommunicationManager::receiveData SENT FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)), " -- ", std::to_string(isEndOfImage));
 				msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex, isEndOfImage);
+				LOG_TRACE("CommunicationManager::receiveData COMPLETED FRAME done");
 
 				return true;
 			}
@@ -125,6 +127,14 @@ bool CommunicationManager::receiveData()
 			status = true;
 		}
 	}
+	if(status)
+	{
+		auto& lastMsg = rxMsgVector.back();
+		LOG_WARNING("Returning without eof: ", std::to_string(lastMsg.dlc), std::to_string(lastMsg.data[0]), " ", std::to_string(lastMsg.data[1]), " " , std::to_string(lastMsg.data[2]), " ", std::to_string(lastMsg.data[3]), " ", std::to_string(lastMsg.data[4]), " ", std::to_string(lastMsg.data[5]), " ", std::to_string(lastMsg.data[6]), " ", std::to_string(lastMsg.data[7]));
+		uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
+		canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
+	}
+
 	return status;
 }
 
