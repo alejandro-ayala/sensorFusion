@@ -90,7 +90,7 @@ bool CommunicationManager::receiveData()
 
 	if(assembleCbor)
 	{
-		LOG_DEBUG("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
+		LOG_TRACE("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
 	//TODO replace the loop and request only the last sample to get the variables IDs and Idx
 		for(auto& rxMsg : rxMsgVector)
 		{

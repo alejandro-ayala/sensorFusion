@@ -166,7 +166,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 
 void SystemTasksManager::communicationTask(void* argument)
 {
-	const TickType_t taskSleep = pdMS_TO_TICKS( 100 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 10 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 #ifdef ASSEMBLER_TASK
 	commMng->initialization(taskHandlerImgAssembler);
@@ -191,8 +191,8 @@ void SystemTasksManager::communicationTask(void* argument)
 		const auto result = commMng->receiveData();
 		loopIndex++;
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		if(result)LOG_INFO("SystemTasks::communicationTask executed in: ", executionTime, " ms");
-		RunTimeStats_End("communicationTask", startExecutionTime, result);
+		if(result)LOG_TRACE("SystemTasks::communicationTask executed in: ", executionTime, " ms");
+		RunTimeStats_End("communicationTask", startExecutionTime, false);
 		vTaskDelay( taskSleep );
 	}
 }
@@ -271,7 +271,7 @@ void SystemTasksManager::imageClassificationTask(void* argument)
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::imageClassificationTask executed in: ", executionTime, " ms");
 
-		RunTimeStats_End("imageClassificationTask", startExecutionTime, true);
+		RunTimeStats_End("imageClassificationTask", startExecutionTime, false);
 	}
 }
 
@@ -341,7 +341,7 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 		logMemoryUsage();
 
-		RunTimeStats_End("imageAssemblerTask", startExecutionTime, true);
+		RunTimeStats_End("imageAssemblerTask", startExecutionTime, false);
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime );
 		//static const TaskHandle_t taskToNotify = taskHandlerCommunication;

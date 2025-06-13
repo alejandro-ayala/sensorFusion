@@ -359,7 +359,7 @@ static void PsCanController::recvHandler(void *CallBackRef)
 		{
 			//LOG_DEBUG("PsCanController::recvHandler EoF received");
 			m_endOfImage = rxMsg.data[7];
-			std::cout << "PsCanController::recvHandler EoF received with: " << std::to_string(self->m_rxMsgVector.size()) << " CAN frames -- EndOfImage "<< std::to_string(m_endOfImage) <<std::endl;
+			//std::cout << "PsCanController::recvHandler EoF received with: " << std::to_string(self->m_rxMsgVector.size()) << " CAN frames -- EndOfImage "<< std::to_string(m_endOfImage) <<std::endl;
 			self->m_recvDone = true;
 		}
 		else
