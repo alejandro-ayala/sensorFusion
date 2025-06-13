@@ -79,63 +79,56 @@ bool CommunicationManager::sendData(const std::vector<business_logic::Communicat
 
 bool CommunicationManager::receiveData()
 {
-	auto rxMsgVector = canController->receiveMsg();
-	LOG_TRACE("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
+	bool assembleCbor = false;
+	bool isEndOfImage = false;
+	auto rxMsgVector = canController->receiveMsg(assembleCbor, isEndOfImage);
 
 	static uint8_t lastFrameIndex = 0;
 	static uint8_t lastCborIndex  = 0;
-	bool status = false;
-	for(auto& rxMsg : rxMsgVector)
+
+	uint8_t msgId = 0;
+
+	if(assembleCbor)
 	{
-		if(rxMsg.dlc > 0)
+		LOG_DEBUG("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
+	//TODO replace the loop and request only the last sample to get the variables IDs and Idx
+		for(auto& rxMsg : rxMsgVector)
 		{
-			std::string frameSize = "Received frame of size" + std::to_string(rxMsg.dlc) + " : ";
-			LOG_TRACE(frameSize, std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
-			if(lastFrameIndex == rxMsg.data[0] && rxMsg.data[1] == 0x1E && rxMsg.data[2] == 0x1E && rxMsg.data[3] == 0x1E &&
-					rxMsg.data[4] == 0x1E && rxMsg.data[5] == 0x1E && rxMsg.data[6] == 0x1E)
-	//		if(lastFrameIndex !=rxMsg.data[0])
+
+			if(rxMsg.dlc > 0)
 			{
-				//TODO FrameSync (if rxMsg.data[0] == KEY) m_imageAssembler->assembleFrame(msgIndex, cborIndex);
-				bool isEndOfImage = static_cast<bool>(rxMsg.data[7]);
-
-				//Sending confirmation to complete assembled frame
-				uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
-				LOG_TRACE("CommunicationManager::receiveData Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
-				canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
-
-				LOG_TRACE("CommunicationManager::receiveData SENT FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)), " -- ", std::to_string(isEndOfImage));
-				msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex, isEndOfImage);
-				LOG_TRACE("CommunicationManager::receiveData COMPLETED FRAME done");
-
-				return true;
-			}
-			if(rxMsg.dlc != 8)
-			{
-				//Completamos con 0xFF los bytes pendientes del final de trama
-				for (size_t i = rxMsg.dlc; i < CAN_DATA_PAYLOAD_SIZE; ++i)
+				std::string frameSize = "Received frame of size" + std::to_string(rxMsg.dlc) + " : ";
+				LOG_TRACE(frameSize, std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
+				if(rxMsg.dlc != 8)
 				{
-					rxMsg.data[i] = 0xFF;
+					//Completamos con 0xFF los bytes pendientes del final de trama
+					for (size_t i = rxMsg.dlc; i < CAN_DATA_PAYLOAD_SIZE; ++i)
+					{
+						rxMsg.data[i] = 0xFF;
+					}
 				}
+
+				msgGateway->storeMsg(rxMsg.id, rxMsg.data);
+				lastFrameIndex = rxMsg.data[0];
+				lastCborIndex  = rxMsg.data[1];
+				msgId = rxMsg.id;
 			}
-
-			msgGateway->storeMsg(rxMsg.id, rxMsg.data);
-			lastFrameIndex = rxMsg.data[0];
-			lastCborIndex  = rxMsg.data[1];
-
-			//parsedMsg.deSerialize(data);
-			//LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
-			status = true;
 		}
 	}
-	if(status)
+
+	if(assembleCbor)
 	{
-		auto& lastMsg = rxMsgVector.back();
-		LOG_WARNING("Returning without eof: ", std::to_string(lastMsg.dlc), std::to_string(lastMsg.data[0]), " ", std::to_string(lastMsg.data[1]), " " , std::to_string(lastMsg.data[2]), " ", std::to_string(lastMsg.data[3]), " ", std::to_string(lastMsg.data[4]), " ", std::to_string(lastMsg.data[5]), " ", std::to_string(lastMsg.data[6]), " ", std::to_string(lastMsg.data[7]));
+		LOG_TRACE("CommunicationManager::receiveData SENT FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)), " -- ", std::to_string(isEndOfImage));
+		msgGateway->completedFrame(msgId, lastFrameIndex, lastCborIndex, isEndOfImage);
+		LOG_TRACE("CommunicationManager::receiveData COMPLETED FRAME done");
+		canController->clearBuffer();
+		//Sending confirmation to complete assembled frame
 		uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
+		LOG_TRACE("CommunicationManager::receiveData Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
 		canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
 	}
 
-	return status;
+	return assembleCbor;
 }
 
 bool CommunicationManager::selfTest()

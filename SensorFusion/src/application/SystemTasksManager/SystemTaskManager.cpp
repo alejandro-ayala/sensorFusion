@@ -166,7 +166,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 
 void SystemTasksManager::communicationTask(void* argument)
 {
-	const TickType_t taskSleep = pdMS_TO_TICKS( 10 );
+	const TickType_t taskSleep = pdMS_TO_TICKS( 100 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 #ifdef ASSEMBLER_TASK
 	commMng->initialization(taskHandlerImgAssembler);
@@ -190,8 +190,8 @@ void SystemTasksManager::communicationTask(void* argument)
 		}
 		const auto result = commMng->receiveData();
 		loopIndex++;
-		//const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		//if(result)LOG_INFO("SystemTasks::communicationTask executed in: ", executionTime, " ms");
+		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
+		if(result)LOG_INFO("SystemTasks::communicationTask executed in: ", executionTime, " ms");
 		RunTimeStats_End("communicationTask", startExecutionTime, result);
 		vTaskDelay( taskSleep );
 	}

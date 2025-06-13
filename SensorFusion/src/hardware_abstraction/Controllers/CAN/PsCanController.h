@@ -22,14 +22,18 @@ private:
 	int m_deviceId;
 	bool m_initialized;
 	XCanPs_Config *m_config;
-	XCanPs m_canPs;
-	XScuGic m_irqController;
+	static inline XCanPs m_canPs;
+
 	XScuGic_Config *m_irqCtrlConfig;
 	CanTimingParams m_timingConfiguration;
 	std::shared_ptr<business_logic::Osal::MutexHandler> canMutex;
-
+	static inline volatile int m_loopbackError = false;
+	static inline volatile int m_recvDone = false;
+	static inline volatile int m_sendDone = false;
+	static inline bool m_endOfImage;
 	static inline uint32_t m_txFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
 	static inline uint32_t m_rxFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
+	static inline std::vector<CanFrame> m_rxMsgVector;
 
 
 	void modifyRegister(uint8_t reg, uint8_t mask, uint8_t value);
@@ -44,8 +48,13 @@ public:
 
 	void initialize();
 	bool transmitMsg(uint8_t idMsg, uint8_t *TxMsg, uint8_t msgLength);
-	std::vector<CanFrame> receiveMsg();
+	std::vector<CanFrame> receiveMsg(bool& assembleFrame, bool& endOfImage);
+	void clearBuffer();
 	bool selfTest();
+	static void sendHandler(void *CallBackRef);
+	static void recvHandler(void *CallBackRef);
+	static void errorHandler(void *CallBackRef, u32 ErrorMask);
+	static void eventHandler(void *CallBackRef, u32 IntrMask);
 };
 }
 }

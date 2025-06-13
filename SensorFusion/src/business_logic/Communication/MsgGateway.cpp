@@ -95,7 +95,7 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 			LOG_INFO("LIDAR_3D_IMAGE frame: ", std::to_string(msgIndex), " completed");
 			break;
 		default:
-			LOG_INFO("Unknown frame completed");
+			LOG_WARNING("Unknown frame completed");
 			break;
 	}
 }
