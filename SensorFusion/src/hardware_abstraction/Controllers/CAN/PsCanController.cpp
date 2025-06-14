@@ -9,6 +9,7 @@
 #include <math.h>
 
 extern XScuGic xInterruptController;
+static constexpr uint8_t RESET_CONTROLLER_COUNTER = 10;
 
 namespace hardware_abstraction
 {
@@ -266,6 +267,12 @@ bool PsCanController::selfTest()
 //	return true;
 }
 
+void PsCanController::resetController()
+{
+	XCanPs_Reset(&m_canPs);
+	m_initialized = false;
+	initialize();
+}
 /*
  * AVOID CALL THIS METHOD BECAUSE STOP SCHEDULER!!!
  */
@@ -322,6 +329,7 @@ int PsCanController::setupInterruptSystem(XScuGic *IntcInstancePtr, XCanPs *CanI
 static void PsCanController::sendHandler(void *CallBackRef)
 {
 	PsCanController *self = static_cast<PsCanController *>(CallBackRef);
+	self->m_errorCounter = 0;
 	/*
 	 * The frame was sent successfully. Notify the task context.
 	 */
@@ -342,6 +350,7 @@ static void PsCanController::recvHandler(void *CallBackRef)
 	PsCanController *self = static_cast<PsCanController *>(CallBackRef);
 	memset(self->m_rxFrame, 0, sizeof(self->m_rxFrame));
 	self->m_endOfImage = false;
+	self->m_errorCounter = 0;
 	auto status = XCanPs_Recv(&self->m_canPs, self->m_rxFrame);
 	if (status == XST_SUCCESS)
 	{
@@ -373,12 +382,13 @@ static void PsCanController::recvHandler(void *CallBackRef)
 static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 {
 	PsCanController *self = static_cast<PsCanController *>(CallBackRef);
+	m_errorCounter++;
 	if (ErrorMask & XCANPS_ESR_ACKER_MASK) {
 		/*
 		 * ACK Error handling code should be put here.
 		 */
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_ACKER_MASK");
-		std::cout << "XCANPS_ESR_ACKER_MASK executing" << std::endl;
+		std::cout << "PsCanController ACK Error" << std::endl;
 	}
 
 	if (ErrorMask & XCANPS_ESR_BERR_MASK) {
@@ -386,7 +396,7 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		 * Bit Error handling code should be put here.
 		 */
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_BERR_MASK");
-		std::cout << "XCANPS_ESR_BERR_MASK executing" << std::endl;
+		std::cout << "PsCanController Bit Error" << std::endl;
 	}
 
 	if (ErrorMask & XCANPS_ESR_STER_MASK) {
@@ -394,7 +404,7 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		 * Stuff Error handling code should be put here.
 		 */
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_STER_MASK");
-		std::cout << "XCANPS_ESR_STER_MASK executing" << std::endl;
+		std::cout << "PsCanController Stuff Error" << std::endl;
 	}
 
 	if (ErrorMask & XCANPS_ESR_FMER_MASK) {
@@ -402,7 +412,7 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		 * Form Error handling code should be put here.
 		 */
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_FMER_MASK");
-		std::cout << "XCANPS_ESR_FMER_MASK executing" << std::endl;
+		std::cout << "PsCanController Form Error" << std::endl;
 	}
 
 	if (ErrorMask & XCANPS_ESR_CRCER_MASK) {
@@ -410,7 +420,13 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		 * CRC Error handling code should be put here.
 		 */
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_CRCER_MASK");
-		std::cout << "XCANPS_ESR_CRCER_MASK executing" << std::endl;
+		std::cout << "PsCanController CRC Error" << std::endl;
+	}
+	if(m_errorCounter > RESET_CONTROLLER_COUNTER)
+	{
+		self->m_errorCounter = 0;
+		self->resetController();
+
 	}
 }
 
@@ -423,8 +439,8 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 * the CAN device be reset and reconfigured.
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_BSOFF_MASK");
-		std::cout << "XCANPS_IXR_BSOFF_MASK executing" << std::endl;
-		XCanPs_Reset(&self->m_canPs);
+		std::cout << "PsCanController::eventHandler Entering Bus off status interrupt" << std::endl;
+		self->resetController();
 		return;
 	}
 
@@ -433,7 +449,7 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 * Code to handle RX FIFO Overflow Interrupt should be put here.
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_RXOFLW_MASK");
-		std::cout << "XCANPS_IXR_RXOFLW_MASK executing" << std::endl;
+		std::cout << "PsCanController::eventHandler RX FIFO Overflow" << std::endl;
 	}
 
 	if (IntrMask & XCANPS_IXR_RXUFLW_MASK) {
@@ -442,7 +458,7 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 * should be put here.
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_RXUFLW_MASK");
-		std::cout << "XCANPS_IXR_RXUFLW_MASK executing" << std::endl;
+		std::cout << "PsCanController::eventHandler RX FIFO Underflow" << std::endl;
 	}
 
 	if (IntrMask & XCANPS_IXR_TXBFLL_MASK) {
@@ -451,7 +467,7 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 * Interrupt should be put here.
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_TXBFLL_MASK");
-		std::cout << "XCANPS_IXR_TXBFLL_MASK executing" << std::endl;
+		std::cout << "PsCanController::eventHandler TX High Priority Buffer Full" << std::endl;
 	}
 
 	if (IntrMask & XCANPS_IXR_TXFLL_MASK) {
@@ -459,7 +475,7 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 * Code to handle TX FIFO Full Interrupt should be put here.
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_TXFLL_MASK");
-		std::cout << "XCANPS_IXR_TXFLL_MASK executing" << std::endl;
+		std::cout << "PsCanController::eventHandler TX FIFO Full Interrupt" << std::endl;
 	}
 
 	if (IntrMask & XCANPS_IXR_WKUP_MASK) {
@@ -468,7 +484,7 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 * should be put here.
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_WKUP_MASK");
-		std::cout << "XCANPS_IXR_WKUP_MASK executing" << std::endl;
+		std::cout << "PsCanController::eventHandler Wake up from sleep mode" << std::endl;
 	}
 
 	if (IntrMask & XCANPS_IXR_SLP_MASK) {
@@ -477,6 +493,7 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_SLP_MASK");
 		std::cout << "XCANPS_IXR_SLP_MASK executing" << std::endl;
+		std::cout << "PsCanController::eventHandler Enter to sleep mode" << std::endl;
 	}
 
 	if (IntrMask & XCANPS_IXR_ARBLST_MASK) {
@@ -485,7 +502,7 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 * should be put here.
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_ARBLST_MASK");
-		std::cout << "XCANPS_IXR_ARBLST_MASK executing" << std::endl;
+		std::cout << "PsCanController::eventHandler Lost bus arbitration" << std::endl;
 	}
 }
 

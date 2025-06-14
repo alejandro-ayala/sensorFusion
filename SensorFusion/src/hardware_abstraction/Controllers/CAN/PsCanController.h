@@ -31,6 +31,7 @@ private:
 	static inline volatile int m_recvDone = false;
 	static inline volatile int m_sendDone = false;
 	static inline bool m_endOfImage;
+	static inline uint8_t m_errorCounter = 0;
 	static inline uint32_t m_txFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
 	static inline uint32_t m_rxFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
 	static inline std::vector<CanFrame> m_rxMsgVector;
@@ -51,6 +52,7 @@ public:
 	std::vector<CanFrame> receiveMsg(bool& assembleFrame, bool& endOfImage);
 	void clearBuffer();
 	bool selfTest();
+	void resetController();
 	static void sendHandler(void *CallBackRef);
 	static void recvHandler(void *CallBackRef);
 	static void errorHandler(void *CallBackRef, u32 ErrorMask);
