@@ -9,7 +9,7 @@
 #include <math.h>
 
 extern XScuGic xInterruptController;
-static constexpr uint8_t RESET_CONTROLLER_COUNTER = 10;
+static constexpr uint8_t RESET_CONTROLLER_COUNTER = 128;
 
 namespace hardware_abstraction
 {
@@ -223,12 +223,13 @@ void PsCanController::transmit(CanFrame msg)
 
 std::vector<CanFrame> PsCanController::receiveMsg(bool& assembleFrame, bool& endOfImage)
 {
-	canMutex->lock();
+	ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+	//canMutex->lock();
 	//while(m_recvDone == false);
 	assembleFrame = m_recvDone;
 	endOfImage = m_endOfImage;
 	m_recvDone = false;
-	canMutex->unlock();
+	//canMutex->unlock();
 	return m_rxMsgVector;
 }
 
@@ -269,6 +270,9 @@ bool PsCanController::selfTest()
 
 void PsCanController::resetController()
 {
+	return;
+	LOG_ERROR("PsCanController::resetController");
+	while(1);
 	XCanPs_Reset(&m_canPs);
 	m_initialized = false;
 	initialize();
@@ -325,6 +329,11 @@ int PsCanController::setupInterruptSystem(XScuGic *IntcInstancePtr, XCanPs *CanI
 	return XST_SUCCESS;
 }
 
+void PsCanController::registerTaskToNotify(const TaskHandle_t& xReceiveTaskToNotify)
+{
+	m_receiveTaskToNotify = xReceiveTaskToNotify;
+}
+
 #ifdef CANPS_IRQ
 static void PsCanController::sendHandler(void *CallBackRef)
 {
@@ -370,6 +379,8 @@ static void PsCanController::recvHandler(void *CallBackRef)
 			m_endOfImage = rxMsg.data[7];
 			//std::cout << "PsCanController::recvHandler EoF received with: " << std::to_string(self->m_rxMsgVector.size()) << " CAN frames -- EndOfImage "<< std::to_string(m_endOfImage) <<std::endl;
 			self->m_recvDone = true;
+			BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+			vTaskNotifyGiveIndexedFromISR( m_receiveTaskToNotify, 0, &xHigherPriorityTaskWoken );
 		}
 		else
 		{
@@ -422,12 +433,12 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_CRCER_MASK");
 		std::cout << "PsCanController CRC Error" << std::endl;
 	}
-	if(m_errorCounter > RESET_CONTROLLER_COUNTER)
-	{
-		self->m_errorCounter = 0;
-		self->resetController();
-
-	}
+//	if(self->m_errorCounter > RESET_CONTROLLER_COUNTER)
+//	{
+//		self->m_errorCounter = 0;
+//		self->resetController();
+//
+//	}
 }
 
 static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)

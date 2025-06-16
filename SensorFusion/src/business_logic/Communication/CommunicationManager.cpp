@@ -6,7 +6,7 @@
 #include "services/Logger/LoggerMacros.h"
 #include <iostream>
 
-
+static inline TaskHandle_t xReceiveTaskToNotify;
 namespace business_logic
 {
 using namespace ClockSyncronization;
@@ -16,6 +16,7 @@ namespace Communication
 #ifdef ASSEMBLER_TASK
 CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller, const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue)  : timeController(timecontroller), canController(cancontroller)
 {
+	xReceiveTaskToNotify = xTaskGetCurrentTaskHandle();
 	msgGateway = std::make_shared<MsgGateway>(cameraFramesQueue);
 #else
 CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller, const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue, const std::shared_ptr<business_logic::ImageAssembler::ImageAssembler>& imageAssembler)  : timeController(timecontroller), canController(cancontroller)
@@ -34,6 +35,8 @@ void CommunicationManager::initialization(const TaskHandle_t& taskToNotify)
 	msgGateway->initialization(taskToNotify);
 #endif
 	canController->initialize();
+	const auto xTaskToNotify = xTaskGetCurrentTaskHandle();
+	canController->registerTaskToNotify(xTaskToNotify);
 }
 
 bool CommunicationManager::sendData(IData msg)

@@ -35,6 +35,7 @@ private:
 	static inline uint32_t m_txFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
 	static inline uint32_t m_rxFrame[XCANPS_MAX_FRAME_SIZE_IN_WORDS];
 	static inline std::vector<CanFrame> m_rxMsgVector;
+	static inline TaskHandle_t m_receiveTaskToNotify;
 
 
 	void modifyRegister(uint8_t reg, uint8_t mask, uint8_t value);
@@ -57,6 +58,7 @@ public:
 	static void recvHandler(void *CallBackRef);
 	static void errorHandler(void *CallBackRef, u32 ErrorMask);
 	static void eventHandler(void *CallBackRef, u32 IntrMask);
+	void registerTaskToNotify(const TaskHandle_t& xReceiveTaskToNotify);
 };
 }
 }
