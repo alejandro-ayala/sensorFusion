@@ -58,7 +58,7 @@ void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cbor
 			//TODO notify to assembleImageTask
 			//m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 			const std::string strMsg = "MsgGateway::completedFrame CAMERA_IMAGE. msgIndex: " + std::to_string(msgIndex) + "-- cborIndex: " + std::to_string(cborIndex) + " -- isEndOfFrame: " + std::to_string(isEndOfImage & 0x1);
-			LOG_TRACE(strMsg);
+			LOG_DEBUG(strMsg);
 #ifdef ASSEMBLER_TASK
 			uint32_t valueToNotify = (msgIndex << 16) | (cborIndex << 8) | (isEndOfImage & 0x1);
 			const auto t1 = xTaskGetTickCount();

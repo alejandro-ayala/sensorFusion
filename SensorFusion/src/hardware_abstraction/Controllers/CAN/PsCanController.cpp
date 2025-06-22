@@ -193,7 +193,6 @@ bool PsCanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLeng
 void PsCanController::transmit(CanFrame msg)
 {
 	u8 *framePtr;
-
 	/*
 	 * Create correct values for Identifier and Data Length Code Register.
 	 */
@@ -223,7 +222,9 @@ void PsCanController::transmit(CanFrame msg)
 
 std::vector<CanFrame> PsCanController::receiveMsg(bool& assembleFrame, bool& endOfImage)
 {
+	LOG_TRACE("PsCanController::receiveMsg ulTaskNotifyTake");
 	ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+	LOG_TRACE("PsCanController::receiveMsg ulTaskNotifyTake done");
 	//canMutex->lock();
 	//while(m_recvDone == false);
 	assembleFrame = m_recvDone;
@@ -270,9 +271,7 @@ bool PsCanController::selfTest()
 
 void PsCanController::resetController()
 {
-	return;
-	LOG_ERROR("PsCanController::resetController");
-	while(1);
+	//LOG_ERROR("PsCanController::resetController");
 	XCanPs_Reset(&m_canPs);
 	m_initialized = false;
 	initialize();
@@ -344,7 +343,7 @@ static void PsCanController::sendHandler(void *CallBackRef)
 	 */
 	//LOG_DEBUG("SendHandler executed");
 	//std::cout << "SendHandler executing" << std::endl;
-	//std::cout << "SendHandler executed" << std::endl;
+	std::cout << "SendHandler done" << std::endl;
 	//self->m_sendDone = true;
 }
 
@@ -379,8 +378,10 @@ static void PsCanController::recvHandler(void *CallBackRef)
 			m_endOfImage = rxMsg.data[7];
 			//std::cout << "PsCanController::recvHandler EoF received with: " << std::to_string(self->m_rxMsgVector.size()) << " CAN frames -- EndOfImage "<< std::to_string(m_endOfImage) <<std::endl;
 			self->m_recvDone = true;
+			//std::cout << "PsCanController::recvHandler vTaskNotifyGiveIndexedFromISR" << std::endl;
 			BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 			vTaskNotifyGiveIndexedFromISR( m_receiveTaskToNotify, 0, &xHigherPriorityTaskWoken );
+			//std::cout << "PsCanController::recvHandler vTaskNotifyGiveIndexedFromISR done" << std::endl;
 		}
 		else
 		{
@@ -393,7 +394,7 @@ static void PsCanController::recvHandler(void *CallBackRef)
 static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 {
 	PsCanController *self = static_cast<PsCanController *>(CallBackRef);
-	m_errorCounter++;
+	self->m_errorCounter++;
 	if (ErrorMask & XCANPS_ESR_ACKER_MASK) {
 		/*
 		 * ACK Error handling code should be put here.
@@ -433,17 +434,29 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_CRCER_MASK");
 		std::cout << "PsCanController CRC Error" << std::endl;
 	}
-//	if(self->m_errorCounter > RESET_CONTROLLER_COUNTER)
-//	{
+	if(self->m_errorCounter > RESET_CONTROLLER_COUNTER)
+	{
 //		self->m_errorCounter = 0;
 //		self->resetController();
-//
+		std::cout << "PsCanController Reset PSCan Controller" << std::endl;
+	}
+//	const auto errorBusStatus = XCanPs_GetBusErrorStatus(&self->m_canPs);
+//	u8 rxErrorCount = 0, txErrorCount = 0;
+//	XCanPs_GetBusErrorCounter(&self->m_canPs, &rxErrorCount, &txErrorCount);
+//	xil_printf("errorBusStatus: %d\n", errorBusStatus);
+//	xil_printf("RX Error Counter: %d\n", rxErrorCount);
+//	xil_printf("TX Error Counter: %d\n", txErrorCount);
+//	if(rxErrorCount>20 || txErrorCount>20)
+//	{
+//		std::cout << "PsCanController::eventHandler Entering Bus off status interrupt" << std::endl;
+//		self->resetController();
 //	}
 }
 
 static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 {
 	PsCanController *self = static_cast<PsCanController *>(CallBackRef);
+	std::cout << "PsCanController::eventHandler triggered" << std::endl;
 	if (IntrMask & XCANPS_IXR_BSOFF_MASK) {
 		/*
 		 * Entering Bus off status interrupt requires
@@ -451,8 +464,8 @@ static void PsCanController::eventHandler(void *CallBackRef, u32 IntrMask)
 		 */
 		//LOG_DEBUG("EventHandler XCANPS_IXR_BSOFF_MASK");
 		std::cout << "PsCanController::eventHandler Entering Bus off status interrupt" << std::endl;
-		self->resetController();
-		return;
+		//self->resetController();
+		//return;
 	}
 
 	if (IntrMask & XCANPS_IXR_RXOFLW_MASK) {

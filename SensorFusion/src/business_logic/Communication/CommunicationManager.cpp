@@ -84,7 +84,9 @@ bool CommunicationManager::receiveData()
 {
 	bool assembleCbor = false;
 	bool isEndOfImage = false;
+	LOG_DEBUG("CommunicationManager::receiveData starting");
 	auto rxMsgVector = canController->receiveMsg(assembleCbor, isEndOfImage);
+	LOG_DEBUG("CommunicationManager::receiveData done");
 
 	static uint8_t lastFrameIndex = 0;
 	static uint8_t lastCborIndex  = 0;
@@ -93,7 +95,7 @@ bool CommunicationManager::receiveData()
 
 	if(assembleCbor)
 	{
-		LOG_TRACE("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
+		LOG_DEBUG("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
 	//TODO replace the loop and request only the last sample to get the variables IDs and Idx
 		for(auto& rxMsg : rxMsgVector)
 		{
@@ -121,13 +123,14 @@ bool CommunicationManager::receiveData()
 
 	if(assembleCbor)
 	{
-		LOG_TRACE("CommunicationManager::receiveData SENT FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)), " -- ", std::to_string(isEndOfImage));
+		LOG_DEBUG("CommunicationManager::receiveData SENT FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)), " -- ", std::to_string(isEndOfImage));
 		msgGateway->completedFrame(msgId, lastFrameIndex, lastCborIndex, isEndOfImage);
-		LOG_TRACE("CommunicationManager::receiveData COMPLETED FRAME done");
+		LOG_DEBUG("CommunicationManager::receiveData COMPLETED FRAME done");
 		canController->clearBuffer();
 		//Sending confirmation to complete assembled frame
 		uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
-		LOG_TRACE("CommunicationManager::receiveData Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
+		vTaskDelay( pdMS_TO_TICKS( 10 ));
+		LOG_DEBUG("CommunicationManager::receiveData Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
 		canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
 	}
 

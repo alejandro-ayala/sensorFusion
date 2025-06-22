@@ -19,6 +19,7 @@ typedef struct {
     uint32_t totalExecutions;
 } RunTimeStats_t;
 
+volatile bool sentGlobalTime = false;
 static RunTimeStats_t runtimeStatsRegistries[MAX_REGISTRIES];
 static uint8_t currentRegisteredStats = 0;
 
@@ -142,13 +143,18 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
     LOG_INFO(startMsg);
     uint32_t startExecutionTime;
     uint32_t triggerSystemStats = 0;
+
 	while(1)
 	{
 		RunTimeStats_Start(&startExecutionTime);
 		const auto t1 = xTaskGetTickCount();
 		LOG_DEBUG("Sending global master time: ", std::to_string(m_globalClkMng->getAbsotuleTime()), " ns") ;
 		logMemoryUsage();
-		m_globalClkMng->sendGlobalTime();
+		if(!sentGlobalTime)
+		{
+			m_globalClkMng->sendGlobalTime();
+			sentGlobalTime = true;
+		}
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
 		RunTimeStats_End("globalClockSyncronization", startExecutionTime, true);
@@ -157,7 +163,9 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 		if(triggerSystemStats > 10)
 		{
 			//printSystemStats();
+			LOG_INFO("*********System Custom stats*********");
 			RunTimeStats_Print();
+			LOG_INFO("***************************");
 			triggerSystemStats = 0;
 		}
 		triggerSystemStats++;
@@ -191,9 +199,11 @@ void SystemTasksManager::communicationTask(void* argument)
 		const auto result = commMng->receiveData();
 		loopIndex++;
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		if(result)LOG_TRACE("SystemTasks::communicationTask executed in: ", executionTime, " ms");
+		if(result)LOG_DEBUG("SystemTasks::communicationTask executed in: ", executionTime, " ms");
 		RunTimeStats_End("communicationTask", startExecutionTime, false);
+		LOG_DEBUG("SystemTasks::communicationTask going to sleep");
 		vTaskDelay( taskSleep );
+		LOG_DEBUG("SystemTasks::communicationTask wakeup");
 	}
 }
 	
@@ -218,22 +228,24 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 			const auto imageSize = m_image3DCapturer->captureImage();
 
 			auto last3dSample = m_image3DCapturer->getLastCapture();
-			m_lastCaptureTimestampEnd = m_globalClkMng->getAbsotuleTime();
-			const auto captureDeltaTime = m_lastCaptureTimestampEnd - m_lastCaptureTimestampStart;
-			LOG_TRACE("Start capture at ", std::to_string(m_lastCaptureTimestampStart));
-			LOG_TRACE("End capture at ", std::to_string(m_lastCaptureTimestampEnd));
+			//m_lastCaptureTimestampEnd = m_globalClkMng->getAbsotuleTime();
+			//const auto captureDeltaTime = m_lastCaptureTimestampEnd - m_lastCaptureTimestampStart;
+			//LOG_TRACE("Start capture at ", std::to_string(m_lastCaptureTimestampStart));
+			//LOG_TRACE("End capture at ", std::to_string(m_lastCaptureTimestampEnd));
 
-			LOG_DEBUG("3D image captured in ", std::to_string(captureDeltaTime), " ns");
-			business_logic::LidarArray* pxPointerToxMessage;
-			pxPointerToxMessage = &last3dSample;
-//			int cnt = 0;
-//			for(auto sample : last3dSample)
-//			{
-//				std::string sample3D = std::to_string(sample.m_angleServoH) + "," + std::to_string(sample.m_angleServoV) + "," + std::to_string(sample.m_pointDistance);
-//				LOG_INFO(sample3D);
-//				cnt++;
-//				if(cnt >= imageSize) break;
-//			}
+			//LOG_DEBUG("3D image captured in ", std::to_string(captureDeltaTime), " ns");
+			//business_logic::LidarArray* pxPointerToxMessage;
+			//pxPointerToxMessage = &last3dSample;
+			int cnt = 0;
+			LOG_DEBUG("SystemTasks::image3dCapturerTask START_FRAME");
+			for(auto sample : last3dSample)
+			{
+				std::string sample3D = std::to_string(sample.m_angleServoH) + "," + std::to_string(sample.m_angleServoV) + "," + std::to_string(sample.m_pointDistance);
+				LOG_INFO(sample3D);
+				cnt++;
+				if(cnt >= imageSize) break;
+			}
+			LOG_DEBUG("SystemTasks::image3dCapturerTask END_FRAME");
 //			m_capturesQueue->sendToBack(( void * ) &pxPointerToxMessage);
 			captureId++;
 			const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
@@ -322,7 +334,7 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		bool isEndOfImage   = ulNotificationValue & 0x1;
 
 		const std::string strMsg = "SystemTasksManager::imageAssemblerTask NOTIFICATION receive: msgIndex: " + std::to_string(msgIndex) + "-- cborIndex: " + std::to_string(cborIndex) + " -- isEndOfFrame: " + std::to_string(isEndOfImage);
-		LOG_TRACE(strMsg);
+		LOG_DEBUG(strMsg);
 		const auto t1 = xTaskGetTickCount();
 		logMemoryUsage();
 		static TickType_t lastEndOfImageTick = 0;
@@ -337,13 +349,13 @@ void SystemTasksManager::imageAssemblerTask(void* argument)
 		    LOG_DEBUG(strDelta);
 		}
 		const auto t12 = xTaskGetTickCount();
-		LOG_TRACE("SystemTasksManager::imageAssemblerTask assembling frame");
+		LOG_DEBUG("SystemTasksManager::imageAssemblerTask assembling frame");
 		m_imageAssembler->assembleFrame(msgIndex, cborIndex, isEndOfImage);
 		logMemoryUsage();
 
 		RunTimeStats_End("imageAssemblerTask", startExecutionTime, false);
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
-		LOG_TRACE("SystemTasks::imageAssemblerTask executed in: ", executionTime );
+		LOG_DEBUG("SystemTasks::imageAssemblerTask executed in: ", executionTime );
 		//static const TaskHandle_t taskToNotify = taskHandlerCommunication;
 		//xTaskNotifyGive(taskToNotify);
 	}
@@ -397,19 +409,21 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
 void SystemTasksManager::createPoolTasks()
 {
 	LOG_INFO("SystemTasksManager::createPoolTasks started");
+#ifdef IMAGE_CLASSIFIER_NODE
 	m_imageClassifierTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
 	//m_sensorFusionTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::sensorFusionTask, "sensorFusionTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(nullptr), 2048);
 	taskHandlerSensorFusion = m_sensorFusionTaskHandler->getTaskHandler();;
 	taskHandlerImgClassifier = m_imageClassifierTaskHandler->getTaskHandler();;
 	m_clockSyncTaskHandler       = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::globalClockSyncronization, "GlobalClockSyncronization", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_globalClkMng.get()), 1024);
-	//m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
 #ifdef ASSEMBLER_TASK
 	m_imageAssemblerTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageAssemblerTask, "imageAssemblerTask", DefaultPriorityTask + 2, static_cast<business_logic::Osal::VoidPtr>(m_imageAssembler.get()), 2048);
 	taskHandlerImgAssembler = m_imageAssemblerTaskHandler->getTaskHandler();
 #endif
 	m_commTaskHandler            = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::communicationTask, "CommunicationTask", DefaultPriorityTask +1 , static_cast<business_logic::Osal::VoidPtr>(m_commMng.get()), 2048);
 	taskHandlerCommunication = m_commTaskHandler->getTaskHandler();
-
+#else
+	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
+#endif
 	LOG_INFO("SystemTasksManager::createPoolTasks done");
 }
 

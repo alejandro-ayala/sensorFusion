@@ -11,7 +11,7 @@ Logger& Logger::getInstance()
 	return instance;
 }
 
-Logger::Logger() : ILogger(), m_logLevel(LogLevel::Debug), m_disable(false)
+Logger::Logger() : ILogger(), m_logLevel(LogLevel::Info), m_disable(false)
 {
 	initialize();
 }
