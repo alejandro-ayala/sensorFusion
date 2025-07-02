@@ -31,19 +31,13 @@ int main(int argc, char* argv[]) {
 
 #else
 #ifdef HTTP_CLIENT
-#include <business_logic/Conectivity/ConnectionSettings.h>
-#include <business_logic/Conectivity/CryptoMng.h>
-#include <business_logic/Conectivity/HTTPConnectionTypes.h>
-#include <business_logic/Conectivity/ServerManager.h>
-#include <business_logic/Conectivity/HTTPClient.h>
+#include "business_logic/ServerManager/ConnectionSettings.h"
+#include <business_logic/ServerManager/CryptoMng.h>
+#include <business_logic/ServerManager/HTTPConnectionTypes.h>
+#include <business_logic/ServerManager/ServerManager.h>
+#include <business_logic/ServerManager/HTTPClient.h>
 #include <business_logic/Image3DProjector/Image3DProjector.h>
 #include "../external/mbedtls/include/mbedtls/platform.h"
-#include "lwip/dhcp.h"
-#include "lwip/init.h"
-#include "lwip/sockets.h"
-#include "lwipopts.h"
-#include "netif/xadapter.h"
-#include <platform_config.h>
 #endif
 
 #include <hardware_abstraction/Controllers/CAN/CanController.h>

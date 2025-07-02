@@ -7,6 +7,7 @@
 #include "business_logic/ClockSyncronization/TimeBaseManager.h"
 #include "TaskParams.h"
 #include "business_logic/Communication/CanMsg.h"
+#include "business_logic/ServerManager/ServerManager.h"
 #include <memory>
 #include <vector>
 
@@ -30,7 +31,7 @@ private:
 	static inline std::shared_ptr<business_logic::ImageClassifier::ImageClassifierManager> m_imageClassifier;
 	static inline std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> m_imageAssembler;
 	static inline std::shared_ptr<business_logic::ImageClassifier::ImageProvider> m_imageProvider;
-
+	static inline std::shared_ptr<ServerManager> m_serverMng;
 
 	static inline uint64_t m_lastCaptureTimestampStart = 0;
 	static inline uint64_t m_lastCaptureTimestampEnd = 0;
@@ -38,6 +39,8 @@ private:
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_clockSyncTaskHandler;
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_image3dCapturerTaskHandler;
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_commTaskHandler;
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_serverCommTaskHandler;
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_serverConfigTaskHandler;
 
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_imageClassifierTaskHandler;
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_imageAssemblerTaskHandler;
@@ -54,6 +57,10 @@ public:
 
 	static void imageAssemblerTask(void* argument);
 	static void sensorFusionTask(void* argument);
+
+	static int lwipNetworkControlTask();
+	static void updateConfigurationTask(void *argument);
+	static void sendDataToServerTask(void *argument);
 
     static void getNextImage(std::array<business_logic::LidarPoint, business_logic::IMAGE3D_SIZE>& lastCapture);
     static bool isPendingData();

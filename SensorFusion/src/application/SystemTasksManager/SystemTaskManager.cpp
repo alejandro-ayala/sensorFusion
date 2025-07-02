@@ -3,6 +3,19 @@
 #include "business_logic/DataSerializer/Image3DSnapshot.h"
 #include "business_logic/ImageCapturer3D/LidarPoint.h"
 #include "business_logic/Communication/CanMsg.h"
+
+#define HTTP_CLIENT
+#ifdef HTTP_CLIENT
+#include "business_logic/ServerManager/ConnectionSettings.h"
+#include "business_logic/ServerManager/ServerManager.h"
+#include "lwip/dhcp.h"
+#include "lwip/init.h"
+#include "lwip/sockets.h"
+#include "lwipopts.h"
+#include "netif/xadapter.h"
+#include <platform_config.h>
+#endif
+
 namespace application
 {
 
@@ -131,6 +144,8 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 
 	m_imageClassifier =  std::make_shared<business_logic::ImageClassifier::ImageClassifierManager>(systemTaskMngParams.imageProvider);
 	m_imageAssembler    = std::move(systemTaskMngParams.imageAssembler);
+
+	m_serverMng = std::shared_ptr<ServerManager>();
 
 	//TODO check not NULL pointers
 }
@@ -267,20 +282,6 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 			LOG_ERROR("Exception [", e.getErrorId() ,"]while captureImage: ", e.what());
 		}
 	}  
-}
-void SystemTasksManager::imageClassificationTask(void* argument)
-{
-
-	LOG_INFO("Starting imageClassificationTask");
-	m_imageClassifier->initialization();
-	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
-  /* Infinite loop */
-
-	while(1)
-	{
-		m_imageClassifier->detect();
-		vTaskDelay( taskSleep );
-	}
 }
 
 void SystemTasksManager::imageClassificationTask(void* argument)
@@ -429,6 +430,97 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
     }
 }
 
+int SystemTasksManager::lwipNetworkControlTask()
+{
+#if LWIP_DHCP==1
+	int mscnt = 0;
+#endif
+	/* initialize lwIP before calling sys_thread_new */
+    lwip_init();
+
+    /* any thread using lwIP should be created using sys_thread_new */
+    sys_thread_new("NW_THRD", network_thread, NULL,
+		THREAD_STACKSIZE,
+            DEFAULT_THREAD_PRIO);
+
+#if LWIP_DHCP==1
+    while (1) {
+	vTaskDelay(DHCP_FINE_TIMER_MSECS / portTICK_RATE_MS);
+		if (server_netif.ip_addr.addr) {
+			xil_printf("DHCP request success\r\n");
+			print_ip_settings(&(server_netif.ip_addr), &(server_netif.netmask), &(server_netif.gw));
+		    int exit_code;
+
+		    if((exit_code = mbedtls_platform_setup(NULL)) != 0) {
+		        printf("Platform initialization failed with error %d\r\n", exit_code);
+		        return MBEDTLS_EXIT_FAILURE;
+		    }
+
+		    mbedtls_printf("Starting mbed-os-example-tls/tls-client\n");
+
+
+
+		    mbedtls_platform_teardown(NULL);
+		}
+		mscnt += DHCP_FINE_TIMER_MSECS;
+		if (mscnt >= DHCP_COARSE_TIMER_SECS * 2000) {
+			xil_printf("ERROR: DHCP request timed out\r\n");
+			xil_printf("Configuring default IP of 192.168.1.10\r\n");
+			IP4_ADDR(&(server_netif.ip_addr),  192, 168, 1, 10);
+			IP4_ADDR(&(server_netif.netmask), 255, 255, 255,  0);
+			IP4_ADDR(&(server_netif.gw),  192, 168, 1, 1);
+			print_ip_settings(&(server_netif.ip_addr), &(server_netif.netmask), &(server_netif.gw));
+			/* print all application headers */
+			xil_printf("\r\n");
+			xil_printf("%20s %6s %s\r\n", "Server", "Port", "Connect With..");
+			xil_printf("%20s %6s %s\r\n", "--------------------", "------", "--------------------");
+
+			xil_printf("\r\n");
+
+			break;
+		}
+	}
+#endif
+    vTaskDelete(NULL);
+    return 0;
+}
+
+void SystemTasksManager::updateConfigurationTask(void *argument)
+{
+	LOG_INFO("SystemTasksManager::updateConfigurationTask started");
+	ServerManager* serverMng = reinterpret_cast<ServerManager*>(argument);
+	TickType_t xLastWakeTime;
+	std::string configStr;
+	xLastWakeTime = xTaskGetTickCount();
+	LOG_INFO("SystemTasksManager::updateConfigurationTask initialized");
+	while(1)
+	{
+		LOG_INFO("SystemTasksManager::updateConfigurationTask getConfiguration");
+
+		configStr = serverMng->getConfiguration();
+
+		LOG_INFO("SystemTasksManager::updateConfigurationTask configuration received:");
+		LOG_INFO(configStr);
+		vTaskDelay(20000 / portTICK_RATE_MS);
+	}
+}
+
+void SystemTasksManager::sendDataToServerTask(void *argument)
+{
+	LOG_INFO("SystemTasksManager::sendDataToServerTask started");
+	ServerManager* serverMng = reinterpret_cast<ServerManager*>(argument);
+	TickType_t xLastWakeTime;
+	xLastWakeTime = xTaskGetTickCount();
+	LOG_INFO("SystemTasksManager::sendDataToServerTask initialized");
+	while(1)
+	{
+		LOG_INFO("SystemTasksManager::sendDataToServerTask sendData");
+		serverMng->sendData();
+		LOG_INFO("SystemTasksManager::sendDataToServerTask sendData done");
+		vTaskDelay(1000 / portTICK_RATE_MS);
+	}
+}
+
 void SystemTasksManager::createPoolTasks()
 {
 
@@ -447,6 +539,12 @@ void SystemTasksManager::createPoolTasks()
 	taskHandlerCommunication = m_commTaskHandler->getTaskHandler();
 #else
 	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
+#endif
+
+#ifdef HTTP_CLIENT
+	m_serverCommTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::sendDataToServerTask, "sendDataToServerTask", DefaultPriorityTask, (void*)1, 1024);
+	m_serverConfigTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::updateConfigurationTask, "updateConfigurationTask", DefaultPriorityTask, (void*)1, 1024);
+	sys_thread_new("lwipNetworkControlTask", (void(*)(void*))lwipNetworkControlTask, 0,THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 #endif
 	LOG_INFO("SystemTasksManager::createPoolTasks done");
 
