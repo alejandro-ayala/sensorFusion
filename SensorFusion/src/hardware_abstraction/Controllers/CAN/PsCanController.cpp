@@ -353,7 +353,7 @@ static void PsCanController::sendHandler(void *CallBackRef)
 	 */
 	//LOG_DEBUG("SendHandler executed");
 	//std::cout << "SendHandler executing" << std::endl;
-	std::cout << "SendHandler done" << std::endl;
+	//std::cout << "SendHandler done" << std::endl;
 	//self->m_sendDone = true;
 }
 

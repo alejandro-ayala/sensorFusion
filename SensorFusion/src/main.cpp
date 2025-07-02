@@ -1,33 +1,6 @@
-//#define TENSORFLOW_LITE
 
-#ifdef TENSORFLOW_LITE
+#ifdef TEST_APP
 
-
-#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
-
-#include "tensorflow/lite/micro/examples/person_detection/detection_responder.h"
-#include "tensorflow/lite/micro/examples/person_detection/image_provider.h"
-#include "tensorflow/lite/micro/examples/person_detection/model_settings.h"
-#include "tensorflow/lite/micro/examples/person_detection/person_detect_model_data.h"
-#include "tensorflow/lite/micro/kernels/micro_ops.h"
-#include "tensorflow/lite/micro/micro_error_reporter.h"
-#include "tensorflow/lite/micro/micro_interpreter.h"
-#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-#include "tensorflow/lite/schema/schema_generated.h"
-#include "tensorflow/lite/version.h"
-
-#include "tensorflow/lite/micro/examples/person_detection/main_functions.h"
-
-// This is the default main used on systems that have the standard C entry
-// point. Other devices (for example FreeRTOS or ESP32) that have different
-// requirements for entry code (like an app_main function) should specialize
-// this main.cc file in a target-specific subfolder.
-int main(int argc, char* argv[]) {
-  setup();
-  while (true) {
-    loop();
-  }
-}
 
 #else
 #ifdef HTTP_CLIENT
@@ -52,7 +25,7 @@ int main(int argc, char* argv[]) {
 #include <business_logic/ClockSyncronization/TimeBaseManager.h>
 #include "application/SystemTasksManager/SystemTasksManager.h"
 #include "services/Logger/LoggerMacros.h"
-
+#include "services/verification_tools/VerificationTools.h"
 using namespace hardware_abstraction::Controllers;
 using namespace hardware_abstraction::Devices;
 using namespace business_logic::Communication;
@@ -154,10 +127,10 @@ void createApplicationLayerComponents()
 	systemTaskHandler->createPoolTasks();
 	LOG_DEBUG("Created Application layer components");
 }
-#include <hardware_abstraction/Controllers/CAN/PsCanController.h>
 
 int main()
 {
+
 	LOG_INFO("*********************Starting SensorFusion Node Zybo Z7*********************");
 
 
@@ -165,9 +138,24 @@ int main()
 	createBusinessLogicLayerComponents();
 	createApplicationLayerComponents();
 
+	externalGpioConfiguration();
+
+
 	vTaskStartScheduler();
 	while(1);
 	return 0;
 }
 
+extern XGpioPs Gpio;
+void GpioIntrHandler(void *CallbackRef, u32 Bank, u32 Status)
+{
+	print("GpioIntrHandler\r\n");
+    if (Bank == 0 && (Status & (1 << GPIO_PIN))) {
+    	const auto globalTimestamp = globalClkMng->getAbsotuleTime();
+        xil_printf("Current globalTimestamp:%d \r\n", globalTimestamp);
+
+        // Clear interrupt by writing back the status
+        XGpioPs_IntrClearPin(&Gpio, GPIO_PIN);
+    }
+}
 #endif

@@ -268,20 +268,6 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 		}
 	}  
 }
-void SystemTasksManager::imageClassificationTask(void* argument)
-{
-
-	LOG_INFO("Starting imageClassificationTask");
-	m_imageClassifier->initialization();
-	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
-  /* Infinite loop */
-
-	while(1)
-	{
-		m_imageClassifier->detect();
-		vTaskDelay( taskSleep );
-	}
-}
 
 void SystemTasksManager::imageClassificationTask(void* argument)
 {
