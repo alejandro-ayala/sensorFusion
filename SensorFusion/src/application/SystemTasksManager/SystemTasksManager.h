@@ -1,4 +1,5 @@
 #pragma once
+#include <business_logic/ImageAssembler/ImageAssembler.h>
 #include "business_logic/Osal/TaskHandler.h"
 #include "business_logic/Communication/CommunicationManager.h"
 #include "business_logic/ImageCapturer3D/ImageCapturer3D.h"
@@ -27,6 +28,9 @@ private:
 	static inline std::shared_ptr<business_logic::ClockSyncronization::TimeBaseManager> m_globalClkMng;
 	std::shared_ptr<business_logic::Communication::CommunicationManager> m_commMng;
 	static inline std::shared_ptr<business_logic::ImageClassifier::ImageClassifierManager> m_imageClassifier;
+	static inline std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> m_imageAssembler;
+	static inline std::shared_ptr<business_logic::ImageClassifier::ImageProvider> m_imageProvider;
+
 
 	static inline uint64_t m_lastCaptureTimestampStart = 0;
 	static inline uint64_t m_lastCaptureTimestampEnd = 0;
@@ -34,8 +38,10 @@ private:
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_clockSyncTaskHandler;
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_image3dCapturerTaskHandler;
 	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_commTaskHandler;
-	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_imageTaskHandler;
 
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_imageClassifierTaskHandler;
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_imageAssemblerTaskHandler;
+	static inline std::shared_ptr<business_logic::Osal::TaskHandler> m_sensorFusionTaskHandler;
 	static inline std::shared_ptr<business_logic::Osal::QueueHandler> m_capturesQueue;
 
 public:
@@ -45,6 +51,9 @@ public:
 	static void communicationTask(void* argument);
 	static void image3dCapturerTask(void* argument);
 	static void imageClassificationTask(void* argument);
+
+	static void imageAssemblerTask(void* argument);
+	static void sensorFusionTask(void* argument);
 
     static void getNextImage(std::array<business_logic::LidarPoint, business_logic::IMAGE3D_SIZE>& lastCapture);
     static bool isPendingData();

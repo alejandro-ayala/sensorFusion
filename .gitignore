@@ -40,4 +40,5 @@ HWFILE/*
 !HWFile/ZyboZ7_design_wrapper.xsa
 !HWFile/ZyboZ7_design_wrapper.bit
 
+**/LidarSample_*.txt
 

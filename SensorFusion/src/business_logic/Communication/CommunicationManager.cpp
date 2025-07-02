@@ -6,25 +6,38 @@
 #include "services/Logger/LoggerMacros.h"
 #include <iostream>
 
-
+static inline TaskHandle_t xReceiveTaskToNotify;
 namespace business_logic
 {
 using namespace ClockSyncronization;
 using namespace hardware_abstraction::Controllers;
 namespace Communication
 {
-CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller)  : timeController(timecontroller), canController(cancontroller)
+#ifdef ASSEMBLER_TASK
+CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller, const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue)  : timeController(timecontroller), canController(cancontroller)
 {
-	msgGateway = std::make_shared<MsgGateway>();
+	xReceiveTaskToNotify = xTaskGetCurrentTaskHandle();
+	msgGateway = std::make_shared<MsgGateway>(cameraFramesQueue);
+#else
+CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncronization::TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& cancontroller, const std::shared_ptr<business_logic::Osal::QueueHandler>& cameraFramesQueue, const std::shared_ptr<business_logic::ImageAssembler::ImageAssembler>& imageAssembler)  : timeController(timecontroller), canController(cancontroller)
+{
+	msgGateway = std::make_shared<MsgGateway>(cameraFramesQueue, imageAssembler);
+#endif
+
 }
 
 CommunicationManager::~CommunicationManager()
 {
 }
 
-void CommunicationManager::initialization()
+void CommunicationManager::initialization(const TaskHandle_t& taskToNotify)
 {
+#ifdef ASSEMBLER_TASK
+	msgGateway->initialization(taskToNotify);
+#endif
 	canController->initialize();
+	const auto xTaskToNotify = xTaskGetCurrentTaskHandle();
+	canController->registerTaskToNotify(xTaskToNotify);
 }
 
 bool CommunicationManager::sendData(IData msg)
@@ -63,40 +76,66 @@ bool CommunicationManager::sendData(const std::vector<business_logic::Communicat
         	LOG_ERROR("Error sending CAN msgId: ", frame.canMsgId, " msgIndex: " , std::to_string(msgIndex), " -- currentMsgIndex: ", std::to_string(currentMsgIndex));
         else
         	LOG_TRACE("Send CAN msgId: ", frame.canMsgId, " msgIndex: " , std::to_string(msgIndex), " -- currentMsgIndex: ", std::to_string(currentMsgIndex));
-        for (int Delay = 0; Delay < 0xFFFF; Delay++);
+        //for (int Delay = 0; Delay < 0xFFFF; Delay++);
     }
     return result;
 }
 
-void CommunicationManager::receiveData()
+bool CommunicationManager::receiveData()
 {
-	auto rxMsg = canController->receiveMsg();
+	bool assembleCbor = false;
+	bool isEndOfImage = false;
+	LOG_DEBUG("CommunicationManager::receiveData starting");
+	auto rxMsgVector = canController->receiveMsg(assembleCbor, isEndOfImage);
+	LOG_DEBUG("CommunicationManager::receiveData done");
+
 	static uint8_t lastFrameIndex = 0;
 	static uint8_t lastCborIndex  = 0;
-	if(rxMsg.dlc > 0)
+
+	uint8_t msgId = 0;
+
+	if(assembleCbor)
 	{
-		std::string frameSize = "Received frame of size" + std::to_string(rxMsg.dlc) + " : ";
-		LOG_TRACE(frameSize, std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
-		if(lastFrameIndex !=rxMsg.data[0])
+		LOG_DEBUG("CommunicationManager::receiveData from canController: ", std::to_string(rxMsgVector.size()));
+	//TODO replace the loop and request only the last sample to get the variables IDs and Idx
+		for(auto& rxMsg : rxMsgVector)
 		{
-			msgGateway->completedFrame(rxMsg.id, lastFrameIndex, lastCborIndex);
-		}
-		if(rxMsg.dlc != 8)
-		{
-			//Completamos con 0xFF los bytes pendientes del final de trama
-		    for (size_t i = rxMsg.dlc; i < CAN_DATA_PAYLOAD_SIZE; ++i)
-		    {
-		    	rxMsg.data[i] = 0xFF;
-		    }
-		}
 
-		msgGateway->storeMsg(rxMsg.id, rxMsg.data);
-		lastFrameIndex = rxMsg.data[0];
-		lastCborIndex  = rxMsg.data[1];
+			if(rxMsg.dlc > 0)
+			{
+				std::string frameSize = "Received frame of size" + std::to_string(rxMsg.dlc) + " : ";
+				LOG_TRACE(frameSize, std::to_string(rxMsg.data[0]), " ", std::to_string(rxMsg.data[1]), " " , std::to_string(rxMsg.data[2]), " ", std::to_string(rxMsg.data[3]), " ", std::to_string(rxMsg.data[4]), " ", std::to_string(rxMsg.data[5]), " ", std::to_string(rxMsg.data[6]), " ", std::to_string(rxMsg.data[7]));
+				if(rxMsg.dlc != 8)
+				{
+					//Completamos con 0xFF los bytes pendientes del final de trama
+					for (size_t i = rxMsg.dlc; i < CAN_DATA_PAYLOAD_SIZE; ++i)
+					{
+						rxMsg.data[i] = 0xFF;
+					}
+				}
 
-		//parsedMsg.deSerialize(data);
-		//LOG_DEBUG("newData[" , parsedMsg.secCounter , "]. sec: " , parsedMsg.timestamp);
+				msgGateway->storeMsg(rxMsg.id, rxMsg.data);
+				lastFrameIndex = rxMsg.data[0];
+				lastCborIndex  = rxMsg.data[1];
+				msgId = rxMsg.id;
+			}
+		}
 	}
+
+	if(assembleCbor)
+	{
+		LOG_DEBUG("CommunicationManager::receiveData SENT FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)), " -- ", std::to_string(isEndOfImage));
+		msgGateway->completedFrame(msgId, lastFrameIndex, lastCborIndex, isEndOfImage);
+		LOG_DEBUG("CommunicationManager::receiveData COMPLETED FRAME done");
+		canController->clearBuffer();
+		//Sending confirmation to complete assembled frame
+		uint8_t data[MAXIMUM_CAN_MSG_SIZE] = {0x1,0x1,0x2,0x2,0x3,0x3,0x4,0x4};
+		vTaskDelay( pdMS_TO_TICKS( 10 ));
+		LOG_DEBUG("CommunicationManager::receiveData Sending FRAME_CONFIRMATION for ", std::to_string(((lastFrameIndex & 0xC0) >> 6)), " -- ", std::to_string((lastFrameIndex & 0x3F)));
+		canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::FRAME_CONFIRMATION), data, MAXIMUM_CAN_MSG_SIZE);
+	}
+
+	return assembleCbor;
 }
 
 bool CommunicationManager::selfTest()

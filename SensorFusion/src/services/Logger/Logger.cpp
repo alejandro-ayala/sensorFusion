@@ -11,14 +11,14 @@ Logger& Logger::getInstance()
 	return instance;
 }
 
-Logger::Logger() : ILogger(), m_logLevel(LogLevel::Debug), m_disable(false)
+Logger::Logger() : ILogger(), m_logLevel(LogLevel::Info), m_disable(false)
 {
 	initialize();
 }
 
 void Logger::initialize()
 {
-	m_logLevel = LogLevel::Debug;
+
 	uartMutex = std::make_shared<business_logic::Osal::MutexHandler>();
 }
 
@@ -53,6 +53,11 @@ void Logger::disable()
 void Logger::enable()
 {
 	m_disable = false;
+}
+
+bool Logger::isLevelEnabled(LogLevel level) const
+{
+    return !m_disable && level >= m_logLevel;
 }
 
 } //namespace services
