@@ -1,4 +1,29 @@
 # Release Notes
+# Release Notes
+
+## Version 2.0.0 - 2025-06-22
+
+### New features
+- Implementación inicial de **ImageClassifierManager** para inferencia con TensorFlow Lite Micro.
+- Nueva tarea **image3dCapturerTask** en `SystemTasksManager` para captura sincronizada de imágenes.
+- Nuevo controlador CAN (**PsCanController**) con soporte para múltiples baudrates, manejo por IRQ y reset automático ante estado bus-off.
+- Codificación CBOR para ensamblado y serialización de snapshots de imagen.
+- Medición de tiempos de ejecución con `GTimer`.
+- Cambio del controlador CAN de polling a IRQ para mayor eficiencia.
+
+### Improvements
+- Añadido mutex para acceso seguro en recepción CAN y Logger.
+- Refactorización de tareas de comunicación para optimizar lectura de frames CAN.
+- Ajuste y mejora en precisión del campo de visión (FoV) del Lidar.
+- Limpieza de código y eliminación de headers de prueba.
+- Eliminación de valores atípicos en nube de puntos 3D.
+
+### Fixes
+- Corrección de bloqueos en comunicación I2C.
+- Prevención de condiciones de carrera en subsistemas de comunicación.
+- Inicialización correcta de punteros en `TimeBaseManager`.
+- Corrección de errores en el proceso de medición con Lidar.
+- Mejoras en sincronización de tareas y notificaciones de fin de frame.
 
 ## Version 0.2.0 - 2024-12-12
 
