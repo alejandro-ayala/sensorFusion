@@ -42,6 +42,7 @@ public:
 	template<typename... Args>
 	void log(LogLevel logLevel , const Args&... args)
 	{
+
 		if((m_logLevel > logLevel) || m_disable)
 		{
 			return;

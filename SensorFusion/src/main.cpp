@@ -74,12 +74,14 @@ static std::unique_ptr<I2CController> i2cController;
 static std::unique_ptr<GarminV3LiteCtrl> lidarDevice;
 
 static std::shared_ptr<CommunicationManager> commMng;
+
 static std::shared_ptr<business_logic::Osal::QueueHandler> cameraFramesQueue;
 
 static std::shared_ptr<TimeBaseManager> globalClkMng;
 static std::unique_ptr<application::SystemTasksManager> systemTaskHandler;
 static std::shared_ptr<business_logic::ClockSyncronization::TimeController> timecontroller;
 static std::shared_ptr<PsCanController> canController;
+
 static std::shared_ptr<business_logic::ImageAssembler::SharedImage> sharedImage;
 static std::shared_ptr<business_logic::ImageClassifier::ImageProvider> imageProvider;
 static std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> imageAssembler;
@@ -129,6 +131,7 @@ void createBusinessLogicLayerComponents()
 	systemTaskMngParams.imageAssembler = imageAssembler;
 	commMng = std::make_shared<CommunicationManager>(timecontroller, canController, cameraFramesQueue);
 #endif
+
 
 	ImageCapturer3DConfig image3dConfig;
 	image3dConfig.verServoCtrl = std::move(verServoControl);

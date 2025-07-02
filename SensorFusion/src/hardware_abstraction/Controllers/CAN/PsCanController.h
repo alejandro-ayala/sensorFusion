@@ -10,7 +10,6 @@
 #include "xscugic.h"
 #include <vector>
 
-
 namespace hardware_abstraction
 {
 namespace Controllers
@@ -23,6 +22,7 @@ private:
 	int m_deviceId;
 	bool m_initialized;
 	XCanPs_Config *m_config;
+
 	static inline XCanPs m_canPs;
 
 	XScuGic_Config *m_irqCtrlConfig;
@@ -60,6 +60,7 @@ public:
 	static void errorHandler(void *CallBackRef, u32 ErrorMask);
 	static void eventHandler(void *CallBackRef, u32 IntrMask);
 	void registerTaskToNotify(const TaskHandle_t& xReceiveTaskToNotify);
+
 };
 }
 }

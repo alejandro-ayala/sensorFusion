@@ -36,6 +36,7 @@ void MsgGateway::initialization(const TaskHandle_t& taskToNotify)
 
 void MsgGateway::storeMsg(const uint8_t frameId, const std::array<uint8_t, hardware_abstraction::Controllers::CAN_DATA_PAYLOAD_SIZE>& frame)
 {
+
 	switch (frameId)
 	{
 		case static_cast<uint8_t>(CAN_MSG_TYPES::CAMERA_IMAGE):
@@ -48,6 +49,7 @@ void MsgGateway::storeMsg(const uint8_t frameId, const std::array<uint8_t, hardw
 			break;
 	}
 }
+
 void MsgGateway::completedFrame(uint16_t msgType, uint8_t msgIndex, uint8_t cborIndex, bool isEndOfImage)
 {
 	static uint8_t imageId = 0;

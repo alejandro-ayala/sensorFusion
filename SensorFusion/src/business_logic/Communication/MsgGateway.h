@@ -3,6 +3,7 @@
 #include "business_logic/Osal/QueueHandler.h"
 #include "hardware_abstraction/Controllers/CAN/CanFrame.h"
 
+
 #ifndef ASSEMBLER_TASK
 #include "business_logic/ImageAssembler/ImageAssembler.h"
 #endif
@@ -18,6 +19,7 @@ class MsgGateway
 private:
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_cameraFramesQueue;
 	std::shared_ptr<business_logic::Osal::QueueHandler> m_lidarFramesQueue;
+
 #ifndef ASSEMBLER_TASK
 	std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> m_imageAssembler;
 #endif

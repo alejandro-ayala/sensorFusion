@@ -43,6 +43,7 @@ void ImageCapturer3D::initialize()
 		    std::cerr << "Standard exception caught: " << ex.what() << std::endl;
 		}
 	}
+
 #endif
 }
 
@@ -107,6 +108,7 @@ uint32_t ImageCapturer3D::captureImage()
 			const auto lidarPoint = getPointDistance();
 			m_3DImage[image3dSize] = LidarPoint(lidarPoint,  hAngle - m_config.offsetHorizontalAngle, vAngle - m_config.offsetVerticalAngle);
 			image3dSize++;
+
 			//std::string distance = std::to_string(hAngle) + ", " + std::to_string(vAngle) + std::to_string(lidarPoint);
 			//LOG_INFO(distance);
 			//vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
@@ -119,6 +121,7 @@ uint32_t ImageCapturer3D::captureImage()
 		preciseDelayUs(10000);
 
 		for(int hAngle = m_config.minHorizontalAngle; hAngle <= m_config.maxHorizontalAngle; hAngle += m_config.horizontalAngleResolution)
+
 		{
 			m_horServoCtrl->setAngle(hAngle);
 			const auto lidarPoint = getPointDistance();
@@ -130,6 +133,7 @@ uint32_t ImageCapturer3D::captureImage()
 //			LOG_INFO(distance);
 			//vTaskDelay(pdMS_TO_TICKS(m_config.settlingTime));
 			preciseDelayUs(10000);
+
 		}
 
 		vAngle += m_config.verticalAngleResolution;

@@ -2,6 +2,7 @@
 #include <hardware_abstraction/Controllers/CAN/PsCanController.h>
 #include "services/Exception/SystemExceptions.h"
 #include "services/Logger/LoggerMacros.h"
+
 #define CANPS_IRQ
 
 #ifdef CANPS_IRQ
@@ -63,6 +64,7 @@ void PsCanController::initialize()
 		/*
 		 * Set interrupt handlers.
 		 */
+
 		XCanPs_SetHandler(&m_canPs, XCANPS_HANDLER_SEND, sendHandler, this);
 		XCanPs_SetHandler(&m_canPs, XCANPS_HANDLER_RECV, recvHandler, this);
 		XCanPs_SetHandler(&m_canPs, XCANPS_HANDLER_ERROR, errorHandler, this);
@@ -90,10 +92,12 @@ void PsCanController::initialize()
 		XCanPs_IntrEnable(&m_canPs, XCANPS_IXR_ALL);
 
 		//auto isTestOk = selfTest();
+
 //		if(status != XST_SUCCESS)
 //		{
 //			THROW_CONTROLLERS_EXCEPTION(services::ControllersErrorId::CanInitializationError, "CanController error during initialization");
 //		}
+
 #endif
 		configureTransceiver(CanPsMode::NormalOperation);
 		m_initialized = true;
@@ -194,6 +198,7 @@ bool PsCanController::transmitMsg(uint8_t idMsg, uint8_t *txMsg, uint8_t msgLeng
 void PsCanController::transmit(CanFrame msg)
 {
 	u8 *framePtr;
+
 	/*
 	 * Create correct values for Identifier and Data Length Code Register.
 	 */
@@ -218,6 +223,7 @@ void PsCanController::transmit(CanFrame msg)
 #ifdef CANPS_IRQ
 
 		m_sendDone = true;
+
 #endif
 	}
 }
@@ -243,6 +249,7 @@ void PsCanController::clearBuffer()
 
 bool PsCanController::selfTest()
 {
+
 //	/*
 //	 * Enter Loop Back Mode.
 //	 */
@@ -284,6 +291,7 @@ int PsCanController::setupInterruptSystem(XScuGic *IntcInstancePtr, XCanPs *CanI
 {
 	int Status;
 	return;
+
 	XScuGic_Config *IntcConfig; /* Instance of the interrupt controller */
 
 	Xil_ExceptionInit();
@@ -304,6 +312,7 @@ int PsCanController::setupInterruptSystem(XScuGic *IntcInstancePtr, XCanPs *CanI
 	}
 
 	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_IRQ_INT,(Xil_ExceptionHandler)XScuGic_InterruptHandler,IntcInstancePtr);
+
 
 	/*
 	 * Connect the device driver handler that will be called when an
@@ -328,7 +337,7 @@ int PsCanController::setupInterruptSystem(XScuGic *IntcInstancePtr, XCanPs *CanI
 
 	return XST_SUCCESS;
 }
-
+  
 void PsCanController::registerTaskToNotify(const TaskHandle_t& xReceiveTaskToNotify)
 {
 	m_receiveTaskToNotify = xReceiveTaskToNotify;

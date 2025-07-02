@@ -23,6 +23,7 @@ CommunicationManager::CommunicationManager(const std::shared_ptr<ClockSyncroniza
 {
 	msgGateway = std::make_shared<MsgGateway>(cameraFramesQueue, imageAssembler);
 #endif
+
 }
 
 CommunicationManager::~CommunicationManager()

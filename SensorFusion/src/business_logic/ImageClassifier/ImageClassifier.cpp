@@ -1,11 +1,14 @@
 #include <business_logic/ImageClassifier/ImageClassifier.h>
 #include "services/Logger/LoggerMacros.h"
 
+
 namespace business_logic
 {
 namespace ImageClassifier
 {
+
 ImageClassifierManager::ImageClassifierManager(const std::shared_ptr<ImageProvider>& imageProvider) : m_imageProvider(imageProvider)
+
 {
 
 }

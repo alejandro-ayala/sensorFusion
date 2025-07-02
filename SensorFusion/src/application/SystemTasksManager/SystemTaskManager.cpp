@@ -128,8 +128,10 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 	uint32_t queueItemSize   = sizeof(business_logic::LidarArray*); //sizeof(business_logic::Image3DSnapshot*);
 	uint32_t queueLength     = 10;
 	m_capturesQueue = std::make_shared<business_logic::Osal::QueueHandler>(queueLength, queueItemSize);
+
 	m_imageClassifier =  std::make_shared<business_logic::ImageClassifier::ImageClassifierManager>(systemTaskMngParams.imageProvider);
 	m_imageAssembler    = std::move(systemTaskMngParams.imageAssembler);
+
 	//TODO check not NULL pointers
 }
 
@@ -141,6 +143,7 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
     size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
     const std::string startMsg = "SystemTasks::globalClockSyncronization started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
     LOG_INFO(startMsg);
+
     uint32_t startExecutionTime;
     uint32_t triggerSystemStats = 0;
 
@@ -175,11 +178,13 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 
 void SystemTasksManager::communicationTask(void* argument)
 {
+
 	const TickType_t taskSleep = pdMS_TO_TICKS( 100 );
 	business_logic::Communication::CommunicationManager* commMng = reinterpret_cast<business_logic::Communication::CommunicationManager*>(argument);
 #ifdef ASSEMBLER_TASK
 	commMng->initialization(taskHandlerImgAssembler);
 #endif
+
     size_t freeHeapSize = xPortGetFreeHeapSize();
     size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
     const std::string startMsg = "SystemTasks::communicationTask started --> freeHeapSize: " + std::to_string(freeHeapSize) + " minEverFreeHeapSize " + std::to_string(minEverFreeHeapSize);
@@ -188,6 +193,7 @@ void SystemTasksManager::communicationTask(void* argument)
     uint32_t startExecutionTime;
 	while(1)
 	{
+
 		LOG_TRACE("SystemTasks::communicationTask triggered");
 		RunTimeStats_Start(&startExecutionTime);
 		const auto t1 = xTaskGetTickCount();
@@ -203,6 +209,7 @@ void SystemTasksManager::communicationTask(void* argument)
 		if(result)LOG_DEBUG("SystemTasks::communicationTask executed in: ", executionTime, " ms");
 		RunTimeStats_End("communicationTask", startExecutionTime, false);
 		LOG_DEBUG("SystemTasks::communicationTask going to sleep");
+
 		vTaskDelay( taskSleep );
 		LOG_DEBUG("SystemTasks::communicationTask wakeup");
 	}
@@ -224,6 +231,7 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 		static uint8_t captureId = 0;
 		try
 		{
+
 			logMemoryUsage();
 			m_lastCaptureTimestampStart = m_globalClkMng->getAbsotuleTime();
 			const auto imageSize = m_image3DCapturer->captureImage();
@@ -259,6 +267,20 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 			LOG_ERROR("Exception [", e.getErrorId() ,"]while captureImage: ", e.what());
 		}
 	}  
+}
+void SystemTasksManager::imageClassificationTask(void* argument)
+{
+
+	LOG_INFO("Starting imageClassificationTask");
+	m_imageClassifier->initialization();
+	const TickType_t taskSleep = pdMS_TO_TICKS( 5000 );
+  /* Infinite loop */
+
+	while(1)
+	{
+		m_imageClassifier->detect();
+		vTaskDelay( taskSleep );
+	}
 }
 
 void SystemTasksManager::imageClassificationTask(void* argument)
@@ -409,6 +431,7 @@ void SystemTasksManager::splitCborToCanMsgs(uint8_t canMsgId, const std::vector<
 
 void SystemTasksManager::createPoolTasks()
 {
+
 	LOG_INFO("SystemTasksManager::createPoolTasks started");
 #ifdef IMAGE_CLASSIFIER_NODE
 	m_imageClassifierTaskHandler  = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::imageClassificationTask, "imageClassificationTask", DefaultPriorityTask, static_cast<business_logic::Osal::VoidPtr>(m_imageClassifier.get()), 2048);
@@ -426,6 +449,7 @@ void SystemTasksManager::createPoolTasks()
 	m_image3dCapturerTaskHandler = std::make_shared<business_logic::Osal::TaskHandler>(SystemTasksManager::image3dCapturerTask, "image3dCapturerTask", DefaultPriorityTask + 1, /*static_cast<business_logic::Osal::VoidPtr>(m_image3DCapturer.get())*/(void*)1, 4096);
 #endif
 	LOG_INFO("SystemTasksManager::createPoolTasks done");
+
 }
 
 }

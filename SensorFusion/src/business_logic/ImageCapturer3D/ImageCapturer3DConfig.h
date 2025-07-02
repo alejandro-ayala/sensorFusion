@@ -14,6 +14,7 @@ struct ImageCapturer3DConfig
 	std::shared_ptr<hardware_abstraction::Devices::ServoMotorControl> verServoCtrl;
 	std::shared_ptr<hardware_abstraction::Devices::ServoMotorControl> horServoCtrl;
 	std::shared_ptr<hardware_abstraction::Devices::GarminV3LiteCtrl>  lidarCtrl;
+
 	uint8_t fov = 40;
 	uint8_t minVerticalAngle = 90;
 	uint8_t minHorizontalAngle = 60;
@@ -24,6 +25,7 @@ struct ImageCapturer3DConfig
 	uint8_t offsetVerticalAngle = 110;
 	uint8_t offsetHorizontalAngle = 80;
 	uint8_t settlingTime = 5;
+
 	bool applyBiasCorrection = false;
 	uint8_t samplesPerPosition = IMAGE3D_SAMPLES_PER_POSITION;
 };

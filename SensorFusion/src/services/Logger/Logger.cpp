@@ -18,6 +18,7 @@ Logger::Logger() : ILogger(), m_logLevel(LogLevel::Info), m_disable(false)
 
 void Logger::initialize()
 {
+
 	uartMutex = std::make_shared<business_logic::Osal::MutexHandler>();
 }
 
