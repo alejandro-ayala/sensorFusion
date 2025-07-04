@@ -1,6 +1,7 @@
 #include "VerificationTools.h"
+#include "sleep.h"
 XGpioPs Gpio;  // GPIO instance
-
+XGpioPs gpio;
 /*************************EXTERNAL IRQ SETTING**************************************/
 extern void GpioIntrHandler(void *CallbackRef, u32 Bank, u32 Status);
 void externalGpioConfiguration()
@@ -42,6 +43,12 @@ int GpioSetup()
     XGpioPs_SetCallbackHandler(&Gpio, (void *)&Gpio, GpioIntrHandler);
     XGpioPs_IntrClearPin(&Gpio, GPIO_PIN);  // Clear old interrupts
 
+    //MIO12 para señalizar envio GlobalSync
+   	XGpioPs_SetDirectionPin(&Gpio, 12, 1);
+   	XGpioPs_SetOutputEnablePin(&Gpio, 12, 1);
+   	XGpioPs_WritePin(&Gpio, 12, 1);
+   	XGpioPs_WritePin(&Gpio, 12, 0);
+   	toogleGpio();
     return XST_SUCCESS;
 }
 int ScuGicInterrupt_Init()
@@ -104,5 +111,11 @@ int ScuGicInterrupt_Init()
 	if (Status != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
+}
 
+void toogleGpio()
+{
+   	XGpioPs_WritePin(&Gpio, 12, 1);
+   	usleep(100);
+   	XGpioPs_WritePin(&Gpio, 12, 0);
 }

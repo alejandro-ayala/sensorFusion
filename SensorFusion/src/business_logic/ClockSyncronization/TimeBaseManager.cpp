@@ -50,6 +50,11 @@ uint64_t TimeBaseManager::getAbsotuleTime() const
 	return globalTimeReference.toNs() + timeController->getCurrentNsecTime();
 }
 
+uint64_t TimeBaseManager::getRelativeTime() const
+{
+	return globalTimeStamp.toNs() + timeController->getCurrentNsecTime();
+}
+
 bool TimeBaseManager::sendSyncMessage()
 {
 	CanSyncMessage syncMsg;
@@ -69,7 +74,7 @@ bool TimeBaseManager::sendSyncMessage()
 	if(result)
 	{
 		globalTimeStamp.tx_stamp = timeController->getCurrentNsecTime();
-		LOG_TRACE("SYNC -- sec:",  std::to_string(syncMsg.syncTimeSec) );
+		LOG_TRACE("TimeBaseManager::sendSyncMessage -- sec:",  std::to_string(syncMsg.syncTimeSec) );
 	}
 
 	return result;
@@ -78,22 +83,23 @@ bool TimeBaseManager::sendSyncMessage()
 bool TimeBaseManager::sendFollowUpMessage()
 {
 	CanFUPMessage fupMsg;
-	uint32_t t_tx  = globalTimeStamp.nanoseconds + (globalTimeStamp.tx_stamp - globalTimeStamp.t_0_c);
+	uint32_t sentNs  = globalTimeStamp.nanoseconds + (globalTimeStamp.tx_stamp - globalTimeStamp.t_0_c);
+	globalTimeStamp.nanoseconds = sentNs;
 	//fupMsg.crc = 0;//TODO add CRC calculation --> maybe in the serialize method?
 	fupMsg.secCounter = seqCounter;
-	if(t_tx > 1000000000)
+	if(sentNs > 1000000000)
 		fupMsg.overflowSeconds = 1;
 	else
 		fupMsg.overflowSeconds = 0;
 
-	fupMsg.syncTimeNSec = t_tx;
+	fupMsg.syncTimeNSec = sentNs;
 
 	uint8_t serializedMsg[8];
 	uint8_t frameSize = fupMsg.serialize(serializedMsg);
 
 	auto result = canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
 	if(result)
-		LOG_TRACE("FUP -- nsec:", std::to_string(fupMsg.syncTimeNSec));
+		LOG_TRACE("TimeBaseManager::sendFollowUpMessage -- nsec:", std::to_string(fupMsg.syncTimeNSec));
 	return result;
 }
 

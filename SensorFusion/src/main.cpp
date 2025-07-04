@@ -149,11 +149,14 @@ int main()
 extern XGpioPs Gpio;
 void GpioIntrHandler(void *CallbackRef, u32 Bank, u32 Status)
 {
-	print("GpioIntrHandler\r\n");
+	static uint32_t cnt = 0;
     if (Bank == 0 && (Status & (1 << GPIO_PIN))) {
     	const auto globalTimestamp = globalClkMng->getAbsotuleTime();
-        xil_printf("Current globalTimestamp:%d \r\n", globalTimestamp);
+    	const auto relativeLocalTimestamp = globalClkMng->getRelativeTime();
+        xil_printf(" absoluteLocalTime(%d): %s \r\n", cnt, std::to_string(globalTimestamp).c_str());
+        xil_printf(" relativeLocalTimestamp(%d): %s \r\n", cnt, std::to_string(relativeLocalTimestamp).c_str());
 
+        cnt++;
         // Clear interrupt by writing back the status
         XGpioPs_IntrClearPin(&Gpio, GPIO_PIN);
     }

@@ -30,6 +30,7 @@ public:
 	void updateGlobalTime(TimeStamp newTimeStamp);
 	void sendGlobalTime();
 	uint64_t getAbsotuleTime() const;
+	uint64_t getRelativeTime() const;
 };
 }
 }

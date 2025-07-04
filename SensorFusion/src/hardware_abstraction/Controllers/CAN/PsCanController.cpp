@@ -434,7 +434,7 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		 * Form Error handling code should be put here.
 		 */
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_FMER_MASK");
-		std::cout << "PsCanController Form Error" << std::endl;
+		//std::cout << "PsCanController Form Error" << std::endl;
 	}
 
 	if (ErrorMask & XCANPS_ESR_CRCER_MASK) {
@@ -442,7 +442,7 @@ static void PsCanController::errorHandler(void *CallBackRef, u32 ErrorMask)
 		 * CRC Error handling code should be put here.
 		 */
 		//LOG_DEBUG("ErrorHandler XCANPS_ESR_CRCER_MASK");
-		std::cout << "PsCanController CRC Error" << std::endl;
+		//std::cout << "PsCanController CRC Error" << std::endl;
 	}
 	if(self->m_errorCounter > RESET_CONTROLLER_COUNTER)
 	{

@@ -19,4 +19,5 @@ static XScuGic_Config *GicConfig;/* The configuration parameters of the controll
 void externalGpioConfiguration();
 int GpioSetup();
 int ScuGicInterrupt_Init();
+void toogleGpio();
 }

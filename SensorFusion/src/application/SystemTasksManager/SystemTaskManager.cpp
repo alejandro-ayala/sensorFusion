@@ -3,6 +3,7 @@
 #include "business_logic/DataSerializer/Image3DSnapshot.h"
 #include "business_logic/ImageCapturer3D/LidarPoint.h"
 #include "business_logic/Communication/CanMsg.h"
+#include "services/verification_tools/VerificationTools.h"
 namespace application
 {
 
@@ -151,15 +152,17 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 	{
 		RunTimeStats_Start(&startExecutionTime);
 		const auto t1 = xTaskGetTickCount();
-		LOG_DEBUG("Sending global master time: ", std::to_string(m_globalClkMng->getAbsotuleTime()), " ns") ;
+
 		logMemoryUsage();
-		if(!sentGlobalTime)
-		{
+		//if(!sentGlobalTime)
+		//{
 			m_globalClkMng->sendGlobalTime();
+			toogleGpio();
 			sentGlobalTime = true;
-		}
+		//}
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
+		LOG_INFO("Sent global master time: ", std::to_string(m_globalClkMng->getGlobalTime().toNs()), " ns") ;
 		RunTimeStats_End("globalClockSyncronization", startExecutionTime, true);
 
 		vTaskDelay( taskSleep );
