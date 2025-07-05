@@ -60,7 +60,8 @@ static std::shared_ptr<business_logic::ImageClassifier::ImageProvider> imageProv
 static std::shared_ptr<business_logic::ImageAssembler::ImageAssembler> imageAssembler;
 
 application::TaskParams systemTaskMngParams;
-
+#include <iostream>
+#include <iomanip>
 void createHardwareAbstractionLayerComponents()
 {
 
@@ -151,14 +152,16 @@ void GpioIntrHandler(void *CallbackRef, u32 Bank, u32 Status)
 {
 	static uint32_t cnt = 0;
     if (Bank == 0 && (Status & (1 << GPIO_PIN))) {
-    	const auto globalTimestamp = globalClkMng->getAbsotuleTime();
-    	const auto relativeLocalTimestamp = globalClkMng->getRelativeTime();
-        xil_printf(" absoluteLocalTime(%d): %s \r\n", cnt, std::to_string(globalTimestamp).c_str());
-        xil_printf(" relativeLocalTimestamp(%d): %s \r\n", cnt, std::to_string(relativeLocalTimestamp).c_str());
+    	const auto globalTimeReference = globalClkMng->getAbsoluteTime();
 
-        cnt++;
-        // Clear interrupt by writing back the status
-        XGpioPs_IntrClearPin(&Gpio, GPIO_PIN);
+
+    	std::ostringstream oss;
+    	oss << "********** [GpioIntrHandler] ********** ";
+    	oss << "  globalTimeReference( " << cnt << "): ";
+    	oss << std::fixed << std::setprecision(0) << globalTimeReference;
+    	oss << " ns";
+    	xil_printf("%s", oss.str().c_str());
+    	cnt++;
     }
 }
 #endif

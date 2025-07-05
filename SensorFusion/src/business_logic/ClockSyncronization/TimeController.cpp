@@ -21,7 +21,6 @@ TimeController::~TimeController()
 
 void TimeController::initialize()
 {
-	//restartTimer();
 	initialized = true;
 }
 
@@ -36,12 +35,8 @@ void TimeController::stopTimer()
 
 void TimeController::restartTimer()
 {
-	internalTimer->restartTimer();
+
 }
-//void TimeController::setPeriod(uint32_t period)
-//{
-//	internalTimer->setPeriod(period);
-//}
 
 double TimeController::getCurrentSecTime()
 {
@@ -56,24 +51,20 @@ uint64_t TimeController::getCurrentTicks()
 {
 	return internalTimer->getCurrentTicks();
 }
-//bool TimeController::elapsedTime()
-//{
-//	return internalTimer->elapsedTime();
-//}
+
 void TimeController::setGlobalTimeReference(const TimeStamp& gt)
 {
-	globalTimeStamp = gt;
-	restartTimer();
+	globalTimeReference = gt;
 }
 
 TimeStamp TimeController::getGlobalTimeReference()
 {
-	return globalTimeStamp;
+	return globalTimeReference;
 }
 
 uint64_t TimeController::getLocalTime()
 {
-	uint64_t localNs = globalTimeStamp.toNs() + getCurrentNsecTime();
+	uint64_t localNs = globalTimeReference.toNs() + getCurrentNsecTime();
 	return localNs;
 }
 

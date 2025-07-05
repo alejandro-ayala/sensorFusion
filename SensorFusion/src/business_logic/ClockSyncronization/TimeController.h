@@ -12,7 +12,7 @@ class TimeController : public hardware_abstraction::Controllers::IController
 {
 private:
 	std::shared_ptr<hardware_abstraction::Controllers::ZynqGT> internalTimer;
-	TimeStamp globalTimeStamp;
+	TimeStamp globalTimeReference;
 public:
 	TimeController();
 	~TimeController();

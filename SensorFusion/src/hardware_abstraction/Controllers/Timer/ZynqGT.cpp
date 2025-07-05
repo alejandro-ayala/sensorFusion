@@ -32,25 +32,33 @@ void ZynqGT::restartTimer()
 
 uint64_t ZynqGT::getCurrentTicks()
 {
+	uint64_t currentTick;
+	XTime_GetTime(&currentTick);
 	return currentTick;
 }
 
 double ZynqGT::getCurrentSec()
 {
 	uint64_t currentTick = getCurrentTicks();
-	return currentTick / countPerSeconds;
+	static constexpr double tickDurationSec =  static_cast<double>(GT_Prescaler) / static_cast<double>(XPAR_CPU_CORTEXA9_CORE_CLOCK_FREQ_HZ);
+	auto currentSec = static_cast<double>(currentTick) * tickDurationSec;
+	return currentSec;
 }
 
 double ZynqGT::getCurrentUsec()
 {
-	uint64_t currentTick = getCurrentTicks();
-	return currentTick / countPerMicroSeconds;
+	auto currentTick = getCurrentTicks();
+	static constexpr double tickDurationUs = (static_cast<double>(GT_Prescaler) / static_cast<double>(XPAR_CPU_CORTEXA9_CORE_CLOCK_FREQ_HZ)) * 1e6;
+	auto currentUs = static_cast<double>(currentTick) * tickDurationUs;
+	return currentUs;
 }
 
 double ZynqGT::getCurrentNsec()
 {
-	XTime_GetTime(&currentTick);
-	return currentTick / countPerNanoSeconds;
+	auto currentTick = getCurrentTicks();
+	static constexpr double tickDurationNs = (static_cast<double>(GT_Prescaler) / static_cast<double>(XPAR_CPU_CORTEXA9_CORE_CLOCK_FREQ_HZ)) * 1e9;
+	auto currentNs = static_cast<double>(currentTick) * tickDurationNs;
+	return currentNs;
 }
 }
 }

@@ -27,7 +27,7 @@ void TimeBaseManager::initialization()
 	syncTimeReference();
 }
 
-TimeStamp TimeBaseManager::getGlobalTime()
+TimeStamp TimeBaseManager::getLastSharedTimestamp()
 {
 	return globalTimeStamp;
 }
@@ -45,7 +45,7 @@ void TimeBaseManager::syncTimeReference()
 	globalTimeReference = parseReferenceTime(response2);
 }
 
-uint64_t TimeBaseManager::getAbsotuleTime() const
+uint64_t TimeBaseManager::getAbsoluteTime() const
 {
 	return globalTimeReference.toNs() + timeController->getCurrentNsecTime();
 }
@@ -55,13 +55,19 @@ uint64_t TimeBaseManager::getRelativeTime() const
 	return globalTimeStamp.toNs() + timeController->getCurrentNsecTime();
 }
 
+double TimeBaseManager::getCurrentNs() const
+{
+	return timeController->getCurrentNsecTime();
+}
+
 bool TimeBaseManager::sendSyncMessage()
 {
 	CanSyncMessage syncMsg;
 
-	globalTimeStamp.t_0_c = getAbsotuleTime();
+	globalTimeStamp.t_0_c = getAbsoluteTime();
 	globalTimeStamp.seconds = globalTimeStamp.t_0_c/1000000000; // Get second portion
 	globalTimeStamp.nanoseconds = globalTimeStamp.t_0_c - globalTimeStamp.seconds * 1000000000;  //Get ns portion
+	LOG_INFO("TimeBaseManager::sendSyncMessage: ", std::to_string(globalTimeStamp.t_0_c), " ns");
 	//syncMsg.crc = 0;//TODO add CRC calculation
 	syncMsg.secCounter = seqCounter;
 	//syncMsg.userByte = 0;//TODO check why it is needed
@@ -71,9 +77,11 @@ bool TimeBaseManager::sendSyncMessage()
 	uint8_t frameSize = syncMsg.serialize(serializedMsg);
 
 	auto result = canController->transmitMsg(static_cast<uint8_t>(CAN_IDs::CLOCK_SYNC), serializedMsg,frameSize);
+	result = true;
 	if(result)
 	{
-		globalTimeStamp.tx_stamp = timeController->getCurrentNsecTime();
+		auto currentNs = timeController->getCurrentNsecTime();
+		globalTimeStamp.tx_stamp = currentNs;
 		LOG_TRACE("TimeBaseManager::sendSyncMessage -- sec:",  std::to_string(syncMsg.syncTimeSec) );
 	}
 
@@ -84,7 +92,6 @@ bool TimeBaseManager::sendFollowUpMessage()
 {
 	CanFUPMessage fupMsg;
 	uint32_t sentNs  = globalTimeStamp.nanoseconds + (globalTimeStamp.tx_stamp - globalTimeStamp.t_0_c);
-	globalTimeStamp.nanoseconds = sentNs;
 	//fupMsg.crc = 0;//TODO add CRC calculation --> maybe in the serialize method?
 	fupMsg.secCounter = seqCounter;
 	if(sentNs > 1000000000)
@@ -153,6 +160,53 @@ TimeBaseRef TimeBaseManager::parseReferenceTime(const std::string& response) {
     timeRef.sec = tm.tm_sec;
 
     return timeRef;
+}
+
+
+void TimeBaseManager::localClockTest() const
+{
+    const uint32_t testIntervals[] = {
+        1000,     // 1s
+        5000,     // 5s
+        10000,    // 10s
+        30000,    // 30s
+        60000,    // 1min
+        300000,   // 5min
+        600000,   // 10min
+        900000,   // 15min
+    };
+    constexpr size_t numIntervals = sizeof(testIntervals) / sizeof(testIntervals[0]);
+    size_t currentIntervalIndex = 0;
+    std::ostringstream oss;
+    oss << "********** [TimeBaseManager::localClockTest] ********** ";
+    oss << "  globalTimeReference:   "     << globalTimeReference.toNs() << " ns";
+    oss << "  InitialAbsoluteTime:   "     << getAbsoluteTime() << " ns";
+
+    LOG_INFO(oss.str());
+    while (true)
+    {
+        uint32_t currentInterval = testIntervals[currentIntervalIndex];
+
+        auto localTimeAbsBefore = getAbsoluteTime();
+        auto localTimeRelBefore = getRelativeTime();
+
+        vTaskDelay(pdMS_TO_TICKS(currentInterval));
+
+        auto localTimeAbsAfter = getAbsoluteTime();
+        auto localTimeRelAfter = getRelativeTime();
+
+        auto localTimeAbsDiff = localTimeAbsAfter - localTimeAbsBefore;
+        auto localTimeRelDiff = localTimeRelAfter - localTimeRelBefore;
+
+        std::ostringstream oss;
+        oss << "  SleepTask: " << (currentInterval*1e6) << " ns";
+        oss << "  AbsoluteTime:   "     << localTimeAbsAfter << " ns";
+        oss << "  localTimeAbsDiff:   " << localTimeAbsDiff << " ns";
+        oss << "  localTimeRelDiff: " << localTimeRelDiff << " ns";
+        LOG_INFO(oss.str());
+
+        currentIntervalIndex = (currentIntervalIndex + 1) % numIntervals;
+    }
 }
 }
 }

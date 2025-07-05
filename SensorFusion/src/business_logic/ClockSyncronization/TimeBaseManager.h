@@ -25,12 +25,14 @@ public:
 	TimeBaseManager(const std::shared_ptr<TimeController>& timecontroller, const std::shared_ptr<hardware_abstraction::Controllers::PsCanController>& icomm);//, const std::shared_ptr<Conectivity::HTTPClient>& httpclient);
 	~TimeBaseManager();
 	void initialization();
-	TimeStamp getGlobalTime();
+	TimeStamp getLastSharedTimestamp();
 	TimeBaseRef parseReferenceTime(const std::string& response);
 	void updateGlobalTime(TimeStamp newTimeStamp);
 	void sendGlobalTime();
-	uint64_t getAbsotuleTime() const;
+	uint64_t getAbsoluteTime() const;
 	uint64_t getRelativeTime() const;
+	double getCurrentNs() const;
+	void localClockTest() const;
 };
 }
 }

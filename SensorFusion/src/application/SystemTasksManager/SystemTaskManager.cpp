@@ -139,6 +139,8 @@ SystemTasksManager::SystemTasksManager(TaskParams&& systemTaskMngParams) : m_com
 void SystemTasksManager::globalClockSyncronization(void* argument)
 {
 	m_globalClkMng->initialization();
+
+	//m_globalClkMng->localClockTest();
 	const TickType_t taskSleep = pdMS_TO_TICKS( 30000 );
     size_t freeHeapSize = xPortGetFreeHeapSize();
     size_t minEverFreeHeapSize = xPortGetMinimumEverFreeHeapSize();
@@ -162,7 +164,8 @@ void SystemTasksManager::globalClockSyncronization(void* argument)
 		//}
 		const auto executionTime = (xTaskGetTickCount() - t1) * portTICK_PERIOD_MS;
 		LOG_DEBUG("SystemTasks::globalClockSyncronization executed in: ", executionTime, " ms");
-		LOG_INFO("Sent global master time: ", std::to_string(m_globalClkMng->getGlobalTime().toNs()), " ns") ;
+		const auto sharedTime = m_globalClkMng->getLastSharedTimestamp();
+		LOG_INFO("Sent sharedTime master node: ", std::to_string(sharedTime.toNs()), " ns  -- sec: " + std::to_string(sharedTime.seconds) + " ns: " + std::to_string(sharedTime.nanoseconds));
 		RunTimeStats_End("globalClockSyncronization", startExecutionTime, true);
 
 		vTaskDelay( taskSleep );
@@ -236,11 +239,11 @@ void SystemTasksManager::image3dCapturerTask(void* argument)
 		{
 
 			logMemoryUsage();
-			m_lastCaptureTimestampStart = m_globalClkMng->getAbsotuleTime();
+			m_lastCaptureTimestampStart = m_globalClkMng->getAbsoluteTime();
 			const auto imageSize = m_image3DCapturer->captureImage();
 
 			auto last3dSample = m_image3DCapturer->getLastCapture();
-			//m_lastCaptureTimestampEnd = m_globalClkMng->getAbsotuleTime();
+			//m_lastCaptureTimestampEnd = m_globalClkMng->getAbsoluteTime();
 			//const auto captureDeltaTime = m_lastCaptureTimestampEnd - m_lastCaptureTimestampStart;
 			//LOG_TRACE("Start capture at ", std::to_string(m_lastCaptureTimestampStart));
 			//LOG_TRACE("End capture at ", std::to_string(m_lastCaptureTimestampEnd));
@@ -440,5 +443,4 @@ void SystemTasksManager::createPoolTasks()
 	LOG_INFO("SystemTasksManager::createPoolTasks done");
 
 }
-
 }
