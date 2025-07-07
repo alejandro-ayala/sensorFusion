@@ -1,0 +1,61 @@
+
+@startuml
+left to right direction
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor Black
+skinparam defaultTextAlignment center
+
+' Definición de tareas como rectángulos
+rectangle CommunicationMngTask {
+  component CommunicationMng
+}
+
+rectangle ImageAssemblerTask {
+  component ImageAssembler
+  component MsgGateway
+}
+rectangle SensorFusionTask {
+  component SensorFusionManager
+}
+rectangle GlobalClockSyncTask {
+  component TimerController
+  component ClockSyncronization
+}
+rectangle ImageClassifierTask {
+  component ImageProvider
+  component ImageScaler
+  component ImageClassifier
+}
+
+' Bloques externos
+component  TimerARM
+component  CAN_Transceiver
+component  ExternalServer
+
+' Queues sincronizacion
+queue CblorFrameQueue
+queue ImageQueue
+queue Image3DQueue
+
+' Flujo de entrada (Azul)
+TimerARM -[#0000FF]-> TimerController : Local Time
+CAN_Transceiver -[#0000FF]-> CommunicationMngTask : CBOR(JPEG, 3DMap)
+
+' Flujo interno (Amarillo)
+CommunicationMngTask -[#FFFF00]-> CblorFrameQueue
+CblorFrameQueue -[#FFFF00]-> ImageAssemblerTask : CBORFrame
+ImageAssemblerTask -[#FFFF00]-> ImageQueue
+ImageQueue -[#FFFF00]-> SensorFusionTask : ImageSnapshot
+ImageAssemblerTask -[#FFFF00]-> Image3DQueue
+Image3DQueue -[#FFFF00]-> SensorFusionTask : Image3DSnapshot
+ImageAssemblerTask -[#FFFF00]-> ImageQueue
+ImageQueue -[#FFFF00]->ImageProvider : ImageSnapshot
+ImageProvider -[#FFFF00]-> ImageScaler : ImageSnapshot
+ImageScaler -[#FFFF00]-> ImageClassifier : ScaledImageSnapshot
+TimerController -[#FFFF00]-> ClockSyncronization : Local Time
+
+' Flujo de salida (Rojo)
+ClockSyncronization -[#FF0000]-> CAN_Transceiver : SYNC/FUP
+SensorFusionTask -[#FF0000]-> ExternalServer : FusedDataInformation
+ImageClassifier -[#FF0000]-> ExternalServer : InferenceResult
+@enduml
