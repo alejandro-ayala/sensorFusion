@@ -1,0 +1,52 @@
+
+
+@startuml
+left to right direction
+skinparam componentStyle rectangle
+
+' Colores personalizados
+skinparam ArrowColor Black
+skinparam defaultTextAlignment center
+
+' Definición de tareas como componentes
+component SendDataTask {
+  component CommunicationMng
+}
+component Image3DCapturerTask {
+  component Image3DCapturer
+}
+
+component GlobalClockSyncTask {
+  component TimerController
+  component SlaveClockSyncronization
+}
+
+' Dispositivos externos
+component "CAN Transceiver" as CAN
+component "TimerARM" as TimerARM
+component PanAndTilt {
+component "ServoMotor H" as ServoH
+component "ServoMotor V" as ServoV
+}
+
+component "LIDAR Garmin" as LIDAR
+
+' Colas de sincronización
+queue Image3DQueue
+
+' Flujo de datos internos (amarillo)
+SendDataTask -[#yellow]-> Image3DQueue : Image3DSnapshot
+Image3DQueue -[#yellow]-> SendDataTask
+Image3DCapturerTask -[#yellow]-> Image3DQueue : Image3DSnapshot
+TimerController -[#yellow]-> SlaveClockSyncronization : Tiempo local
+
+' Flujo de entrada (azul)
+LIDAR -[#blue]-> Image3DCapturerTask : Distancia
+TimerARM -[#blue]-> TimerController : Señal de reloj
+CAN -[#blue]-> GlobalClockSyncTask : SYNC / FUP
+
+' Flujo de salida (rojo)
+Image3DCapturerTask -[#red]-> ServoH : PWM Horizontal
+Image3DCapturerTask -[#red]-> ServoV : PWM Vertical
+
+@enduml
