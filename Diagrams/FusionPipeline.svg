@@ -1,0 +1,39 @@
+
+@startuml
+left to right direction
+skinparam packageStyle rect
+
+package "Adquisición" {
+  [1.1 Adquisición LIDAR] as LIDAR_A
+  [1.2 Adquisición Cámara] as CAM_A
+}
+
+package "Preprocesado" {
+  [2.1 Preprocesado LIDAR\n(Cálculo distancia media)] as LIDAR_P
+  [2.2 Preprocesado Cámara\n(Detección de bordes)] as CAM_P
+}
+
+package "Serialización" {
+  [3.1 Serialización CBOR (LIDAR)] as LIDAR_S
+  [3.2 Serialización CBOR (Cámara)] as CAM_S
+}
+
+package "Fusión y Proyección" {
+  [4.1 Aplicación Calibración intrínseca] as CAL_INT
+  [4.2 Aplicación Calibración extrínseca] as CAL_EXT
+  [4.3 Filtrado FoV imagen] as FOV
+  [4.4 Generación imagen proyectada] as PROJ
+}
+
+LIDAR_A --> LIDAR_P
+LIDAR_P --> LIDAR_S
+LIDAR_S --> CAL_INT
+CAM_A --> CAM_P
+CAM_P --> CAM_S
+CAM_S --> CAL_INT
+
+CAL_INT --> CAL_EXT
+CAL_EXT --> FOV
+FOV --> PROJ
+
+@enduml
