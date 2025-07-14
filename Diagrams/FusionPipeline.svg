@@ -13,9 +13,10 @@ package "Preprocesado" {
   [2.2 Preprocesado Cámara\n(Detección de bordes)] as CAM_P
 }
 
-package "Serialización" {
+package "Transmisión" {
   [3.1 Serialización CBOR (LIDAR)] as LIDAR_S
   [3.2 Serialización CBOR (Cámara)] as CAM_S
+  [3.3 Transmisión CAN bus] as TX
 }
 
 package "Fusión y Proyección" {
@@ -27,10 +28,12 @@ package "Fusión y Proyección" {
 
 LIDAR_A --> LIDAR_P
 LIDAR_P --> LIDAR_S
-LIDAR_S --> CAL_INT
+LIDAR_S --> TX
+TX--> CAL_INT
 CAM_A --> CAM_P
 CAM_P --> CAM_S
-CAM_S --> CAL_INT
+CAM_S --> TX
+TX--> CAL_INT
 
 CAL_INT --> CAL_EXT
 CAL_EXT --> FOV
